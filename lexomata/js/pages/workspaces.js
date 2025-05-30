@@ -1,25 +1,24 @@
-/*
-* Workspaces page functionality
-* Handles theme toggling, modal display, toolbar management, and menu interactions
-*/
+/**
+ * Workspaces page functionality
+ * Handles theme toggling, modal display, toolbar management, and menu interactions
+ */
 
-
-/*
+/**
  * Toggles between light and dark theme modes and closes any open submenus
-*/
+ */
 function toggleTheme() {
     const body = document.body;
     body.classList.toggle('dark');
     document.querySelectorAll('.submenu').forEach(sub => sub.style.display = 'none');
 }
 
-/*
+/**
  * Modal elements references
  */
 const customAlertModal = document.getElementById('customAlertModal');
 const modalMessage = document.getElementById('modalMessage');
 
-/*
+/**
  * Displays modal with specified message
  * @param {string} message - The message to display in the modal
  */
@@ -28,16 +27,17 @@ function showMessage(message) {
     customAlertModal.style.display = 'flex';
 }
 
-/*
+/**
  * Closes the modal dialog
  */
 function closeMessage() {
     customAlertModal.style.display = 'none';
 }
 
-/*
+/**
  * Global click handler for modal and submenu management
  * Closes modal when clicking outside and closes submenus when clicking outside menu area
+ * @param {Event} event - The click event
  */
 window.onclick = function (event) {
     if (event.target == customAlertModal) {
@@ -49,7 +49,7 @@ window.onclick = function (event) {
     }
 }
 
-/*
+/**
  * Handles tool selection in sidebar
  * Activates clicked tool button and deactivates others, then shows confirmation message
  * @param {HTMLElement} clickedButton - The tool button that was clicked
@@ -64,14 +64,22 @@ function handleToolClick(clickedButton, message) {
     showMessage(message);
 }
 
-/*
+/**
  * Main initialization when DOM is loaded
  * Sets up dropdown menus, toolbar responsive behavior, and default tool selection
  */
 document.addEventListener('DOMContentLoaded', function () {
     const menuItems = document.querySelectorAll('.main-menu-item');
 
-    /*
+    // Get current URL parameters and extract mode value
+    const urlParams = new URLSearchParams(window.location.search);
+    const mode = urlParams.get('mode');
+
+    // Update brand subtitle with mode parameter
+    const brandSubtitle = document.getElementsByClassName('brand-subtitle')[0];
+    brandSubtitle.textContent += mode;
+
+    /**
      * Setup dropdown menu functionality
      * Toggles submenu visibility and ensures only one submenu is open at a time
      */
@@ -91,14 +99,12 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    /*
-     * Toolbar responsive management
-     */
+    // Toolbar responsive management
     const toolbarToggleButton = document.getElementById('toolbarToggleButton');
     const toolbar = document.querySelector('.toolbar');
     const breakpoint = 768;
 
-    /*
+    /**
      * Applies toolbar state (collapsed or expanded)
      * @param {boolean} shouldCollapse - Whether toolbar should be collapsed
      */
@@ -113,7 +119,9 @@ document.addEventListener('DOMContentLoaded', function () {
             icon.classList.remove('fa-chevron-right');
             icon.classList.add('fa-chevron-left');
         }
-    }    /*
+    }
+
+    /**
      * Checks screen width and applies appropriate toolbar state
      * Automatically collapses toolbar on small screens
      */
@@ -128,13 +136,12 @@ document.addEventListener('DOMContentLoaded', function () {
     checkToolbarCollapse();
     window.addEventListener('resize', checkToolbarCollapse);
 
-    /*
+    /**
      * Manual toolbar toggle functionality
      * Only works on larger screens where the button is visible
      */
     if (toolbarToggleButton) {
         toolbarToggleButton.addEventListener('click', function () {
-            // Only allow manual toggle on larger screens
             if (window.innerWidth > breakpoint) {
                 toolbar.classList.toggle('collapsed');
                 const icon = this.querySelector('i');
@@ -149,12 +156,19 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    /*
-     * Set default active tool
-     * Ensures select tool is active by default on page load
-     */
+    // Set default active tool (select tool)
     const selectButton = document.querySelector('.tool-button[data-tool="select"]');
     if (selectButton) {
         selectButton.classList.add('active');
     }
 });
+
+
+function redirection() {
+    /*
+        Note:
+    
+        Here there should be a validation for if the file is not saved.
+    */
+    window.location.href = '../index.html';
+}

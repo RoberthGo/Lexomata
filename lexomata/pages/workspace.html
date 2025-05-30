@@ -21,16 +21,16 @@
       <span class="brand-dot"></span>
       <div class="brand-text-container">
         <span class="brand-main-title">LEXOMATA</span>
-        <span class="brand-subtitle">Interfaz de Autómatas Finitos</span>
+        <span class="brand-subtitle">Interfaz de </span>
       </div>
     </div>
 
     <nav class="main-menu-container">
       <span class="main-menu-item" id="menuArchivo">Archivo
         <div class="submenu">
-          <span class="submenu-item" onclick="showMessage('Volviendo al Menú Principal...')">Volver al menú</span>
           <span class="submenu-item" onclick="showMessage('Guardar Autómata (JSON)')">Guardar (JSON)</span>
           <span class="submenu-item" onclick="showMessage('Guardar Autómata (XML)')">Guardar (XML)</span>
+          <span class="submenu-item" onclick="showMessage('Importar archivo .JFF')">Importar archivo .JFF</span>
           <span class="submenu-item" onclick="showMessage('Exportar Foto del Lienzo')">Exportar Foto</span>
         </div>
       </span>
@@ -61,8 +61,7 @@
     </nav>
 
     <div class="header-actions-right">
-      <button class="back-to-menu-button" onclick="showMessage('Volviendo al Menú Principal...')">Volver al
-        Menú</button>
+      <button class="back-to-menu-button" onclick="redirection() ">Volver al Menú</button>
       <button class="theme-toggle-button-header" onclick="toggleTheme()" aria-label="Toggle theme">
         <span class="moon-icon-header">🌙</span>
         <span class="sun-icon-header">☀️</span>
@@ -78,7 +77,7 @@
       </button>
       <h2 class="toolbar-title">Herramientas</h2>
       <div class="tool-buttons-group">
-        
+
         <button class="tool-button active" data-tool="select"
           onclick="handleToolClick(this, 'Herramienta: Seleccionar')">
           <i class="fas fa-mouse-pointer"></i> <span>Seleccionar</span> <span class="shortcut-key">S</span>
@@ -87,12 +86,12 @@
         <button class="tool-button" data-tool="add-state" onclick="handleToolClick(this, 'Herramienta: Añadir Estado')">
           <i class="fas fa-circle"></i> <span>Añadir Estado</span> <span class="shortcut-key">A</span>
         </button>
-        
+
         <button class="tool-button" data-tool="add-transition"
           onclick="handleToolClick(this, 'Herramienta: Añadir Transición')">
           <i class="fas fa-arrow-right"></i> <span>Añadir Transición</span> <span class="shortcut-key">T</span>
         </button>
-        
+
         <button class="tool-button" data-tool="delete" onclick="handleToolClick(this, 'Herramienta: Eliminar')">
           <i class="fas fa-trash-alt"></i> <span>Eliminar</span> <span class="shortcut-key">D</span>
         </button>
@@ -100,21 +99,21 @@
       </div>
 
       <div class="tool-buttons-group">
-        
+
         <h3 class="tool-group-title">Estado Inicial</h3>
         <button class="tool-button" data-tool="initial-state"
           onclick="handleToolClick(this, 'Herramienta: Definir Estado Inicial')">
           <i class="fas fa-play-circle"></i> <span>Definir</span> <span class="shortcut-key">I</span>
         </button>
-        
+
         <h3 class="tool-group-title">Estado Final</h3>
-        
+
         <button class="tool-button" data-tool="final-state"
           onclick="handleToolClick(this, 'Herramienta: Definir Estado Final')">
           <i class="fas fa-bullseye"></i> <span>Definir</span> <span class="shortcut-key">F</span>
         </button>
       </div>
-      
+
       <div class="tool-buttons-group">
         <button class="tool-button" onclick="showMessage('Acción: Deshacer')">
           <i class="fas fa-undo"></i> <span>Deshacer</span>
