@@ -1,37 +1,36 @@
-// Función para alternar entre el modo claro y oscuro
+/**
+ * Index page functionality
+ * Handles theme toggling, modal operations, and page animations
+ */
+
 function toggleTheme() {
     const body = document.body;
-    // Simplemente alterna la clase 'dark' en el body
     body.classList.toggle('dark'); 
 }
 
-// Obtener referencias al modal y sus elementos
 const customAlertModal = document.getElementById('customAlertModal');
 const modalMessage = document.getElementById('modalMessage');
 
-// Función para mostrar el modal con un mensaje específico
 function showMessage(message) {
-    modalMessage.textContent = message; // Establece el mensaje en el modal
-    customAlertModal.style.display = 'flex'; // Muestra el modal
+    modalMessage.textContent = message;
+    customAlertModal.style.display = 'flex';
 }
 
-// Función para cerrar el modal
 function closeMessage() {
-    customAlertModal.style.display = 'none'; // Oculta el modal
+    customAlertModal.style.display = 'none';
 }
 
-// Cierra el modal si se hace clic fuera del contenido del modal
+// Close modal when clicking outside
 window.onclick = function(event) {
     if (event.target == customAlertModal) {
         closeMessage();
     }
 }
 
-// Animaciones de entrada al cargar la página
+// Initialize page animations with staggered delays
 document.addEventListener('DOMContentLoaded', function() {
     const elements = document.querySelectorAll('.fade-in, .slide-up');
     elements.forEach((el, index) => {
-        // Aplica un retraso escalonado a las animaciones para un efecto más dinámico
         el.style.animationDelay = `${index * 0.2}s`;
     });
 });
