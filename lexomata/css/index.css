@@ -1,0 +1,320 @@
+/* Basic CSS Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Global body styles and theme transitions */
+body {
+    font-family: 'Inter', sans-serif; 
+    transition: background 0.5s ease, color 0.3s ease-in-out;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+/* Light theme styles */
+body.light {
+    background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+    color: #2c3e50;
+}
+
+/* Dark theme styles */
+body.dark {
+    background: linear-gradient(135deg, #2c3e50 0%, #1a1a2e 100%);
+    color: #e0e0e0;
+}
+
+/* Main container for the interface */
+.container {
+    text-align: center;
+    z-index: 10;
+    max-width: 600px;
+    padding: 2rem;
+    width: 100%;
+}
+
+/* Logo/title styling */
+.logo {
+    font-size: 3.5rem;
+    font-weight: 800;
+    margin-bottom: 3rem;
+    letter-spacing: 2px;
+    color: #2c3e50;
+    transition: color 0.3s ease-in-out;
+}
+
+body.dark .logo {
+    color: #e0e0e0;
+}
+
+/* Main buttons container */
+.buttons-container {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 3rem;
+}
+
+/* Base styles for main buttons */
+.main-button {
+    padding: 1rem 2rem;
+    border: 2px solid;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out, background-color 0.5s ease, border-color 0.5s ease;
+    text-decoration: none;
+    display: inline-block;
+    min-width: 180px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Finite Automaton button styles */
+.automata-button {
+    background: #20c997;
+    color: white;
+    border-color: #20c997;
+}
+
+.automata-button:hover {
+    background: transparent;
+    color: #20c997;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+}
+
+body.dark .automata-button {
+    color: #e0e0e0;
+    background: #1a8a68;
+    border-color: #1a8a68;
+}
+
+body.dark .automata-button:hover {
+    color: #20c997;
+    background: transparent;
+}
+
+/* Turing Machine button styles */
+.turing-button {
+    background: #8854d0;
+    color: white;
+    border-color: #8854d0;
+}
+
+.turing-button:hover {
+    background: transparent;
+    color: #8854d0;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+}
+
+body.dark .turing-button {
+    color: #e0e0e0;
+    background: #6a40a8;
+    border-color: #6a40a8;
+}
+
+body.dark .turing-button:hover {
+    color: #8854d0;
+    background: transparent;
+}
+
+/* Theme toggle button */
+.theme-toggle {
+    position: absolute;
+    top: 2rem;
+    right: 2rem;
+    background: transparent;
+    border: none;
+    width: 50px;
+    height: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease, opacity 0.5s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: inherit;
+}
+
+.theme-toggle:hover {
+    transform: rotate(180deg);
+    opacity: 0.7;
+}
+
+/* Theme toggle icons */
+.moon-icon, .sun-icon {
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+    position: absolute;
+}
+
+.sun-icon {
+    opacity: 0;
+    transform: scale(0.8);
+}
+
+body.dark .moon-icon {
+    opacity: 0;
+    transform: scale(0.8);
+}
+
+body.dark .sun-icon {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* GitHub button styling */
+.github-button {
+    position: absolute;
+    bottom: 2rem;
+    left: 2rem;
+    background: #24292e;
+    border: none;
+    border-radius: 12px;
+    padding: 0.8rem 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s ease, background-color 0.5s ease;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    color: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.github-button:hover {
+    background: #1a1e22;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+body.dark .github-button {
+    background: #333741;
+}
+
+body.dark .github-button:hover {
+    background: #2c3035;
+}
+
+/* Responsive design for mobile devices */
+@media (max-width: 768px) {
+    .logo {
+        font-size: 2.5rem;
+    }
+    
+    .buttons-container {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .main-button {
+        width: 80%;
+        max-width: 280px;
+    }
+    
+    .theme-toggle {
+        top: 1rem;
+        right: 1rem;
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+
+    .github-button {
+        bottom: 1rem;
+        left: 1rem;
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Animation utilities */
+.fade-in {
+    opacity: 0;
+    animation: fadeIn 1s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    to { opacity: 1; }
+}
+
+.slide-up {
+    transform: translateY(30px);
+    opacity: 0;
+    animation: slideUp 1s ease-out forwards;
+}
+
+@keyframes slideUp {
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Custom modal styles */
+.custom-modal {
+    display: none;
+    position: fixed;
+    z-index: 100;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px);
+}
+
+.custom-modal-content {
+    background-color: #fefefe;
+    margin: auto;
+    padding: 20px;
+    border-radius: 10px;
+    width: 80%;
+    max-width: 400px;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    transform: scale(0.9);
+    opacity: 0;
+    animation: modalOpen 0.3s forwards ease-out;
+}
+
+body.dark .custom-modal-content {
+    background-color: #333;
+    color: #e0e0e0;
+}
+
+@keyframes modalOpen {
+    to { transform: scale(1); opacity: 1; }
+}
+
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    cursor: pointer;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+body.dark .close-button:hover,
+body.dark .close-button:focus {
+    color: #eee;
+}

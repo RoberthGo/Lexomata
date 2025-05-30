@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interfaz de Autómatas Finitos</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto:wght@400;500;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="../css/workspace.css">
+  <style></style>
+
+</head>
+
+<body class="light">
+  <header class="top-bar">
+
+    <div class="app-brand">
+      <span class="brand-dot"></span>
+      <div class="brand-text-container">
+        <span class="brand-main-title">LEXOMATA</span>
+        <span class="brand-subtitle">Interfaz de Autómatas Finitos</span>
+      </div>
+    </div>
+
+    <nav class="main-menu-container">
+      <span class="main-menu-item" id="menuArchivo">Archivo
+        <div class="submenu">
+          <span class="submenu-item" onclick="showMessage('Volviendo al Menú Principal...')">Volver al menú</span>
+          <span class="submenu-item" onclick="showMessage('Guardar Autómata (JSON)')">Guardar (JSON)</span>
+          <span class="submenu-item" onclick="showMessage('Guardar Autómata (XML)')">Guardar (XML)</span>
+          <span class="submenu-item" onclick="showMessage('Exportar Foto del Lienzo')">Exportar Foto</span>
+        </div>
+      </span>
+
+      <span class="main-menu-item" id="menuEdicion">Edición
+        <div class="submenu">
+          <span class="submenu-item" onclick="showMessage('Acción: Deshacer')">Deshacer</span>
+          <span class="submenu-item" onclick="showMessage('Acción: Rehacer')">Rehacer</span>
+        </div>
+      </span>
+
+      <span class="main-menu-item" id="menuEjecucion">Ejecución
+        <div class="submenu">
+          <span class="submenu-item" onclick="showMessage('Opciones de Ejecución: Paso a Paso')">Paso a Paso</span>
+          <span class="submenu-item" onclick="showMessage('Opciones de Ejecución: Cinta')">Cinta</span>
+          <span class="submenu-item" onclick="showMessage('Opciones de Ejecución: Múltiple Run')">Múltiple Run</span>
+          <span class="submenu-item" onclick="showMessage('Activar/Desactivar AutoGuardado')">Activar/Desactivar
+            AutoGuardado</span>
+        </div>
+      </span>
+
+      <span class="main-menu-item" id="menuVer">Ver
+        <div class="submenu">
+          <span class="submenu-item" onclick="showMessage('Enfocar el nodo X')">Enfocar el nodo X</span>
+        </div>
+      </span>
+
+    </nav>
+
+    <div class="header-actions-right">
+      <button class="back-to-menu-button" onclick="showMessage('Volviendo al Menú Principal...')">Volver al
+        Menú</button>
+      <button class="theme-toggle-button-header" onclick="toggleTheme()" aria-label="Toggle theme">
+        <span class="moon-icon-header">🌙</span>
+        <span class="sun-icon-header">☀️</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="content-area">
+    <aside class="toolbar">
+      <button class="toolbar-toggle-button" id="toolbarToggleButton"
+        aria-label="Colapsar/Expandir barra de herramientas">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <h2 class="toolbar-title">Herramientas</h2>
+      <div class="tool-buttons-group">
+        
+        <button class="tool-button active" data-tool="select"
+          onclick="handleToolClick(this, 'Herramienta: Seleccionar')">
+          <i class="fas fa-mouse-pointer"></i> <span>Seleccionar</span> <span class="shortcut-key">S</span>
+        </button>
+
+        <button class="tool-button" data-tool="add-state" onclick="handleToolClick(this, 'Herramienta: Añadir Estado')">
+          <i class="fas fa-circle"></i> <span>Añadir Estado</span> <span class="shortcut-key">A</span>
+        </button>
+        
+        <button class="tool-button" data-tool="add-transition"
+          onclick="handleToolClick(this, 'Herramienta: Añadir Transición')">
+          <i class="fas fa-arrow-right"></i> <span>Añadir Transición</span> <span class="shortcut-key">T</span>
+        </button>
+        
+        <button class="tool-button" data-tool="delete" onclick="handleToolClick(this, 'Herramienta: Eliminar')">
+          <i class="fas fa-trash-alt"></i> <span>Eliminar</span> <span class="shortcut-key">D</span>
+        </button>
+
+      </div>
+
+      <div class="tool-buttons-group">
+        
+        <h3 class="tool-group-title">Estado Inicial</h3>
+        <button class="tool-button" data-tool="initial-state"
+          onclick="handleToolClick(this, 'Herramienta: Definir Estado Inicial')">
+          <i class="fas fa-play-circle"></i> <span>Definir</span> <span class="shortcut-key">I</span>
+        </button>
+        
+        <h3 class="tool-group-title">Estado Final</h3>
+        
+        <button class="tool-button" data-tool="final-state"
+          onclick="handleToolClick(this, 'Herramienta: Definir Estado Final')">
+          <i class="fas fa-bullseye"></i> <span>Definir</span> <span class="shortcut-key">F</span>
+        </button>
+      </div>
+      
+      <div class="tool-buttons-group">
+        <button class="tool-button" onclick="showMessage('Acción: Deshacer')">
+          <i class="fas fa-undo"></i> <span>Deshacer</span>
+        </button>
+        <button class="tool-button" onclick="showMessage('Acción: Rehacer')">
+          <i class="fas fa-redo"></i> <span>Rehacer</span>
+        </button>
+      </div>
+    </aside>
+
+    <div class="canvas-wrapper">
+      <canvas id="automataCanvas" class="automata-canvas"></canvas>
+      <p class="canvas-placeholder">Lienzo para Autómatas Finitos<br>(Usa A, S, T, D, I, F o haz clic en las
+        herramientas)</p>
+    </div>
+  </div>
+
+  <div id="customAlertModal" class="custom-modal">
+    <div class="custom-modal-content">
+      <span class="close-button" onclick="closeMessage()">&times;</span>
+      <p id="modalMessage"></p>
+    </div>
+  </div>
+
+  <script src="../js/pages/workspaces.js"> </script>
+</body>
+
+</html>
