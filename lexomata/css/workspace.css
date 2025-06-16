@@ -243,11 +243,12 @@ body.dark .sun-icon-header { display: inline; }
 .toolbar {
     width: 280px;
     background-color: #ffffff;
-    padding: 1.5rem;
+    padding: 1rem;
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
     display: flex;
     flex-direction: column;
     gap: 1.2rem;
+    margin: 0;
     flex-shrink: 0;
     border-right: 1px solid #eee;
     transition: width 0.3s ease;
@@ -269,7 +270,8 @@ body.dark .toolbar {
 .toolbar-toggle-button {
     position: absolute;
     top: 1rem;
-    right: 1rem;
+    right: -.6rem;
+    margin: 0;
     background: none;
     border: none;
     font-size: 1.2rem;
@@ -278,8 +280,6 @@ body.dark .toolbar {
     transition: transform 0.3s ease, color 0.2s ease;
     z-index: 10;
     display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 body.dark .toolbar-toggle-button {
@@ -290,10 +290,6 @@ body.dark .toolbar-toggle-button {
     color: #20c997;
 }
 
-.toolbar.collapsed .toolbar-toggle-button {
-    transform: rotate(180deg);
-    right: 0.5rem;
-}
 
 .toolbar-title {
     font-family: 'Poppins', sans-serif;
@@ -361,11 +357,6 @@ body.dark .tool-group-title {
     transition: all 0.2s ease;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
     width: 100%;
-}
-
-.toolbar.collapsed .tool-button {
-    justify-content: center;
-    padding: 0.8rem;
 }
 
 .tool-button:hover {
@@ -479,22 +470,6 @@ body.dark .automata-canvas {
     border: 1px dashed #555;
 }
 
-.canvas-placeholder {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-style: italic;
-    color: #888;
-    font-size: 1.1rem;
-    text-align: center;
-    pointer-events: none;
-    z-index: 5;
-}
-
-body.dark .canvas-placeholder {
-    color: #aaa;
-}
 
 /* Modal */
 .custom-modal {
@@ -621,8 +596,8 @@ body.dark .close-button:focus {
         flex-wrap: wrap;
         justify-content: center;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-        padding: 1rem;
-        gap: 0.8rem;
+        padding: .5rem;
+        gap: 0rem;
         border-right: none;
         border-bottom: 1px solid #eee;
     }
@@ -635,7 +610,9 @@ body.dark .close-button:focus {
     .toolbar.collapsed {
         width: 100%;
         padding: 1rem;
-    }    .toolbar-toggle-button {
+    }    
+    
+    .toolbar-toggle-button {
         display: none;
     }
 
