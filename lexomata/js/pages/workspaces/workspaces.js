@@ -120,39 +120,23 @@ document.addEventListener('DOMContentLoaded', function () {
             icon.classList.add('fa-chevron-left');
         }
     }
-
-    /**
-     * Checks screen width and applies appropriate toolbar state
-     * Automatically collapses toolbar on small screens
-     */
-    function checkToolbarCollapse() {
-        if (window.innerWidth <= breakpoint) {
-            applyToolbarState(true);
-        } else {
-            applyToolbarState(false);
-        }
-    }
-
-    checkToolbarCollapse();
-    window.addEventListener('resize', checkToolbarCollapse);
-
+    
     /**
      * Manual toolbar toggle functionality
      * Only works on larger screens where the button is visible
      */
     if (toolbarToggleButton) {
         toolbarToggleButton.addEventListener('click', function () {
-            if (window.innerWidth > breakpoint) {
-                toolbar.classList.toggle('collapsed');
-                const icon = this.querySelector('i');
-                if (toolbar.classList.contains('collapsed')) {
-                    icon.classList.remove('fa-chevron-left');
-                    icon.classList.add('fa-chevron-right');
-                } else {
-                    icon.classList.remove('fa-chevron-right');
-                    icon.classList.add('fa-chevron-left');
-                }
+            toolbar.classList.toggle('collapsed');
+            const icon = this.querySelector('i');
+            if (toolbar.classList.contains('collapsed')) {
+                icon.classList.remove('fa-chevron-left');
+                icon.classList.add('fa-chevron-right');
+            } else {
+                icon.classList.remove('fa-chevron-right');
+                icon.classList.add('fa-chevron-left');
             }
+        
         });
     }
 

@@ -1,10 +1,12 @@
 class State {
-    constructor(stateName, isStart = false, isEnd = false, comment = '') {
+    constructor(stateName, x, y, isStart = false, isEnd = false, comment = '') {
         this.StateName = stateName;
         this.IsStart = isStart;
         this.IsEnd = isEnd;
         this.Comment = comment;
-        this.Edges = []; 
+        this.Edges = [];
+        this.x = x;
+        this.y = y;
     }
 
     addEdge(edge) {

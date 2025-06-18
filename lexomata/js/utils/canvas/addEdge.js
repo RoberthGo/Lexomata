@@ -1,5 +1,3 @@
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
 let isSelected=false;
 let OriginState=null;
 function createState(event){
@@ -39,4 +37,4 @@ function selectState(x, y, targetX, targetY, distAnt, indexState) {
     }
 }
 
-canvas.addEventListener('click', createState);
+// canvas.addEventListener('click', createState);

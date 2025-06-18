@@ -32,6 +32,31 @@ function moveEdge() {
 
 }
 
+function getCanvasPoint(X, Y) {
+    // 1. Obtener la posición del canvas relativo al viewport
+    const rect = canvas.getBoundingClientRect();
+
+    // 2. Calcular las coordenadas del mouse relativas al canvas
+
+    /*  // 4. Obtener la matriz de transformación actual del contexto
+      const transform = ctx.getTransform();
+  
+      // 5. Crear la matriz inversa para convertir a coordenadas lógicas
+      const invTransform = transform.invertSelf();
+  
+      // 6. Aplicar la transformación inversa
+      const logicalX = invTransform.a * xInDevicePx + invTransform.c * yInDevicePx + invTransform.e;
+      const logicalY = invTransform.b * xInDevicePx + invTransform.d * yInDevicePx + invTransform.f;
+  
+  */
+    const logicalX = (X / (dpr * zoom_level));// - offsetX;
+    const logicalY = (Y / (dpr * zoom_level));// - offsetY;
+
+    return {
+        x: logicalX,
+        y: logicalY
+    };
+}
 
 // Función auxiliar para calcular distancia a una línea
 function distanceToLine(px, py, x1, y1, x2, y2) {
@@ -64,3 +89,10 @@ function distanceToLine(px, py, x1, y1, x2, y2) {
     return Math.sqrt(dx * dx + dy * dy);
 }
 
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < states.length; i++) {
+        console.log(states[i].x + "   " + states[i].y);
+        drawNode(states[i].x, states[i].y);
+    }
+}
