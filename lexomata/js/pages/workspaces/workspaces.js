@@ -6,6 +6,7 @@
 /**
  * Toggles between light and dark theme modes and closes any open submenus
  */
+
 function toggleTheme() {
     const body = document.body;
     body.classList.toggle('dark');
@@ -141,10 +142,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Set default active tool (select tool)
-    const selectButton = document.querySelector('.tool-button[data-tool="select"]');
+    /*const selectButton = document.querySelector('.tool-button[data-tool="select"]');
     if (selectButton) {
         selectButton.classList.add('active');
-    }
+    }*/
 });
 
 

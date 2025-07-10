@@ -1,6 +1,6 @@
 let isSelected=false;
 let OriginState=null;
-function createState(event){
+function createEdge(event){
 const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
@@ -10,14 +10,16 @@ const rect = canvas.getBoundingClientRect();
     * en un radio de 20 px, si no encuentra ninguno
     * deja "indexState" en -1
     */
-    for(let i=0; i<States.length; i++){
-        selectState(x, y, States[i].x, States[i].y, distAnt, indexState);
+    for(let i=0; i<states.length; i++){
+        if(selectState(x, y, states[i].x, states[i].y, distAnt)){
+            indexState=i;
+        }
     }
     if(indexState!=-1){
         if(isSelected){
             // Si ya hay un estado seleccionado, se añade la arista
             // desde el estado anteriormente seleccionado al estado actual
-            States[OriginState].addEdge(new Edge(OriginState, States[indexState]));
+            states[OriginState].addEdge(new Edge(OriginState, states[indexState]));
             OriginState=null;
             isSelected=false;
         }else{
@@ -29,12 +31,13 @@ const rect = canvas.getBoundingClientRect();
     }
 }
 //La distancia de 20 es el radio que tiene cada uno de los estados
-function selectState(x, y, targetX, targetY, distAnt, indexState) {
+function selectState(x, y, targetX, targetY, distAnt) {
     const distance = Math.sqrt((x - targetX) ** 2 + (y - targetY) ** 2);
     if(distance <= 20&& distance < distAnt){
-        indexState=index;
         distAnt=distance;
+        return true;
     }
+    return false;
 }
 
 // canvas.addEventListener('click', createState);

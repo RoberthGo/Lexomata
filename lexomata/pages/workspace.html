@@ -78,21 +78,23 @@
       <h2 class="toolbar-title">Herramientas</h2>
       <div class="tool-buttons-group">
 
-        <button class="tool-button active" data-tool="select"
-          onclick="handleToolClick(this, 'Herramienta: Seleccionar')">
+        <button class="tool-button" data-tool="select" id="select"
+          onclick="changeTool('select','select')">
           <i class="fas fa-mouse-pointer"></i> <span>Seleccionar</span> <span class="shortcut-key">S</span>
         </button>
 
-        <button class="tool-button" data-tool="add-state" onclick="handleToolClick(this, 'Herramienta: Añadir Estado')">
+        <button class="tool-button" data-tool="add-state" id="node"
+          onclick="changeTool('addNode','node')">
           <i class="fas fa-circle"></i> <span>Añadir Estado</span> <span class="shortcut-key">A</span>
         </button>
 
-        <button class="tool-button" data-tool="add-transition"
-          onclick="handleToolClick(this, 'Herramienta: Añadir Transición')">
+        <button class="tool-button" data-tool="add-transition" id="edge"
+          onclick="changeTool('addEdge','edge')">
           <i class="fas fa-arrow-right"></i> <span>Añadir Transición</span> <span class="shortcut-key">T</span>
         </button>
 
-        <button class="tool-button" data-tool="delete" onclick="handleToolClick(this, 'Herramienta: Eliminar')">
+        <button class="tool-button" data-tool="delete" id="delete"
+          onclick="changeTool('delete','delete')">
           <i class="fas fa-trash-alt"></i> <span>Eliminar</span> <span class="shortcut-key">D</span>
         </button>
 
@@ -139,11 +141,12 @@
 
   <script src="../js/pages/workspaces/workspaces.js"> </script>
   <script src="../js/pages/workspaces/canvasSettings.js"></script>
+  <script src="../js/pages/workspaces/toolbar.js"> </script>
   <script src="../js/utils/canvas/canvas.js"></script>
   <script src="../js/models/State.js"></script>
+  <script src="../js/models/Edge.js"></script>
   <script src="../js/utils/canvas/Node/addNode.js"></script>
-
-
+  <script src="../js/utils/canvas/addEdge.js"></script>
 </body>
 
 </html>
