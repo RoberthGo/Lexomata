@@ -8,8 +8,7 @@ class State {
         this.x = x;
         this.y = y;
     }
-
-    addEdge(edge) {
+    insertEdge(edge) {
         if (edge instanceof Edge) {
             this.Edges.push(edge);
         } else {

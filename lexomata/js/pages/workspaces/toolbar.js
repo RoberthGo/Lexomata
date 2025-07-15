@@ -2,6 +2,7 @@ function changeTool(tool,id) {
     const canvas = document.getElementById('canvas');
     document.getElementById(id).focus();
     console.log(tool)
+    console.log(canvas==null?"bruh":"ekisde");
     switch(tool){
         case 'addNode':
             if (canvas) {

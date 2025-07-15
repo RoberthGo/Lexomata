@@ -1,5 +1,5 @@
 let isSelected=false;
-let OriginState=null;
+let OriginState=-1;
 function createEdge(event){
 const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
@@ -15,13 +15,16 @@ const rect = canvas.getBoundingClientRect();
             indexState=i;
         }
     }
+    console.log(indexState);
     if(indexState!=-1){
         if(isSelected){
             // Si ya hay un estado seleccionado, se añade la arista
             // desde el estado anteriormente seleccionado al estado actual
-            states[OriginState].addEdge(new Edge(OriginState, states[indexState]));
+            states[OriginState].insertEdge(new Edge(OriginState, states[indexState]));
+            drawEdge(0,0,100,100)
             OriginState=null;
             isSelected=false;
+            console.log(states[OriginState]);
         }else{
             // Si no hay un estado seleccionado, se guarda el estado
             // actual como el origen
