@@ -18,10 +18,12 @@ function getObject(x, y) {
             return { type: 'state', index: i, object: states[i] };
         }
     }
-
     return null;
 }
 
+function selectTool(x,y){
+    console.log(getObject(x,y));
+}
 
 function moveNode() {
 

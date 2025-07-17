@@ -5,11 +5,6 @@ const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
     let indexState=-1, distAnt=1000;
-    /*  
-    * Esta funcion encuentra el estado mas cercano al click
-    * en un radio de 20 px, si no encuentra ninguno
-    * deja "indexState" en -1
-    */
     for(let i=0; i<states.length; i++){
         if(selectState(x, y, states[i].x, states[i].y, distAnt)){
             indexState=i;
@@ -33,7 +28,7 @@ const rect = canvas.getBoundingClientRect();
         }
     }
 }
-//La distancia de 20 es el radio que tiene cada uno de los estados
+//Funcion auxiliar para seleccionar el estado mas cercano al click
 function selectState(x, y, targetX, targetY, distAnt) {
     const distance = Math.sqrt((x - targetX) ** 2 + (y - targetY) ** 2);
     if(distance <= 20&& distance < distAnt){
