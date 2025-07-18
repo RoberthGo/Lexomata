@@ -1,9 +1,13 @@
-function getObject(x, y) {
+function getObject(event) {
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
     // Recorrer edges desde el final hacia el principio
     for (let i = edges.length - 1; i >= 0; i--) {
         const edge = edges[i];
         // Verificar si el click está cerca de la línea del edge
         const distance = distanceToLine(x, y, edge.x1, edge.y1, edge.x2, edge.y2);
+        //console.log()
         if (distance <= 5) { // Tolerancia de 5 píxeles
             return { type: 'edge', index: i, object: edges[i] };
         }
@@ -12,9 +16,11 @@ function getObject(x, y) {
     // Recorrer states desde el final hacia el principio
     for (let i = states.length - 1; i >= 0; i--) {
         const state = states[i];
+        console.log(state.x+" "+state.y);
         // Verificar si el click está dentro del círculo
         const distance = Math.sqrt(Math.pow(x - state.x, 2) + Math.pow(y - state.y, 2));
-        if (distance <= nodeRadius) {
+        console.log(distance);
+        if (distance <= NODE_RADIUS) {
             return { type: 'state', index: i, object: states[i] };
         }
     }

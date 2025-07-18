@@ -13,10 +13,10 @@ const rect = canvas.getBoundingClientRect();
     console.log(indexState);
     if(indexState!=-1){
         if(isSelected){
-            console.log(states[OriginState].x);
             // Si ya hay un estado seleccionado, se añade la arista
             // desde el estado anteriormente seleccionado al estado actual
             states[OriginState].insertEdge(new Edge(OriginState, states[indexState]));
+            edges.push(new Edge(states[OriginState].x,states[OriginState].y,states[indexState].x,states[indexState].y,OriginState, states[indexState]));
             drawEdge(states[OriginState].x,states[OriginState].y,states[indexState].x,states[indexState].y)
             OriginState=null;
             isSelected=false;
