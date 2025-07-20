@@ -1,17 +1,26 @@
-function drawEdge(x1, y1, x2, y2) {
-    ctx.save();
-    ctx.strokeStyle = '#222';
-    ctx.lineWidth = 3;
+function drawEdge(ctx, edge, nodes, selectedEdgeId) {
+    const fromNode = nodes.find(n => n.id === edge.from);
+    const toNode = nodes.find(n => n.id === edge.to);
+    if (!fromNode || !toNode) return;
+    
+    // Comprueba si esta arista es la seleccionada
+    const isSelected = (edge.id === selectedEdgeId);
+
+    // Dibuja la línea
     ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
+    ctx.moveTo(fromNode.x, fromNode.y);
+    ctx.lineTo(toNode.x, toNode.y);
+    
+    // Cambia el estilo si está seleccionada
+    ctx.strokeStyle = isSelected ? '#D62828' : '#000000'; // Rojo si está seleccionada
+    ctx.lineWidth = isSelected ? 3 : 2; // Más gruesa si está seleccionada
     ctx.stroke();
-    const centerX = (x1 + x2) / 2;
-    const centerY = (y1 + y2) / 2;
-    const text = "Edge"; 
-    ctx.font = "16px Arial";
-    ctx.fillStyle = "#222";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "bottom";
-    ctx.fillText(text, centerX, centerY - 8); 
+
+    // Dibuja la etiqueta
+    const midX = (fromNode.x + toNode.x) / 2;
+    const midY = (fromNode.y + toNode.y) / 2;
+    ctx.fillStyle = isSelected ? '#D62828' : '#000000'; // También cambia el color del texto
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(edge.label, midX, midY - 10);
 }

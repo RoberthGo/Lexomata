@@ -671,3 +671,15 @@ body.dark .close-button:focus {
         border: none;
     }
 }
+
+.tool-button.active {
+    background-color: #dceaf5; 
+    border-left: 4px solid #007bff;
+    font-weight: 600; 
+}
+
+/* Para el tema oscuro */
+.dark .tool-button.active {
+    background-color: #3a3f44;
+    border-left-color: #58a6ff;
+}

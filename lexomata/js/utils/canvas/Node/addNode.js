@@ -1,11 +1,14 @@
-function createState(event) {
-    const text = "q"
-    const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+function createState(x, y, nodes, redrawCanvasCallback) {
     console.log("x: " + x + "y: " + y);
-    drawNode(x, y, text);
-    states[states.length] = new State(text + states.length.toString(), x, y);
-}
+    const newNode = {
+        id: Date.now(),
+        label: 'q' + nodes.length,
+        x: x,
+        y: y,
+        radius: 30
+    };
+    
+    nodes.push(newNode);
 
-//canvas.addEventListener('click', createState);
+    redrawCanvasCallback();
+}

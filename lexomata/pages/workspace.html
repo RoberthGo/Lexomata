@@ -78,7 +78,7 @@
       <h2 class="toolbar-title">Herramientas</h2>
       <div class="tool-buttons-group">
 
-        <button class="tool-button" data-tool="select" id="select"
+       <button class="tool-button" data-tool="select" id="select"
           onclick="changeTool('select','select')">
           <i class="fas fa-mouse-pointer"></i> <span>Seleccionar</span> <span class="shortcut-key">S</span>
         </button>
@@ -134,8 +134,13 @@
 
   <div id="customAlertModal" class="custom-modal">
     <div class="custom-modal-content">
-      <span class="close-button" onclick="closeMessage()">&times;</span>
-      <p id="modalMessage"></p>
+        <span class="close-button" onclick="closeMessage()">&times;</span>
+        <p id="modalMessage"></p>
+        
+        <div id="modalInputContainer" style="display: none;">
+            <input type="text" id="modalTextInput" class="modal-input" placeholder="Etiqueta...">
+            <button id="modalSaveButton" class="modal-button">Guardar</button>
+        </div>
     </div>
   </div>
   <script src="../js/pages/workspaces/workspaces.js"> </script>
@@ -148,6 +153,7 @@
   <script src="../js/utils/canvas/addEdge.js"></script>
   <script src="../js/utils/Draw/drawNode.js"></script>
   <script src="../js/utils/Draw/drawEdge.js"></script>
+  
 </body>
 
 </html>

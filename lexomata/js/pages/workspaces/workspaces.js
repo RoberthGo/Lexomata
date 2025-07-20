@@ -1,159 +1,173 @@
-/**
- * Workspaces page functionality
- * Handles theme toggling, modal display, toolbar management, and menu interactions
- */
-
-/**
- * Toggles between light and dark theme modes and closes any open submenus
- */
+// ---------------------------------------------------------------------------------
+// SECTION: UI and Modal Functions
+// ---------------------------------------------------------------------------------
 
 function toggleTheme() {
-    const body = document.body;
-    body.classList.toggle('dark');
+    document.body.classList.toggle('dark');
     document.querySelectorAll('.submenu').forEach(sub => sub.style.display = 'none');
 }
 
-/**
- * Modal elements references
- */
 const customAlertModal = document.getElementById('customAlertModal');
 const modalMessage = document.getElementById('modalMessage');
 
-/**
- * Displays modal with specified message
- * @param {string} message - The message to display in the modal
- */
 function showMessage(message) {
     modalMessage.textContent = message;
     customAlertModal.style.display = 'flex';
 }
 
-/**
- * Closes the modal dialog
- */
 function closeMessage() {
+    document.getElementById('modalInputContainer').style.display = 'none';
     customAlertModal.style.display = 'none';
 }
 
-/**
- * Global click handler for modal and submenu management
- * Closes modal when clicking outside and closes submenus when clicking outside menu area
- * @param {Event} event - The click event
- */
-window.onclick = function (event) {
-    if (event.target == customAlertModal) {
-        closeMessage();
-    }
+function redirection() {
+    window.location.href = '../index.html';
+}
 
-    if (!event.target.closest('.main-menu-container') && !event.target.closest('.main-menu-item')) {
+
+// ---------------------------------------------------------------------------------
+// SECTION: Canvas and Automata Logic
+// ---------------------------------------------------------------------------------
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let nodes = [];
+let edges = [];
+let selectedNodeId = null;
+let selectedEdgeId = null;
+let currentTool = 'select';
+let edgeCreationState = { firstNode: null };
+
+function redrawCanvas() {
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Llama a la función de su archivo correspondiente
+    edges.forEach(edge => {
+        drawEdge(ctx, edge, nodes, selectedEdgeId);
+    });
+
+    // Llama a la función de su archivo correspondiente
+    nodes.forEach(node => {
+        drawNode(ctx, node, selectedNodeId);
+    });
+}
+
+function isClickOnEdge(px, py, edge, nodes) {
+    const fromNode = nodes.find(n => n.id === edge.from);
+    const toNode = nodes.find(n => n.id === edge.to);
+    if (!fromNode || !toNode) return false;
+
+    const dx = toNode.x - fromNode.x;
+    const dy = toNode.y - fromNode.y;
+    const lengthSq = dx * dx + dy * dy;
+
+    if (lengthSq === 0) return false;
+
+    let t = ((px - fromNode.x) * dx + (py - fromNode.y) * dy) / lengthSq;
+    t = Math.max(0, Math.min(1, t));
+
+    const closestX = fromNode.x + t * dx;
+    const closestY = fromNode.y + t * dy;
+    const dist = Math.sqrt((px - closestX) ** 2 + (py - closestY) ** 2);
+
+    return dist < 5;
+}
+
+function showEdgeLabelModal(fromNode, toNode) {
+    const modalInputContainer = document.getElementById('modalInputContainer');
+    const modalTextInput = document.getElementById('modalTextInput');
+    const modalSaveButton = document.getElementById('modalSaveButton');
+
+    modalMessage.textContent = `Crear transición de ${fromNode.label} a ${toNode.label}`;
+    modalTextInput.value = '';
+    modalInputContainer.style.display = 'block';
+    customAlertModal.style.display = 'flex';
+
+    modalSaveButton.onclick = function() {
+        const label = modalTextInput.value.trim();
+        if (label) {
+            const newEdge = {
+                id: Date.now(),
+                from: fromNode.id,
+                to: toNode.id,
+                label: label
+            };
+            edges.push(newEdge);
+            redrawCanvas();
+        }
+        closeMessage();
+    };
+}
+
+
+// ---------------------------------------------------------------------------------
+// SECTION: Event Listeners
+// ---------------------------------------------------------------------------------
+
+window.onclick = function (event) {
+    if (event.target == customAlertModal) closeMessage();
+    if (!event.target.closest('.main-menu-container')) {
         document.querySelectorAll('.submenu').forEach(sub => sub.style.display = 'none');
     }
-}
+};
 
-/**
- * Handles tool selection in sidebar
- * Activates clicked tool button and deactivates others, then shows confirmation message
- * @param {HTMLElement} clickedButton - The tool button that was clicked
- * @param {string} message - Message to display after tool selection
- */
-function handleToolClick(clickedButton, message) {
-    const toolButtons = document.querySelectorAll('.tool-button');
-    toolButtons.forEach(button => {
-        button.classList.remove('active');
-    });
-    clickedButton.classList.add('active');
-    showMessage(message);
-}
+canvas.addEventListener('click', (event) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
 
-/**
- * Main initialization when DOM is loaded
- * Sets up dropdown menus, toolbar responsive behavior, and default tool selection
- */
+    switch (currentTool) {
+        case 'addNode':
+            createState(x, y, nodes, redrawCanvas);
+            break;
+        case 'addEdge':
+            handleEdgeCreationClick(x, y, nodes, redrawCanvas, edgeCreationState);
+            break;
+        default:
+            selectedNodeId = null;
+            selectedEdgeId = null;
+            let foundElement = false;
+
+            for (const node of nodes) {
+                const distance = Math.sqrt((x - node.x) ** 2 + (y - node.y) ** 2);
+                if (distance < node.radius) {
+                    selectedNodeId = node.id;
+                    foundElement = true;
+                    break;
+                }
+            }
+            if (!foundElement) {
+                for (const edge of edges) {
+                    if (isClickOnEdge(x, y, edge, nodes)) {
+                        selectedEdgeId = edge.id;
+                        break;
+                    }
+                }
+            }
+            redrawCanvas();
+            break;
+    }
+});
+
 document.addEventListener('DOMContentLoaded', function () {
     const menuItems = document.querySelectorAll('.main-menu-item');
-
-    // Get current URL parameters and extract mode value
-    const urlParams = new URLSearchParams(window.location.search);
-    const mode = urlParams.get('mode');
-
-    // Update brand subtitle with mode parameter
-    const brandSubtitle = document.getElementsByClassName('brand-subtitle')[0];
-    brandSubtitle.textContent += mode;
-
-    /**
-     * Setup dropdown menu functionality
-     * Toggles submenu visibility and ensures only one submenu is open at a time
-     */
     menuItems.forEach(item => {
         item.addEventListener('click', function (event) {
             event.stopPropagation();
-
             const submenu = this.querySelector('.submenu');
             if (submenu) {
                 const isCurrentlyOpen = submenu.style.display === 'block';
                 document.querySelectorAll('.submenu').forEach(sub => sub.style.display = 'none');
-
-                if (!isCurrentlyOpen) {
-                    submenu.style.display = 'block';
-                }
+                if (!isCurrentlyOpen) submenu.style.display = 'block';
             }
         });
     });
 
-    // Toolbar responsive management
-    const toolbarToggleButton = document.getElementById('toolbarToggleButton');
-    const toolbar = document.querySelector('.toolbar');
-    const breakpoint = 768;
-
-    /**
-     * Applies toolbar state (collapsed or expanded)
-     * @param {boolean} shouldCollapse - Whether toolbar should be collapsed
-     */
-    function applyToolbarState(shouldCollapse) {
-        const icon = toolbarToggleButton.querySelector('i');
-        if (shouldCollapse) {
-            toolbar.classList.add('collapsed');
-            icon.classList.remove('fa-chevron-left');
-            icon.classList.add('fa-chevron-right');
-        } else {
-            toolbar.classList.remove('collapsed');
-            icon.classList.remove('fa-chevron-right');
-            icon.classList.add('fa-chevron-left');
-        }
+    if (canvas) {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+        redrawCanvas();
     }
-    
-    /**
-     * Manual toolbar toggle functionality
-     * Only works on larger screens where the button is visible
-     */
-    if (toolbarToggleButton) {
-        toolbarToggleButton.addEventListener('click', function () {
-            toolbar.classList.toggle('collapsed');
-            const icon = this.querySelector('i');
-            if (toolbar.classList.contains('collapsed')) {
-                icon.classList.remove('fa-chevron-left');
-                icon.classList.add('fa-chevron-right');
-            } else {
-                icon.classList.remove('fa-chevron-right');
-                icon.classList.add('fa-chevron-left');
-            }
-        
-        });
-    }
-
-    // Set default active tool (select tool)
-    /*const selectButton = document.querySelector('.tool-button[data-tool="select"]');
-    if (selectButton) {
-        selectButton.classList.add('active');
-    }*/
 });
-
-
-function redirection() {
-    /*
-        Note:
-    
-        Here there should be a validation for if the file is not saved.
-    */
-    window.location.href = '../index.html';
-}

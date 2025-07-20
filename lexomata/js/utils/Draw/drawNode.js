@@ -1,15 +1,21 @@
-function drawNode(x, y, text) {
+function drawNode(ctx, node, selectedNodeId) {
+    const isSelected = (node.id === selectedNodeId);
+
     ctx.beginPath();
-    let pos = getCanvasPoint(x, y);
-    ctx.arc(pos.x, pos.y, NODE_RADIUS, 0, Math.PI * 2);
-    ctx.fillStyle = 'lightblue';
+    ctx.arc(node.x, node.y, node.radius, 0, 2 * Math.PI);
+
+    // Usa un estilo diferente si el nodo está seleccionado
+    ctx.fillStyle = isSelected ? '#FFD700' : '#add8e6'; // Amarillo si está seleccionado
     ctx.fill();
-    ctx.strokeStyle = 'black';
-    ctx.fillStyle = 'black';
-    ctx.font = '16px Arial';
+
+    ctx.lineWidth = isSelected ? 4 : 2;
+    ctx.strokeStyle = isSelected ? '#FFA500' : '#000000'; // Borde naranja
+    ctx.stroke();
+
+    // Dibuja la etiqueta del nodo
+    ctx.fillStyle = '#000000';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(text, pos.x, pos.y);
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    ctx.font = '16px Arial';
+    ctx.fillText(node.label, node.x, node.y);
 }

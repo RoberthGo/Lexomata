@@ -1,41 +1,32 @@
-let isSelected=false;
-let OriginState=-1;
-function createEdge(event){
-const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    let indexState=-1, distAnt=1000;
-    for(let i=0; i<states.length; i++){
-        if(selectState(x, y, states[i].x, states[i].y, distAnt)){
-            indexState=i;
-        }
-    }
-    console.log(indexState);
-    if(indexState!=-1){
-        if(isSelected){
-            // Si ya hay un estado seleccionado, se añade la arista
-            // desde el estado anteriormente seleccionado al estado actual
-            states[OriginState].insertEdge(new Edge(OriginState, states[indexState]));
-            edges.push(new Edge(states[OriginState].x,states[OriginState].y,states[indexState].x,states[indexState].y,OriginState, states[indexState]));
-            drawEdge(states[OriginState].x,states[OriginState].y,states[indexState].x,states[indexState].y)
-            OriginState=null;
-            isSelected=false;
-        }else{
-            // Si no hay un estado seleccionado, se guarda el estado
-            // actual como el origen
-            OriginState=indexState;            
-            isSelected=true;
-        }
-    }
-}
-//Funcion auxiliar para seleccionar el estado mas cercano al click
-function selectState(x, y, targetX, targetY, distAnt) {
-    const distance = Math.sqrt((x - targetX) ** 2 + (y - targetY) ** 2);
-    if(distance <= 20&& distance < distAnt){
-        distAnt=distance;
-        return true;
-    }
-    return false;
-}
+function handleEdgeCreationClick(x, y, nodes, redrawCanvasCallback, state) {
+    // 1. Busca si se hizo clic en un nodo
+    const clickedNode = nodes.find(node => {
+        const distance = Math.sqrt((x - node.x) ** 2 + (y - node.y) ** 2);
+        return distance < node.radius;
+    });
 
-// canvas.addEventListener('click', createState);
+    // Si no se hizo clic en ningún nodo, cancela la operación
+    if (!clickedNode) {
+        state.firstNode = null;
+        console.log("Creación de arista cancelada.");
+        return;
+    }
+
+    // 2. Comprueba si es el primer o segundo clic
+    if (state.firstNode === null) {
+        // Es el primer clic: guarda el nodo de inicio
+        state.firstNode = clickedNode;
+        console.log("Nodo de inicio seleccionado:", clickedNode.label);
+        // Aquí se podría añadir un resaltado visual para el primer nodo si se quisiera
+    } else {
+        // Es el segundo clic: obtenemos los dos nodos
+        const fromNode = state.firstNode;
+        const toNode = clickedNode;
+
+        // Llama a la función del modal para pedir la etiqueta
+        showEdgeLabelModal(fromNode, toNode);
+
+        // Limpia el estado, listo para la próxima arista
+        state.firstNode = null;
+    }
+}
