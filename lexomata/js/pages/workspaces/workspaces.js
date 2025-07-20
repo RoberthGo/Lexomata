@@ -34,6 +34,7 @@ const ctx = canvas.getContext('2d');
 
 let nodes = [];
 let edges = [];
+let nodeCounter = 0
 let selectedNodeId = null;
 let selectedEdgeId = null;
 let currentTool = 'select';
@@ -124,6 +125,9 @@ canvas.addEventListener('click', (event) => {
             break;
         case 'addEdge':
             handleEdgeCreationClick(x, y, nodes, redrawCanvas, edgeCreationState);
+            break;
+        case 'delete':
+            handleDeleteClick(x, y, nodes, edges, redrawCanvas, isClickOnEdge);
             break;
         default:
             selectedNodeId = null;
