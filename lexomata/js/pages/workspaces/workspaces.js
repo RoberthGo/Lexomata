@@ -42,13 +42,13 @@ let edgeCreationState = { firstNode: null };
 
 function redrawCanvas() {
     if (!ctx) return;
+    edgeDrawCounts = {};
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Llama a la función de su archivo correspondiente
     edges.forEach(edge => {
-        drawEdge(ctx, edge, nodes, selectedEdgeId);
+        drawEdge(ctx, edge, nodes, edgeDrawCounts, selectedEdgeId);
     });
-
     // Llama a la función de su archivo correspondiente
     nodes.forEach(node => {
         drawNode(ctx, node, selectedNodeId);
@@ -88,7 +88,7 @@ function showEdgeLabelModal(fromNode, toNode) {
 
     modalSaveButton.onclick = function() {
         const label = modalTextInput.value.trim();
-        if (label) {
+        if (label){
             const newEdge = {
                 id: Date.now(),
                 from: fromNode.id,
@@ -138,6 +138,7 @@ canvas.addEventListener('click', (event) => {
                 const distance = Math.sqrt((x - node.x) ** 2 + (y - node.y) ** 2);
                 if (distance < node.radius) {
                     selectedNodeId = node.id;
+                    console.log(`Selected node: ${node.id}`);
                     foundElement = true;
                     break;
                 }
@@ -149,6 +150,31 @@ canvas.addEventListener('click', (event) => {
                         break;
                     }
                 }
+            }else{
+                let isDragging = true;
+                console.log(`Dragging node ${selectedNodeId}`);
+                console.log(nodes.length);
+                const nodeMoving = nodes.find(n => n.id === selectedNodeId);
+                let offsetX = x - nodeMoving.x;
+                let offsetY = y - nodeMoving.y;
+                function onMouseMove(event) {
+                    if (!isDragging) return;
+                    const rect = canvas.getBoundingClientRect();
+                    const newX = event.clientX - rect.left - offsetX;
+                    const newY = event.clientY - rect.top - offsetY;
+                    nodes.find(n => n.id === selectedNodeId).x = newX;
+                    nodes.find(n => n.id === selectedNodeId).y = newY;
+                    redrawCanvas();
+                }
+                function onMouseUp() {
+                    isDragging = false;
+                    selectedNodeId = null;
+                    canvas.removeEventListener('mousemove', onMouseMove);
+                    canvas.removeEventListener('mouseup', onMouseUp);
+                }
+
+                canvas.addEventListener('mousemove', onMouseMove);
+                canvas.addEventListener('mouseup', onMouseUp);
             }
             redrawCanvas();
             break;
