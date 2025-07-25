@@ -27,7 +27,7 @@ canvas.addEventListener('click', (event) => {
             break;
         case 'setStart':
             if(clickedObject.type === 'node'){
-                if(clickedObject.object.IsStart==true)
+                if(clickedObject.object.IsStart)
                     clickedObject.object.IsStart=false;
                 else{
                     nodes.forEach(node => {
@@ -40,7 +40,10 @@ canvas.addEventListener('click', (event) => {
             break;
         case 'setEnd':
             if(clickedObject.type === 'node'){
-                clickedObject.object.IsEnd=true;
+                if(clickedObject.object.IsEnd)
+                    clickedObject.object.IsEnd=false;
+                else
+                    clickedObject.object.IsEnd=true;
                 redrawCanvas();
             }
             break;
