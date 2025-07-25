@@ -25,6 +25,18 @@ canvas.addEventListener('click', (event) => {
         case 'delete':
             handleDeleteClick(x, y, nodes, edges, redrawCanvas, isClickOnEdge);
             break;
+        case 'setStart':
+            if(clickedObject.type === 'node'){
+                clickedObject.object.IsStart=true;
+                redrawCanvas();
+            }
+            break;
+        case 'setEnd':
+            if(clickedObject.type === 'node'){
+                clickedObject.object.IsEnd=true;
+                redrawCanvas();
+            }
+            break;
         default:
             if (clickedObject === null) {
                 // Clic en el vacío: Deseleccionar todo
