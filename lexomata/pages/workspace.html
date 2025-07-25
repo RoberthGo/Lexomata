@@ -78,23 +78,19 @@
       <h2 class="toolbar-title">Herramientas</h2>
       <div class="tool-buttons-group">
 
-       <button class="tool-button" data-tool="select" id="select"
-          onclick="changeTool(this,'select')">
+        <button class="tool-button" data-tool="select" id="select" onclick="changeTool(this,'select')">
           <i class="fas fa-mouse-pointer"></i> <span>Seleccionar</span> <span class="shortcut-key">S</span>
         </button>
 
-        <button class="tool-button" data-tool="add-state" id="node"
-          onclick="changeTool(this,'addNode')">
+        <button class="tool-button" data-tool="add-state" id="node" onclick="changeTool(this,'addNode')">
           <i class="fas fa-circle"></i> <span>Añadir Estado</span> <span class="shortcut-key">A</span>
         </button>
 
-        <button class="tool-button" data-tool="add-transition" id="edge"
-          onclick="changeTool(this,'addEdge')">
+        <button class="tool-button" data-tool="add-transition" id="edge" onclick="changeTool(this,'addEdge')">
           <i class="fas fa-arrow-right"></i> <span>Añadir Transición</span> <span class="shortcut-key">T</span>
         </button>
 
-        <button class="tool-button" data-tool="delete" id="delete"
-          onclick="changeTool(this,'delete')">
+        <button class="tool-button" data-tool="delete" id="delete" onclick="changeTool(this,'delete')">
           <i class="fas fa-trash-alt"></i> <span>Eliminar</span> <span class="shortcut-key">D</span>
         </button>
 
@@ -134,13 +130,13 @@
 
   <div id="customAlertModal" class="custom-modal">
     <div class="custom-modal-content">
-        <span class="close-button" onclick="closeMessage()">&times;</span>
-        <p id="modalMessage"></p>
-        
-        <div id="modalInputContainer" style="display: none;">
-            <input type="text" id="modalTextInput" class="modal-input" placeholder="Etiqueta...">
-            <button id="modalSaveButton" class="modal-button">Guardar</button>
-        </div>
+      <span class="close-button" onclick="closeMessage()">&times;</span>
+      <p id="modalMessage"></p>
+
+      <div id="modalInputContainer" style="display: none;">
+        <input type="text" id="modalTextInput" class="modal-input" placeholder="Etiqueta...">
+        <button id="modalSaveButton" class="modal-button">Guardar</button>
+      </div>
     </div>
   </div>
   <script src="../js/pages/workspaces/workspaces.js"> </script>
@@ -154,7 +150,7 @@
   <script src="../js/utils/Draw/drawNode.js"></script>
   <script src="../js/utils/Draw/drawEdge.js"></script>
   <script src="../js/utils/canvas/deleteTool.js"></script>
-  
+
 </body>
 
 </html>

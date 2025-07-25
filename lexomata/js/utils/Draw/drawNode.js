@@ -1,5 +1,7 @@
 function drawNode(ctx, node, selectedNodeId) {
     const isSelected = (node.id === selectedNodeId);
+    const fontSize = 16;
+    const lineWidth = (isSelected ? 4 : 2);
 
     ctx.beginPath();
     ctx.arc(node.x, node.y, node.radius, 0, 2 * Math.PI);
@@ -8,7 +10,7 @@ function drawNode(ctx, node, selectedNodeId) {
     ctx.fillStyle = isSelected ? '#FFD700' : '#add8e6'; // Amarillo si está seleccionado
     ctx.fill();
 
-    ctx.lineWidth = isSelected ? 4 : 2;
+    ctx.lineWidth = lineWidth;
     ctx.strokeStyle = isSelected ? '#FFA500' : '#000000'; // Borde naranja
     ctx.stroke();
 
@@ -17,5 +19,6 @@ function drawNode(ctx, node, selectedNodeId) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = '16px Arial';
+    ctx.font = `${fontSize}px Arial`;
     ctx.fillText(node.label, node.x, node.y);
 }

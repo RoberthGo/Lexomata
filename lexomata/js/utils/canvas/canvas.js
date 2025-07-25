@@ -1,68 +1,40 @@
-function getObject(event) {
-        const rect = canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
-    // Recorrer edges desde el final hacia el principio
+/**
+ * Encuentra el objeto (nodo o arista) en una coordenada específica del mundo.
+ * @param {number} worldX - La coordenada X en el mundo del canvas.
+ * @param {number} worldY - La coordenada Y en el mundo del canvas.
+ * @returns {object|null} - Un objeto con el tipo y la referencia al elemento, o null si no se encuentra nada.
+ */
+function getObjectAt(worldX, worldY) {
+    // 1. Buscar aristas primero (si quieres que tengan prioridad)
+    // Asumiendo que tienes una función `isClickOnEdge` que funciona con coordenadas del mundo
     for (let i = edges.length - 1; i >= 0; i--) {
-        const edge = edges[i];
-        // Verificar si el click está cerca de la línea del edge
-        const distance = distanceToLine(x, y, edge.x1, edge.y1, edge.x2, edge.y2);
-        //console.log()
-        if (distance <= 5) { // Tolerancia de 5 píxeles
-            return { type: 'edge', index: i, object: edges[i] };
+        if (isClickOnEdge(worldX, worldY, edges[i], nodes)) {
+            return { type: 'edge', object: edges[i] };
         }
     }
 
-    // Recorrer states desde el final hacia el principio
-    for (let i = states.length - 1; i >= 0; i--) {
-        const state = states[i];
-        console.log(state.x+" "+state.y);
-        // Verificar si el click está dentro del círculo
-        const distance = Math.sqrt(Math.pow(x - state.x, 2) + Math.pow(y - state.y, 2));
-        console.log(distance);
-        if (distance <= NODE_RADIUS) {
-            return { type: 'state', index: i, object: states[i] };
+    // 2. Buscar nodos (si no se encontró una arista)
+    for (let i = nodes.length - 1; i >= 0; i--) {
+        const node = nodes[i];
+        const distance = Math.sqrt((worldX - node.x) ** 2 + (worldY - node.y) ** 2);
+        if (distance <= node.radius) {
+            return { type: 'node', object: node };
         }
     }
+
+    // 3. Si no se encontró nada
     return null;
 }
 
-function selectTool(x,y){
-    console.log(getObject(x,y));
-}
-
-function moveNode() {
-
-}
-
-
-function moveEdge() {
-
-}
 
 function getCanvasPoint(X, Y) {
     // 1. Obtener la posición del canvas relativo al viewport
     const rect = canvas.getBoundingClientRect();
-
-    // 2. Calcular las coordenadas del mouse relativas al canvas
-
-    /*  // 4. Obtener la matriz de transformación actual del contexto
-      const transform = ctx.getTransform();
-  
-      // 5. Crear la matriz inversa para convertir a coordenadas lógicas
-      const invTransform = transform.invertSelf();
-  
-      // 6. Aplicar la transformación inversa
-      const logicalX = invTransform.a * xInDevicePx + invTransform.c * yInDevicePx + invTransform.e;
-      const logicalY = invTransform.b * xInDevicePx + invTransform.d * yInDevicePx + invTransform.f;
-  
-  */
-    const logicalX = (X / (dpr * zoom_level));// - offsetX;
-    const logicalY = (Y / (dpr * zoom_level));// - offsetY;
-
+    const worldX = (X - rect.left - panX) / scale;
+    const worldY = (Y - rect.top - panY) / scale;
     return {
-        x: logicalX,
-        y: logicalY
+        x: worldX,
+        y: worldY
     };
 }
 
@@ -95,12 +67,4 @@ function distanceToLine(px, py, x1, y1, x2, y2) {
     const dx = px - xx;
     const dy = py - yy;
     return Math.sqrt(dx * dx + dy * dy);
-}
-
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (let i = 0; i < states.length; i++) {
-        console.log(states[i].x + "   " + states[i].y);
-        drawNode(states[i].x, states[i].y);
-    }
 }

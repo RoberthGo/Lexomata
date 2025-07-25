@@ -1,62 +1,148 @@
+// --- ESTADOS DE ZOOM Y ESCALADO ---
+let scale = 1.0;
+let panX = 0;
+let panY = 0;
+const MIN_ZOOM = 0.3;
+const MAX_ZOOM = 4.0;
+const ZOOM_SENSITIVITY = 0.1;
 
 document.addEventListener('DOMContentLoaded', () => {
-    const canvas = document.getElementById('canvas');
-    if (!canvas) {
-        console.error("El canvas no se encontró en canvasSettings.js");
-        return;
-    }
-    
+
     const ctx = canvas.getContext('2d');
-    
-    const NODE_RADIUS = 20;
-    const MIN_ZOOM = 0.1;
-    const MAX_ZOOM = 8;
-    const ZOOM_SENSITIVITY = 0.0025;
 
-    let zoom_level = 1;
-    let dpr = window.devicePixelRatio || 1;
-    let scale = 1;
-    let translateX = 0;
-    let translateY = 0;
+    // --- ESTADOS DE INTERACCIÓN ---
+    let draggingNode = null;
+    let isPanning = false;
+    let panStart = { x: 0, y: 0 };
+    let isSpacePressed = false;
 
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
-    setZoom();
 
-    function setZoom() {
-        if (!ctx) return;
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.scale(dpr * scale, dpr * scale);
-        if (typeof redrawCanvas === 'function') {
+    canvas.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        // 1. Lógica de Paneo 
+        if (e.button === 1 || (isSpacePressed && e.button === 0)) {
+            isPanning = true;
+            panStart = { x: e.clientX, y: e.clientY };
+            canvas.style.cursor = 'grabbing';
+            return;
+        }
+
+        if (e.button === 0) {
+            const worldCoords = getCanvasPoint(e.clientX, e.clientY);
+            const clickedObject = getObjectAt(worldCoords.x, worldCoords.y);
+
+            if (clickedObject && clickedObject.type === 'node' && currentTool === 'select') {
+                draggingNode = clickedObject.object;
+                selectedNodeId = clickedObject.object.id;
+                redrawCanvas();
+            } else if (clickedObject && clickedObject.type === 'edge') {
+                // Logica para manejar la selección de aristas
+                selectedEdgeId = clickedObject.object.id;
+                redrawCanvas();
+            }
+        }
+    });
+
+
+    window.addEventListener('mousemove', (e) => {
+        // Si no hay acción pendiente, no hacer nada
+        if (!isPanning && !draggingNode) {
+            return;
+        }
+
+        e.preventDefault();
+
+        // Lógica de paneo 
+        if (isPanning) {
+            const dx = e.clientX - panStart.x;
+            const dy = e.clientY - panStart.y;
+            panX += dx;
+            panY += dy;
+            panStart = { x: e.clientX, y: e.clientY };
+            redrawCanvas();
+            return;
+        }
+
+        // Lógica de arrastre 
+        if (draggingNode) {
+            // Usamos e.movementX/Y que nos da el delta del movimiento
+            // y lo escalamos para que funcione con el zoom. ¡ESTA ES LA FORMA CORRECTA!
+            const deltaX = e.movementX / scale;
+            const deltaY = e.movementY / scale;
+            draggingNode.x += deltaX;
+            draggingNode.y += deltaY;
             redrawCanvas();
         }
-    }
+    });
+
+
+    window.addEventListener('mouseup', (e) => {
+        if (isPanning) {
+            isPanning = false;
+            canvas.style.cursor = isSpacePressed ? 'grab' : 'default';
+        }
+        if (draggingNode) {
+            draggingNode = null;
+        }
+    });
 
     canvas.addEventListener('wheel', (e) => {
         e.preventDefault();
-
         const rect = canvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
-        const zoom = e.deltaY > 0 ? 1 - ZOOM_SENSITIVITY * 50 : 1 + ZOOM_SENSITIVITY * 50;
-        const newScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, scale * zoom));
 
-        if (newScale !== scale) {
-            scale = newScale;
-        }
-        setZoom();
+        const zoomFactor = e.deltaY > 0 ? (1 - ZOOM_SENSITIVITY) : (1 + ZOOM_SENSITIVITY);
+        const newScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, scale * zoomFactor));
+
+        // Ajustar paneo para que el zoom se centre en el cursor
+        panX = mouseX - (mouseX - panX) * (newScale / scale);
+        panY = mouseY - (mouseY - panY) * (newScale / scale);
+
+        scale = newScale;
+        redrawCanvas();
     });
 
-    document.addEventListener('keydown', (e) => {
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && !isSpacePressed) {
+            e.preventDefault();
+            isSpacePressed = true;
+            canvas.style.cursor = 'grab';
+        }
+
+        let zoomFactor = 1.0;
         if (e.key === '+') {
-            e.preventDefault();
-            scale = Math.min(MAX_ZOOM, scale * 1.2);
-            setZoom();
+            zoomFactor = 1 + ZOOM_SENSITIVITY;
         } else if (e.key === '-') {
+            zoomFactor = 1 - ZOOM_SENSITIVITY;
+        }
+
+        // Si se presionó una tecla de zoom, aplicamos los cambios
+        if (zoomFactor !== 1.0) {
+            e.preventDefault(); // Evita que el navegador haga zoom en toda la página
+
+            const newScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, scale * zoomFactor));
+
+            // Centramos el zoom en el medio del canvas
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            // Ajustamos el paneo para que el centro permanezca en su lugar
+            panX = centerX - (centerX - panX) * (newScale / scale);
+            panY = centerY - (centerY - panY) * (newScale / scale);
+
+            scale = newScale;
+            redrawCanvas();
+        }
+    });
+
+    window.addEventListener('keyup', (e) => {
+        if (e.code === 'Space') {
             e.preventDefault();
-            scale = Math.max(MIN_ZOOM, scale / 1.2);
-            setZoom();
+            isSpacePressed = false;
+            if (!isPanning) {
+                canvas.style.cursor = 'default';
+            }
         }
     });
 });

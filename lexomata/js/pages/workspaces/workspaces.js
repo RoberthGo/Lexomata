@@ -45,14 +45,24 @@ function redrawCanvas() {
     edgeDrawCounts = {};
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    ctx.save();
+    // genera un paneo
+    ctx.translate(panX, panY);
+    // Aplica el zoom (escalado)
+    ctx.scale(scale, scale);
+
+
     // Llama a la función de su archivo correspondiente
     edges.forEach(edge => {
         drawEdge(ctx, edge, nodes, edgeDrawCounts, selectedEdgeId);
     });
+
     // Llama a la función de su archivo correspondiente
     nodes.forEach(node => {
         drawNode(ctx, node, selectedNodeId);
     });
+
+    ctx.restore();
 }
 
 function isClickOnEdge(px, py, edge, nodes) {
@@ -72,8 +82,9 @@ function isClickOnEdge(px, py, edge, nodes) {
     const closestX = fromNode.x + t * dx;
     const closestY = fromNode.y + t * dy;
     const dist = Math.sqrt((px - closestX) ** 2 + (py - closestY) ** 2);
+    const clickTolerance = 5 / scale;
 
-    return dist < 5;
+    return dist < clickTolerance;
 }
 
 function showEdgeLabelModal(fromNode, toNode) {
@@ -86,9 +97,9 @@ function showEdgeLabelModal(fromNode, toNode) {
     modalInputContainer.style.display = 'block';
     customAlertModal.style.display = 'flex';
 
-    modalSaveButton.onclick = function() {
+    modalSaveButton.onclick = function () {
         const label = modalTextInput.value.trim();
-        if (label){
+        if (label) {
             const newEdge = {
                 id: Date.now(),
                 from: fromNode.id,
@@ -114,74 +125,7 @@ window.onclick = function (event) {
     }
 };
 
-canvas.addEventListener('click', (event) => {
-    const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-
-    switch (currentTool) {
-        case 'addNode':
-            createState(x, y, nodes, redrawCanvas);
-            break;
-        case 'addEdge':
-            handleEdgeCreationClick(x, y, nodes, redrawCanvas, edgeCreationState);
-            break;
-        case 'delete':
-            handleDeleteClick(x, y, nodes, edges, redrawCanvas, isClickOnEdge);
-            break;
-        default:
-            selectedNodeId = null;
-            selectedEdgeId = null;
-            let foundElement = false;
-
-            for (const node of nodes) {
-                const distance = Math.sqrt((x - node.x) ** 2 + (y - node.y) ** 2);
-                if (distance < node.radius) {
-                    selectedNodeId = node.id;
-                    console.log(`Selected node: ${node.id}`);
-                    foundElement = true;
-                    break;
-                }
-            }
-            if (!foundElement) {
-                for (const edge of edges) {
-                    if (isClickOnEdge(x, y, edge, nodes)) {
-                        selectedEdgeId = edge.id;
-                        break;
-                    }
-                }
-            }else{
-                let isDragging = true;
-                console.log(`Dragging node ${selectedNodeId}`);
-                console.log(nodes.length);
-                const nodeMoving = nodes.find(n => n.id === selectedNodeId);
-                let offsetX = x - nodeMoving.x;
-                let offsetY = y - nodeMoving.y;
-                function onMouseMove(event) {
-                    if (!isDragging) return;
-                    const rect = canvas.getBoundingClientRect();
-                    const newX = event.clientX - rect.left - offsetX;
-                    const newY = event.clientY - rect.top - offsetY;
-                    nodes.find(n => n.id === selectedNodeId).x = newX;
-                    nodes.find(n => n.id === selectedNodeId).y = newY;
-                    redrawCanvas();
-                }
-                function onMouseUp() {
-                    isDragging = false;
-                    selectedNodeId = null;
-                    canvas.removeEventListener('mousemove', onMouseMove);
-                    canvas.removeEventListener('mouseup', onMouseUp);
-                }
-
-                canvas.addEventListener('mousemove', onMouseMove);
-                canvas.addEventListener('mouseup', onMouseUp);
-            }
-            redrawCanvas();
-            break;
-    }
-});
-
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', () => {
     const menuItems = document.querySelectorAll('.main-menu-item');
     menuItems.forEach(item => {
         item.addEventListener('click', function (event) {
