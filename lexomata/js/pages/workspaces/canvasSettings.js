@@ -145,4 +145,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+
+    window.addEventListener('resize', () => {
+        // Reajustamos las dimensiones del área de dibujo del canvas
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+
+        // Volvemos a dibujar todo con las nuevas dimensiones
+        redrawCanvas();
+    });
 });
+
+
