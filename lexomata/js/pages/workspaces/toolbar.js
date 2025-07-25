@@ -27,7 +27,14 @@ canvas.addEventListener('click', (event) => {
             break;
         case 'setStart':
             if(clickedObject.type === 'node'){
-                clickedObject.object.IsStart=true;
+                if(clickedObject.object.IsStart==true)
+                    clickedObject.object.IsStart=false;
+                else{
+                    nodes.forEach(node => {
+                        node.IsStart = false;
+                    });
+                    clickedObject.object.IsStart=true;
+                }
                 redrawCanvas();
             }
             break;
