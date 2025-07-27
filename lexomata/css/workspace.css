@@ -683,3 +683,8 @@ body.dark .close-button:focus {
     background-color: #3a3f44;
     border-left-color: #58a6ff;
 }
+
+.tool-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

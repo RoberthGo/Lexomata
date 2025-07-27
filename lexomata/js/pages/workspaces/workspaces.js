@@ -29,6 +29,8 @@ function redirection() {
 // SECTION: Canvas and Automata Logic
 // ---------------------------------------------------------------------------------
 
+let history = [];
+let historyIndex = -1;
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
@@ -39,6 +41,9 @@ let selectedNodeId = null;
 let selectedEdgeId = null;
 let currentTool = 'select';
 let edgeCreationState = { firstNode: null };
+const undoButton = document.getElementById('undoButton');
+const redoButton = document.getElementById('redoButton');
+
 
 function redrawCanvas() {
     if (!ctx) return;
@@ -108,6 +113,7 @@ function showEdgeLabelModal(fromNode, toNode) {
             };
             edges.push(newEdge);
             redrawCanvas();
+            saveState();
         }
         closeMessage();
     };
@@ -141,5 +147,68 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.width = canvas.parentElement.clientWidth;
         canvas.height = canvas.parentElement.clientHeight;
         redrawCanvas();
+        saveState();
     }
 });
+
+// Undo/Redo 
+
+function undo() {
+    if (historyIndex > 0) {
+        historyIndex--;
+        restoreState();
+    }
+}
+
+function redo() {
+    if (historyIndex < history.length - 1) {
+        historyIndex++;
+        restoreState();
+    }
+}
+
+function restoreState() {
+    const stateToRestore = history[historyIndex];
+
+    // Restaura el estado desde la copia
+    nodes = JSON.parse(JSON.stringify(stateToRestore.nodes));
+    edges = JSON.parse(JSON.stringify(stateToRestore.edges));
+    nodeCounter = stateToRestore.nodeCounter;
+
+    // Limpia la selección actual para evitar inconsistencias
+    selectedNodeId = null;
+    selectedEdgeId = null;
+
+    redrawCanvas();
+    updateUndoRedoButtons();
+}
+
+function saveState() {
+    // Si hemos deshecho acciones, eliminamos el "futuro" que ya no es válido
+    if (historyIndex < history.length - 1) {
+        history = history.slice(0, historyIndex + 1);
+    }
+
+    // Se guarda una copia del estado actual
+    const currentState = {
+        nodes: JSON.parse(JSON.stringify(nodes)),   // Guarda las aristas
+        edges: JSON.parse(JSON.stringify(edges)),   // Guarda los nodos
+        nodeCounter: nodeCounter                    // Guarda el contador de nodos
+    };
+
+    history.push(currentState);
+    historyIndex++;
+
+    // Actualizar el estado de los botones de la UI
+    updateUndoRedoButtons();
+}
+
+function updateUndoRedoButtons() {
+    // El botón "Deshacer" se activa si no estamos al principio del historial.
+    const canUndo = historyIndex > 0;
+    undoButton.disabled = !canUndo;
+
+    // El botón "Rehacer" se activa si no estamos al final de la historial.
+    const canRedo = historyIndex < history.length - 1;
+    redoButton.disabled = !canRedo;
+}

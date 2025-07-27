@@ -99,25 +99,21 @@
       <div class="tool-buttons-group">
 
         <h3 class="tool-group-title">Estado Inicial</h3>
-        <button class="tool-button" data-tool="initial-state"
-          onclick="changeTool(this,'setStart')">
+        <button class="tool-button" data-tool="initial-state" onclick="changeTool(this,'setStart')">
           <i class="fas fa-play-circle"></i> <span>Definir</span> <span class="shortcut-key">I</span>
         </button>
 
         <h3 class="tool-group-title">Estado Final</h3>
 
-        <button class="tool-button" data-tool="final-state"
-          onclick="changeTool(this,'setEnd')">
+        <button class="tool-button" data-tool="final-state" onclick="changeTool(this,'setEnd')">
           <i class="fas fa-bullseye"></i> <span>Definir</span> <span class="shortcut-key">F</span>
         </button>
       </div>
 
       <div class="tool-buttons-group">
-        <button class="tool-button" onclick="showMessage('Acción: Deshacer')">
-          <i class="fas fa-undo"></i> <span>Deshacer</span>
+        <button class="tool-button" id="undoButton" onclick="undo()"> <i class="fas fa-undo"></i> <span>Deshacer</span>
         </button>
-        <button class="tool-button" onclick="showMessage('Acción: Rehacer')">
-          <i class="fas fa-redo"></i> <span>Rehacer</span>
+        <button class="tool-button" id="redoButton" onclick="redo()"> <i class="fas fa-redo"></i> <span>Rehacer</span>
         </button>
       </div>
     </aside>

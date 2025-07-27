@@ -83,6 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (draggingNode) {
             draggingNode = null;
+            saveState();
         }
     });
 
@@ -154,6 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Volvemos a dibujar todo con las nuevas dimensiones
         redrawCanvas();
     });
+
 });
 
 

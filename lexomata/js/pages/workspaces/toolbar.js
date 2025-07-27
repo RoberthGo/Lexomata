@@ -36,6 +36,7 @@ canvas.addEventListener('click', (event) => {
                     clickedObject.object.IsStart=true;
                 }
                 redrawCanvas();
+                saveState();
             }
             break;
         case 'setEnd':
@@ -45,6 +46,7 @@ canvas.addEventListener('click', (event) => {
                 else
                     clickedObject.object.IsEnd=true;
                 redrawCanvas();
+                saveState();
             }
             break;
         default:

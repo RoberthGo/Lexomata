@@ -31,5 +31,6 @@ function handleDeleteClick(x, y, nodes, edges, redrawCanvasCallback, isClickOnEd
 
     if (somethingWasDeleted) {
         redrawCanvasCallback();
+        saveState();
     }
 }
