@@ -1,26 +1,28 @@
-function drawNode(ctx, node, selectedNodeId) {
-    const isSelected = (node.id === selectedNodeId);
+function drawNode(ctx, node, selectedNodeIds) {
+    const isDarkMode = document.body.classList.contains('dark');
+    const theme = isDarkMode ? colorPalette.dark : colorPalette.light;
+    const isSelected = selectedNodeIds.includes(node.id);
     const fontSize = 16;
     const lineWidth = (isSelected ? 4 : 2);
 
     ctx.beginPath();
     ctx.arc(node.x, node.y, node.radius, 0, 2 * Math.PI);
     // Usa un estilo diferente si el nodo está seleccionado
-    ctx.fillStyle = isSelected ? '#FFD700' : '#add8e6'; // Amarillo si está seleccionado
+    ctx.fillStyle = isSelected ? theme.selectedNodeFill : theme.nodeFill;
     ctx.fill();
 
     ctx.lineWidth = lineWidth;
-    ctx.strokeStyle = isSelected ? '#FFA500' : '#000000'; // Borde naranja
+    ctx.strokeStyle = isSelected ? theme.selectedNodeStroke : theme.nodeStroke;
     ctx.stroke();
 
     // Dibuja la etiqueta del nodo
-    ctx.fillStyle = '#000000';
+    ctx.fillStyle = isSelected ? theme.selectedNodeText : theme.nodeText;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = '16px Arial';
     ctx.font = `${fontSize}px Arial`;
+
     ctx.fillText(node.label, node.x, node.y);
-    if(node.IsStart) {
+    if (node.IsStart) {
         // Draw arrow at the left side of the node
         const arrowLength = 10;
         const arrowWidth = 20;
@@ -38,14 +40,14 @@ function drawNode(ctx, node, selectedNodeId) {
         ctx.lineTo(baseX, baseY1); // upper base
         ctx.lineTo(baseX, baseY2); // lower base
         ctx.closePath();
-        ctx.fillStyle = '#000000';
+        ctx.fillStyle = theme.nodeStroke;
         ctx.fill();
     }
-    if(node.IsEnd){
+    if (node.IsEnd) {
         const endCircleRadius = node.radius * 0.8;
         ctx.beginPath();
         ctx.arc(node.x, node.y, endCircleRadius, 0, 2 * Math.PI);
-        ctx.strokeStyle = '#000000';
+        ctx.strokeStyle = theme.nodeStroke;
         ctx.lineWidth = 2;
         ctx.stroke();
     }

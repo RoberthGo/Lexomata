@@ -2,9 +2,37 @@
 // SECTION: UI and Modal Functions
 // ---------------------------------------------------------------------------------
 
+const colorPalette = {
+    light: {
+        background: '#FFFFFF',
+        nodeFill: '#add8e6',
+        nodeStroke: '#000000',
+        nodeText: '#000000',
+        selectedNodeText: '#000000',
+        selectedNodeFill: '#FFD700',
+        selectedNodeStroke: '#FFA500',
+        edgeLine: '#000000',
+        edgeText: '#000000',
+        selectedEdge: '#D62828'
+    },
+    dark: {
+        background: '#2d3748',
+        nodeFill: '#1A202C',
+        nodeStroke: '#F7FAFC',
+        nodeText: '#F7FAFC',
+        selectedNodeFill: '#2C5282',
+        selectedNodeStroke: '#63B3ED',
+        selectedNodeText: '#F7FAFC',
+        edgeLine: '#A0AEC0',
+        edgeText: '#E2E8F0',
+        selectedEdge: '#FC8181'
+    }
+};
+
 function toggleTheme() {
     document.body.classList.toggle('dark');
     document.querySelectorAll('.submenu').forEach(sub => sub.style.display = 'none');
+    redrawCanvas();
 }
 
 const customAlertModal = document.getElementById('customAlertModal');
@@ -37,7 +65,7 @@ const ctx = canvas.getContext('2d');
 let nodes = [];
 let edges = [];
 let nodeCounter = 0
-let selectedNodeId = null;
+let selectedNodeIds = [];
 let selectedEdgeId = null;
 let currentTool = 'select';
 let edgeCreationState = { firstNode: null };
@@ -64,7 +92,7 @@ function redrawCanvas() {
 
     // Llama a la función de su archivo correspondiente
     nodes.forEach(node => {
-        drawNode(ctx, node, selectedNodeId);
+        drawNode(ctx, node, selectedNodeIds);
     });
 
     ctx.restore();
@@ -176,7 +204,7 @@ function restoreState() {
     nodeCounter = stateToRestore.nodeCounter;
 
     // Limpia la selección actual para evitar inconsistencias
-    selectedNodeId = null;
+    selectedNodeIds = null;
     selectedEdgeId = null;
 
     redrawCanvas();

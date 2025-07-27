@@ -27,19 +27,47 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (e.button === 0) {
+        if (e.button === 0 && currentTool === 'select') {
             const worldCoords = getCanvasPoint(e.clientX, e.clientY);
             const clickedObject = getObjectAt(worldCoords.x, worldCoords.y);
 
-            if (clickedObject && clickedObject.type === 'node' && currentTool === 'select') {
-                draggingNode = clickedObject.object;
-                selectedNodeId = clickedObject.object.id;
-                redrawCanvas();
-            } else if (clickedObject && clickedObject.type === 'edge') {
-                // Logica para manejar la selección de aristas
-                selectedEdgeId = clickedObject.object.id;
-                redrawCanvas();
+            // --- MANEJO DE LA SELECCIÓN ---
+            if (e.shiftKey) { // SI SE USA SHIFT (Añadir/Quitar)
+                if (clickedObject && clickedObject.type === 'node') {
+                    const nodeId = clickedObject.object.id;
+                    if (selectedNodeIds.includes(nodeId)) {
+                        // Si ya está seleccionado, lo quitamos
+                        selectedNodeIds = selectedNodeIds.filter(id => id !== nodeId);
+                    } else {
+                        // Si no está, lo añadimos
+                        selectedNodeIds.push(nodeId);
+                    }
+                }
+            } else { // SI NO SE USA SHIFT (Selección normal)
+                if (clickedObject && clickedObject.type === 'node') {
+                    // Si el nodo no estaba ya seleccionado, se convierte en la única selección.
+                    // Si ya estaba seleccionado, no hacemos nada para permitir el arrastre del grupo.
+                    if (!selectedNodeIds.includes(clickedObject.object.id)) {
+                        selectedNodeIds = [clickedObject.object.id];
+                    }
+                    selectedEdgeId = null;
+                } else if (clickedObject && clickedObject.type === 'edge') {
+                    selectedEdgeId = clickedObject.object.id;
+                    selectedNodeIds = [];
+                } else if (clickedObject === null) {
+                    // Si se hace clic en el vacío, se deselecciona todo.
+                    selectedNodeIds = [];
+                    selectedEdgeId = null;
+                }
             }
+
+            // --- PREPARACIÓN PARA EL ARRASTRE ---
+            // Si después de la lógica de selección, el clic fue sobre un nodo, preparamos el arrastre.
+            if (clickedObject && clickedObject.type === 'node') {
+                draggingNode = clickedObject.object;
+            }
+
+            redrawCanvas();
         }
     });
 
@@ -69,8 +97,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // y lo escalamos para que funcione con el zoom. ¡ESTA ES LA FORMA CORRECTA!
             const deltaX = e.movementX / scale;
             const deltaY = e.movementY / scale;
-            draggingNode.x += deltaX;
-            draggingNode.y += deltaY;
+            nodes.forEach(node => {
+                if (selectedNodeIds.includes(node.id)) {
+                    node.x += deltaX;
+                    node.y += deltaY;
+                }
+            });
             redrawCanvas();
         }
     });
@@ -105,6 +137,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     window.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            return;
+        }
+        const key = e.key.toLowerCase();
+
+        if (toolMap[key]) {
+            e.preventDefault();
+            const toolInfo = toolMap[key];
+            const button = document.getElementById(toolInfo.buttonId);
+            if (button) {
+                changeTool(button, toolInfo.tool);
+            }
+        }
+
+
         if (e.code === 'Space' && !isSpacePressed) {
             e.preventDefault();
             isSpacePressed = true;

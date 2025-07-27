@@ -6,9 +6,18 @@ function changeTool(clickedButton, tool) {
     });
 
     clickedButton.classList.add('active');
-
     currentTool = tool;
 }
+
+
+const toolMap = {
+    's': { tool: 'select', buttonId: 'select' },
+    'a': { tool: 'addNode', buttonId: 'node' },
+    't': { tool: 'addEdge', buttonId: 'edge' },
+    'd': { tool: 'delete', buttonId: 'delete' },
+    'i': { tool: 'setStart', buttonId: 'initial-state' },
+    'f': { tool: 'setEnd', buttonId: 'final-state' }
+};
 
 // Tools with click
 canvas.addEventListener('click', (event) => {
@@ -26,44 +35,31 @@ canvas.addEventListener('click', (event) => {
             handleDeleteClick(x, y, nodes, edges, redrawCanvas, isClickOnEdge);
             break;
         case 'setStart':
-            if(clickedObject.type === 'node'){
-                if(clickedObject.object.IsStart)
-                    clickedObject.object.IsStart=false;
-                else{
+            if (clickedObject.type === 'node') {
+                if (clickedObject.object.IsStart)
+                    clickedObject.object.IsStart = false;
+                else {
                     nodes.forEach(node => {
                         node.IsStart = false;
                     });
-                    clickedObject.object.IsStart=true;
+                    clickedObject.object.IsStart = true;
                 }
                 redrawCanvas();
                 saveState();
             }
             break;
         case 'setEnd':
-            if(clickedObject.type === 'node'){
-                if(clickedObject.object.IsEnd)
-                    clickedObject.object.IsEnd=false;
+            if (clickedObject.type === 'node') {
+                if (clickedObject.object.IsEnd)
+                    clickedObject.object.IsEnd = false;
                 else
-                    clickedObject.object.IsEnd=true;
+                    clickedObject.object.IsEnd = true;
                 redrawCanvas();
                 saveState();
             }
             break;
+        case 'select':
         default:
-            if (clickedObject === null) {
-                // Clic en el vacío: Deseleccionar todo
-                selectedNodeId = null;
-                selectedEdgeId = null;
-            } else if (clickedObject.type === 'node') {
-                // Clic en un nodo: Seleccionarlo
-                selectedNodeId = clickedObject.object.id;
-                selectedEdgeId = null; // Deseleccionar arista si se selecciona un nodo
-            } else if (clickedObject.type === 'edge') {
-                // Clic en una arista: Seleccionarla
-                selectedEdgeId = clickedObject.object.id;
-                selectedNodeId = null; // Deseleccionar nodo si se selecciona una arista
-            }
-            redrawCanvas();
             break;
     }
 });
