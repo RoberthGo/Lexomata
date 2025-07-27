@@ -62,6 +62,12 @@ let historyIndex = -1;
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
+const exportFormatSelect = document.getElementById('exportFormat');
+const transparentOption = document.getElementById('transparentOption');
+const exportThemeSelect = document.getElementById('exportTheme');
+let projectName = 'nuevo-automata';
+
+
 let nodes = [];
 let edges = [];
 let nodeCounter = 0
@@ -158,7 +164,13 @@ window.onclick = function (event) {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    const defaultToolButton = document.getElementById('select');
     const menuItems = document.querySelectorAll('.main-menu-item');
+
+    if (defaultToolButton) {
+        changeTool(defaultToolButton, 'select');
+    }
+
     menuItems.forEach(item => {
         item.addEventListener('click', function (event) {
             event.stopPropagation();
@@ -197,14 +209,13 @@ function redo() {
 
 function restoreState() {
     const stateToRestore = history[historyIndex];
-
     // Restaura el estado desde la copia
     nodes = JSON.parse(JSON.stringify(stateToRestore.nodes));
     edges = JSON.parse(JSON.stringify(stateToRestore.edges));
     nodeCounter = stateToRestore.nodeCounter;
 
     // Limpia la selección actual para evitar inconsistencias
-    selectedNodeIds = null;
+    selectedNodeIds = [];
     selectedEdgeId = null;
 
     redrawCanvas();
@@ -240,3 +251,80 @@ function updateUndoRedoButtons() {
     const canRedo = historyIndex < history.length - 1;
     redoButton.disabled = !canRedo;
 }
+
+
+
+
+
+function openFile() {
+    // 1. Crea un input de tipo "file" oculto que acepta múltiples extensiones.
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json, .jff'; // Permite seleccionar varios tipos de archivo
+
+    // 2. Define qué hacer cuando el usuario seleccione un archivo.
+    input.onchange = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        projectName = file.name.replace(/\.[^/.]+$/, '');
+        const reader = new FileReader();
+
+        // 3. Cuando el archivo se lea, decide qué hacer según la extensión.
+        reader.onload = (e) => {
+            const fileContent = e.target.result;
+            const fileName = file.name.toLowerCase();
+
+            if (fileName.endsWith('.json')) {
+                parseAndLoadJSON(fileContent);
+            } else if (fileName.endsWith('.jff')) {
+
+            } else {
+                alert("Tipo de archivo no soportado.");
+            }
+        };
+
+        reader.readAsText(file);
+    };
+
+    // 4. Simula un clic para abrir el diálogo de "Abrir archivo".
+    input.click();
+}
+
+function newFile() {
+    const userConfirmed = confirm("¿Estás seguro de que quieres crear un nuevo archivo? Perderás cualquier cambio no guardado.");
+
+    if (userConfirmed) {
+        const name = prompt("Ingresa el nombre del nuevo proyecto:", projectName);
+        if (name) {
+            projectName = name;
+        }
+
+        // Reinicia el estado de la aplicación
+        nodes = [];
+        edges = [];
+        nodeCounter = 0;
+        selectedNodeIds = [];
+        selectedEdgeId = null;
+
+        // Limpia el historial y guarda el nuevo estado vacío
+        history = [];
+        historyIndex = -1;
+        saveState();
+
+        // Redibuja el lienzo vacío
+        redrawCanvas();
+    }
+}
+
+// Cambia segun el formato
+exportFormatSelect.addEventListener('change', () => {
+    const isPNG = exportFormatSelect.value === 'image/png';
+
+    transparentOption.style.display = isPNG ? 'block' : 'none';
+
+    // Si se cambia a JPEG y "Transparente" estaba seleccionado, vuelve a "Claro"
+    if (!isPNG && exportThemeSelect.value === 'transparent') {
+        exportThemeSelect.value = 'light';
+    }
+});

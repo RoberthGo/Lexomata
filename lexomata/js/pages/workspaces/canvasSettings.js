@@ -15,10 +15,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let isPanning = false;
     let panStart = { x: 0, y: 0 };
     let isSpacePressed = false;
-
+    let hasDragged = false;
 
     canvas.addEventListener('mousedown', (e) => {
         e.preventDefault();
+        hasDragged = false;
+
         // 1. Lógica de Paneo 
         if (e.button === 1 || (isSpacePressed && e.button === 0)) {
             isPanning = true;
@@ -61,8 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // --- PREPARACIÓN PARA EL ARRASTRE ---
-            // Si después de la lógica de selección, el clic fue sobre un nodo, preparamos el arrastre.
+            // Si después de la lógica de selec ción, el clic fue sobre un nodo, preparamos el arrastre.
             if (clickedObject && clickedObject.type === 'node') {
                 draggingNode = clickedObject.object;
             }
@@ -73,6 +74,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     window.addEventListener('mousemove', (e) => {
+        hasDragged = true
+
         // Si no hay acción pendiente, no hacer nada
         if (!isPanning && !draggingNode) {
             return;
@@ -113,10 +116,10 @@ document.addEventListener('DOMContentLoaded', () => {
             isPanning = false;
             canvas.style.cursor = isSpacePressed ? 'grab' : 'default';
         }
-        if (draggingNode) {
-            draggingNode = null;
+        if (hasDragged && draggingNode) {
             saveState();
         }
+        draggingNode = null;
     });
 
     canvas.addEventListener('wheel', (e) => {
@@ -181,6 +184,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             scale = newScale;
             redrawCanvas();
+        }
+
+        if (e.key === 'Escape' && exportModal.style.display === 'flex') {
+            closeExportModal();
         }
     });
 

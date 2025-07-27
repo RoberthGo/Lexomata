@@ -494,16 +494,17 @@ body.dark .automata-canvas {
 .custom-modal-content {
     background-color: #fefefe;
     margin: auto;
-    padding: 20px;
+    padding: 0px;
     border-radius: 10px;
-    width: 80%;
-    max-width: 400px;
+    width: 100%;
+    max-width: 330px;
     text-align: center;
     position: relative;
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
     transform: scale(0.9);
     opacity: 0;
     animation: modalOpen 0.3s forwards ease-out;
+    padding: 1.5rem 1rem;
 }
 
 body.dark .custom-modal-content {
@@ -521,8 +522,8 @@ body.dark .custom-modal-content {
     font-size: 28px;
     font-weight: bold;
     position: absolute;
-    top: 10px;
-    right: 15px;
+    top: 0;
+    right: 12px;
     cursor: pointer;
 }
 
@@ -694,4 +695,205 @@ body.dark .close-button:focus {
 .tool-button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+
+/* En workspace.css, al final del archivo */
+
+.export-options-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1rem;
+  align-items: center;
+  margin: 1.5rem 0;
+  text-align: left;
+}
+
+.export-options-grid label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.modal-input{
+    width: 65%;
+}
+
+.modal-input, .modal-select {
+  padding: 0.6rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background-color: #f0f0f0;
+}
+
+body.dark .modal-input, body.dark .modal-select {
+  border-color: #555;
+  background-color: #2d2d3d;
+  color: #e0e0e0;
+}
+
+.modal-actions {
+  display: flex;
+}
+
+.modal-actions .modal-button {
+  flex-grow: 1; 
+  font-size: 1rem; 
+}
+
+.modal-button{
+  padding: 0.7rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  background-color: #20c997;
+  color: white;
+  
+  margin-top: 0.2rem;
+}
+
+.modal-button:hover {
+  background-color: #1a9e7a;
+}
+body.dark .modal-button {
+  background-color: #8854d0;
+}
+body.dark .modal-button:hover {
+  background-color: #6c42a4;
+}
+
+.modal-button-secondary {
+  background-color: #e0e0e0;
+  color: #333;
+}
+.modal-button-secondary:hover {
+  background-color: #c7c7c7;
+}
+body.dark .modal-button-secondary {
+  background-color: #4a4a60;
+  color: #e0e0e0;
+}
+body.dark .modal-button-secondary:hover {
+  background-color: #5a5a70;
+}
+
+
+
+#modalInputContainer {
+    display: flex;
+    gap: 0.8rem;
+    align-items: center; 
+}
+
+#modalInputContainer #modalTextInput {
+    flex-grow: 1; 
+    border: 2px solid #e0e0e0;
+    transition: border-color 0.2s ease;
+    padding: 0.7rem; 
+    border-radius: 8px; 
+}
+
+/* Efecto al hacer clic en el campo de texto */
+#modalInputContainer #modalTextInput:focus {
+    border-color: #20c997; 
+    outline: none; 
+}
+
+#modalInputContainer #modalSaveButton {
+    background-color: #20c997; 
+    color: white;
+    font-weight: 600;
+    border: none;
+    padding: 0.8rem 1.5rem; 
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+#modalInputContainer #modalSaveButton:hover {
+    background-color: #1a9e7a; 
+}
+
+/* --- AJUSTES PARA MODO OSCURO --- */
+body.dark #modalInputContainer #modalTextInput {
+    border-color: #555;
+    background-color: #2d2d3d;
+    color: #e0e0e0;
+}
+
+body.dark #modalInputContainer #modalTextInput:focus {
+    border-color: #20c997;
+}
+
+
+#exportModal .custom-modal-content {
+    max-width: 380px; 
+    padding-bottom: 1.2rem;
+}
+
+#exportModal .export-options-grid {
+  display: grid;
+  grid-template-columns: 1fr; 
+  gap: 0rem; 
+  text-align: left;
+  margin-top: 1.7rem;
+  margin-bottom: 0rem;
+}
+
+#exportModal .export-options-grid label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #555;
+  padding-left: 0.2rem;
+}
+
+#exportModal .export-options-grid input,select{
+    margin-bottom: 1rem;
+}
+
+#exportModal .modal-input,
+#exportModal .modal-select {
+  width: 100%;
+  background-color: #f0f2f5;
+  border: 2px solid transparent; 
+  border-radius: 8px;
+  padding: 0.7rem;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+#exportModal .modal-input:hover,
+#exportModal .modal-select:hover {
+    background-color: #e9ecf0;
+}
+
+#exportModal .modal-input:focus,
+#exportModal .modal-select:focus {
+  border-color: #20c997; 
+  background-color: #fff;
+  outline: none;
+}
+
+
+
+body.dark #exportModal .export-options-grid label {
+    color: #bbb;
+}
+
+body.dark #exportModal .modal-input,
+body.dark #exportModal .modal-select {
+    background-color: #2d2d3d;
+    color: #e0e0e0;
+}
+
+body.dark #exportModal .modal-input:hover,
+body.dark #exportModal .modal-select:hover {
+    background-color: #3a3a50;
+}
+
+body.dark #exportModal .modal-input:focus,
+body.dark #exportModal .modal-select:focus {
+    border-color: #20c997;
+    background-color: #2a2a3e;
 }

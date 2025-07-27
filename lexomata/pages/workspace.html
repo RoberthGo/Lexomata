@@ -28,10 +28,10 @@
     <nav class="main-menu-container">
       <span class="main-menu-item" id="menuArchivo">Archivo
         <div class="submenu">
-          <span class="submenu-item" onclick="showMessage('Guardar Autómata (JSON)')">Guardar (JSON)</span>
-          <span class="submenu-item" onclick="showMessage('Guardar Autómata (XML)')">Guardar (XML)</span>
-          <span class="submenu-item" onclick="showMessage('Importar archivo .JFF')">Importar archivo .JFF</span>
-          <span class="submenu-item" onclick="showMessage('Exportar Foto del Lienzo')">Exportar Foto</span>
+          <span class="submenu-item" onclick="newFile()">Nuevo archivo</span>
+          <span class="submenu-item" onclick="openFile()">Abrir archivo (JSON, JFF)</span>
+          <span class="submenu-item" onclick="exportAsJSON(nodes, edges, nodeCounter)">Guardar (JSON)</span>
+          <span class="submenu-item" onclick="openExportModal()">Exportar Foto</span>
           <span class="submenu-item" onclick="showMessage('Activar/Desactivar AutoGuardado')">Activar/Desactivar
             AutoGuardado</span>
         </div>
@@ -39,8 +39,8 @@
 
       <span class="main-menu-item" id="menuEdicion">Edición
         <div class="submenu">
-          <span class="submenu-item" onclick="showMessage('Acción: Deshacer')">Deshacer</span>
-          <span class="submenu-item" onclick="showMessage('Acción: Rehacer')">Rehacer</span>
+          <span class="submenu-item" onclick="undo()">Deshacer</span>
+          <span class="submenu-item" onclick="redo()">Rehacer</span>
         </div>
       </span>
 
@@ -128,24 +128,62 @@
     <div class="custom-modal-content">
       <span class="close-button" onclick="closeMessage()">&times;</span>
       <p id="modalMessage"></p>
-
+      <br>
       <div id="modalInputContainer" style="display: none;">
         <input type="text" id="modalTextInput" class="modal-input" placeholder="Etiqueta...">
         <button id="modalSaveButton" class="modal-button">Guardar</button>
       </div>
     </div>
   </div>
-  <script src="../js/pages/workspaces/workspaces.js"> </script>
-  <script src="../js/pages/workspaces/canvasSettings.js"></script>
-  <script src="../js/pages/workspaces/toolbar.js"> </script>
-  <script src="../js/utils/canvas/canvas.js"></script>
-  <script src="../js/models/State.js"></script>
-  <script src="../js/models/Edge.js"></script>
-  <script src="../js/utils/canvas/Node/addNode.js"></script>
-  <script src="../js/utils/canvas/addEdge.js"></script>
-  <script src="../js/utils/Draw/drawNode.js"></script>
-  <script src="../js/utils/Draw/drawEdge.js"></script>
-  <script src="../js/utils/canvas/deleteTool.js"></script>
+
+  <div id="exportModal" class="custom-modal">
+    <div class="custom-modal-content">
+      <span class="close-button" onclick="closeExportModal()">&times;</span>
+      <h3>Opciones de Exportación de Imagen</h3>
+
+      <div class="export-options-grid">
+        <label for="exportFilename">Nombre de archivo:</label>
+        <input type="text" id="exportFilename" class="modal-input" value="automata">
+        
+        <label for="exportFormat">Formato:</label>
+        <select id="exportFormat" class="modal-select">
+          <option value="image/png">PNG</option>
+          <option value="image/jpeg">JPEG</option>
+        </select>
+
+        <label for="exportResolution">Resolución:</label>
+        <select id="exportResolution" class="modal-select">
+          <option value="1">1x (Normal)</option>
+          <option value="2">2x (Alta)</option>
+          <option value="4">4x (Ultra)</option>
+        </select>
+
+        <label for="exportTheme">Tema de Exportación:</label>
+        <select id="exportTheme" class="modal-select">
+          <option value="light" selected>Tema Claro</option>
+          <option value="dark">Tema Oscuro</option>
+          <option value="transparent" id="transparentOption">Transparente (Solo PNG)</option>
+        </select>
+
+        <div class="modal-actions">
+          <button id="confirmExportButton" class="modal-button">Exportar</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="../js/utils/canvas/exportCanvasToImage.js"></script>
+    <script src="../js/pages/workspaces/workspaces.js"> </script>
+    <script src="../js/pages/workspaces/canvasSettings.js"></script>
+    <script src="../js/pages/workspaces/toolbar.js"> </script>
+    <script src="../js/utils/canvas/canvas.js"></script>
+    <script src="../js/models/State.js"></script>
+    <script src="../js/models/Edge.js"></script>
+    <script src="../js/utils/canvas/Node/addNode.js"></script>
+    <script src="../js/utils/canvas/addEdge.js"></script>
+    <script src="../js/utils/Draw/drawNode.js"></script>
+    <script src="../js/utils/Draw/drawEdge.js"></script>
+    <script src="../js/utils/canvas/deleteTool.js"></script>
+    <script src="../js/utils/file/jsonHandler.js"></script>
 
 </body>
 

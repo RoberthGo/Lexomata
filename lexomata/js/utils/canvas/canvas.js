@@ -5,20 +5,19 @@
  * @returns {object|null} - Un objeto con el tipo y la referencia al elemento, o null si no se encuentra nada.
  */
 function getObjectAt(worldX, worldY) {
-    // 1. Buscar aristas primero (si quieres que tengan prioridad)
-    // Asumiendo que tienes una función `isClickOnEdge` que funciona con coordenadas del mundo
-    for (let i = edges.length - 1; i >= 0; i--) {
-        if (isClickOnEdge(worldX, worldY, edges[i], nodes)) {
-            return { type: 'edge', object: edges[i] };
-        }
-    }
-
-    // 2. Buscar nodos (si no se encontró una arista)
+    // 1. Buscar nodos (si no se encontró una arista)
     for (let i = nodes.length - 1; i >= 0; i--) {
         const node = nodes[i];
         const distance = Math.sqrt((worldX - node.x) ** 2 + (worldY - node.y) ** 2);
         if (distance <= node.radius) {
             return { type: 'node', object: node };
+        }
+    }
+
+    // 2. Buscar aristas primero (si quieres que tengan prioridad)
+    for (let i = edges.length - 1; i >= 0; i--) {
+        if (isClickOnEdge(worldX, worldY, edges[i], nodes)) {
+            return { type: 'edge', object: edges[i] };
         }
     }
 
