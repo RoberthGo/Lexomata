@@ -10,7 +10,7 @@ function handleDeleteClick(x, y, nodes, edges, redrawCanvasCallback, isClickOnEd
     }
 
     if (!somethingWasDeleted) {
-        for (let i = nodes.length - 1; i >= 0; i--) {
+        for (let i = nodes.length - 1; i >= 0; i--) { 
             const node = nodes[i];
             const distance = Math.sqrt((x - node.x) ** 2 + (y - node.y) ** 2);
 
