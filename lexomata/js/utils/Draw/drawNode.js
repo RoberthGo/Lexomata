@@ -1,6 +1,4 @@
-function drawNode(ctx, node, selectedNodeIds) {
-    const isDarkMode = document.body.classList.contains('dark');
-    const theme = isDarkMode ? colorPalette.dark : colorPalette.light;
+function drawNode(ctx, node, selectedNodeIds,theme) {
     const isSelected = selectedNodeIds.includes(node.id);
     const fontSize = 16;
     const lineWidth = (isSelected ? 4 : 2);

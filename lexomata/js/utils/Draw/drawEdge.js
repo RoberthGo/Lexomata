@@ -1,8 +1,4 @@
-function drawEdge(ctx, edge, nodes, edgeDrawCounts, selectedEdgeId) {
-    // Determina el tema actual
-    const isDarkMode = document.body.classList.contains('dark');
-    const theme = isDarkMode ? colorPalette.dark : colorPalette.light;
-    
+function drawEdge(ctx, edge, nodes, edgeDrawCounts, selectedEdgeId, theme) {
     const fromNode = nodes.find(n => n.id === edge.from);
     const toNode = nodes.find(n => n.id === edge.to);
     if (!fromNode || !toNode) return;

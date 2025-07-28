@@ -32,17 +32,16 @@
           <span class="submenu-item" onclick="openFile()">Abrir archivo (JSON, JFF)</span>
           <span class="submenu-item" onclick="exportAsJSON(nodes, edges, nodeCounter)">Guardar (JSON)</span>
           <span class="submenu-item" onclick="openExportModal()">Exportar Foto</span>
-          <span class="submenu-item" onclick="showMessage('Activar/Desactivar AutoGuardado')">Activar/Desactivar
-            AutoGuardado</span>
         </div>
       </span>
 
       <span class="main-menu-item" id="menuEdicion">Edición
         <div class="submenu">
-          <span class="submenu-item" onclick="undo()">Deshacer</span>
-          <span class="submenu-item" onclick="redo()">Rehacer</span>
+          <span id="undoMenuItem" class="submenu-item" onclick="undo()">Deshacer</span>
+          <span id="redoMenuItem" class="submenu-item" onclick="redo()">Rehacer</span>
         </div>
       </span>
+
 
       <span class="main-menu-item" id="menuEjecucion">Ejecución
         <div class="submenu">
@@ -54,9 +53,11 @@
 
       <span class="main-menu-item" id="menuVer">Ver
         <div class="submenu">
-          <span class="submenu-item" onclick="showMessage('Enfocar el nodo X')">Enfocar el nodo X</span>
+          <span class="submenu-item" onclick="focusOnNode()">Enfocar el nodo X</span>
+          <span class="submenu-item" onclick="centerCanvasContent()">Centrar Contenido</span>
         </div>
       </span>
+
 
     </nav>
 
@@ -128,7 +129,6 @@
     <div class="custom-modal-content">
       <span class="close-button" onclick="closeMessage()">&times;</span>
       <p id="modalMessage"></p>
-      <br>
       <div id="modalInputContainer" style="display: none;">
         <input type="text" id="modalTextInput" class="modal-input" placeholder="Etiqueta...">
         <button id="modalSaveButton" class="modal-button">Guardar</button>
@@ -144,7 +144,7 @@
       <div class="export-options-grid">
         <label for="exportFilename">Nombre de archivo:</label>
         <input type="text" id="exportFilename" class="modal-input" value="automata">
-        
+
         <label for="exportFormat">Formato:</label>
         <select id="exportFormat" class="modal-select">
           <option value="image/png">PNG</option>
@@ -153,9 +153,11 @@
 
         <label for="exportResolution">Resolución:</label>
         <select id="exportResolution" class="modal-select">
-          <option value="1">1x (Normal)</option>
-          <option value="2">2x (Alta)</option>
-          <option value="4">4x (Ultra)</option>
+          <option value="1280">HD (1280px)</option>
+          <option value="1920" selected>Full HD (1920px)</option>
+          <option value="2560">2K / QHD (2560px)</option>
+          <option value="3840">4K (3840px)</option>
+          <option value="7680">8K (7680px)</option>
         </select>
 
         <label for="exportTheme">Tema de Exportación:</label>
@@ -164,6 +166,15 @@
           <option value="dark">Tema Oscuro</option>
           <option value="transparent" id="transparentOption">Transparente (Solo PNG)</option>
         </select>
+
+        <label>Área a exportar:</label>
+        <div class="radio-group">
+          <input type="radio" id="exportViewAll" name="exportArea" value="all" checked>
+          <label for="exportViewAll">Ajustar al Contenido</label>
+
+          <input type="radio" id="exportViewCurrent" name="exportArea" value="current">
+          <label for="exportViewCurrent">Vista Actual</label>
+        </div>
 
         <div class="modal-actions">
           <button id="confirmExportButton" class="modal-button">Exportar</button>

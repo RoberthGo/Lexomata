@@ -73,14 +73,21 @@ let edges = [];
 let nodeCounter = 0
 let selectedNodeIds = [];
 let selectedEdgeId = null;
+let autoSaveInterval = 5000; // 5s
 let currentTool = 'select';
 let edgeCreationState = { firstNode: null };
 const undoButton = document.getElementById('undoButton');
 const redoButton = document.getElementById('redoButton');
+const undoMenuItem = document.getElementById('undoMenuItem');
+const redoMenuItem = document.getElementById('redoMenuItem');
 
 
 function redrawCanvas() {
     if (!ctx) return;
+
+    const isDarkMode = document.body.classList.contains('dark');
+    const currentTheme = isDarkMode ? colorPalette.dark : colorPalette.light;
+
     edgeDrawCounts = {};
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -93,12 +100,12 @@ function redrawCanvas() {
 
     // Llama a la función de su archivo correspondiente
     edges.forEach(edge => {
-        drawEdge(ctx, edge, nodes, edgeDrawCounts, selectedEdgeId);
+        drawEdge(ctx, edge, nodes, edgeDrawCounts, selectedEdgeId, currentTheme);
     });
 
     // Llama a la función de su archivo correspondiente
     nodes.forEach(node => {
-        drawNode(ctx, node, selectedNodeIds);
+        drawNode(ctx, node, selectedNodeIds, currentTheme);
     });
 
     ctx.restore();
@@ -189,6 +196,18 @@ document.addEventListener('DOMContentLoaded', () => {
         redrawCanvas();
         saveState();
     }
+
+    if (localStorage.getItem('lexomata_autosave')) {
+        if (confirm("Se encontró una sesión guardada. ¿Deseas restaurarla?")) {
+            loadFromLocalStorage();
+        }
+    }
+    setInterval(autoSaveToLocalStorage, autoSaveInterval);
+
+    const confirmExportButton = document.getElementById('confirmExportButton');
+    if (confirmExportButton) {
+        confirmExportButton.addEventListener('click', exportImage);
+    }
 });
 
 // Undo/Redo 
@@ -242,17 +261,19 @@ function saveState() {
     updateUndoRedoButtons();
 }
 
+
 function updateUndoRedoButtons() {
-    // El botón "Deshacer" se activa si no estamos al principio del historial.
     const canUndo = historyIndex > 0;
-    undoButton.disabled = !canUndo;
-
-    // El botón "Rehacer" se activa si no estamos al final de la historial.
     const canRedo = historyIndex < history.length - 1;
-    redoButton.disabled = !canRedo;
+
+    // Actualiza los botones de la barra de herramientas
+    if (undoButton) undoButton.disabled = !canUndo;
+    if (redoButton) redoButton.disabled = !canRedo;
+
+    // Actualiza las opciones del menú de edición
+    if (undoMenuItem) undoMenuItem.classList.toggle('disabled', !canUndo);
+    if (redoMenuItem) redoMenuItem.classList.toggle('disabled', !canRedo);
 }
-
-
 
 
 
@@ -328,3 +349,187 @@ exportFormatSelect.addEventListener('change', () => {
         exportThemeSelect.value = 'light';
     }
 });
+
+// EXPORT IMAGE
+
+function exportImage() {
+    // 1. Obtener todas las opciones del modal
+    const fileName = document.getElementById('exportFilename').value || projectName;
+    const format = document.getElementById('exportFormat').value;
+    const exportWidth = parseInt(document.getElementById('exportResolution').value); // Ancho fijo en píxeles
+    const themeKey = document.getElementById('exportTheme').value;
+    const exportArea = document.querySelector('input[name="exportArea"]:checked').value;
+
+    // 2. Crear un canvas temporal
+    const tempCanvas = document.createElement('canvas');
+    const tempCtx = tempCanvas.getContext('2d');
+
+    let renderPanX, renderPanY, renderScale;
+
+    if (exportArea === 'current') {
+        // a. Calcula el alto de la exportación manteniendo la proporción de la ventana actual
+        const aspectRatio = canvas.height / canvas.width;
+        const exportHeight = exportWidth * aspectRatio;
+        tempCanvas.width = exportWidth;
+        tempCanvas.height = exportHeight;
+
+        // b. Corrige el zoom y el paneo para el nuevo tamaño
+        const scaleFactor = exportWidth / canvas.width;
+        renderScale = scale * scaleFactor;
+        renderPanX = panX * scaleFactor;
+        renderPanY = panY * scaleFactor;
+
+    } else { // exportArea === 'all'
+        const padding = 50; // Margen en píxeles del "mundo"
+        const bounds = calculateContentBoundingBox();
+
+        const contentWidth = (bounds.maxX - bounds.minX) + (padding * 2);
+        const contentHeight = (bounds.maxY - bounds.minY) + (padding * 2);
+
+        // a. Calcula el alto de la exportación manteniendo la proporción del contenido
+        const contentAspectRatio = contentHeight > 0 && contentWidth > 0 ? contentHeight / contentWidth : 1;
+        const exportHeight = exportWidth * contentAspectRatio;
+        tempCanvas.width = exportWidth;
+        tempCanvas.height = exportHeight;
+
+        // b. Calcula el zoom y paneo para centrar el contenido
+        renderScale = contentWidth > 0 ? exportWidth / contentWidth : 1;
+        renderPanX = (-bounds.minX + padding) * renderScale;
+        renderPanY = (-bounds.minY + padding) * renderScale;
+    }
+
+    // 3. Dibujar fondo y autómata en el canvas temporal
+    let theme;
+    if (themeKey !== 'transparent') {
+        theme = colorPalette[themeKey];
+        tempCtx.fillStyle = theme.background;
+        tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+    } else {
+        theme = colorPalette.light; // Usar colores claros para nodos/aristas sobre fondo transparente
+    }
+
+    tempCtx.save();
+    tempCtx.translate(renderPanX, renderPanY);
+    tempCtx.scale(renderScale, renderScale);
+
+    let tempEdgeDrawCounts = {};
+    edges.forEach(edge => drawEdge(tempCtx, edge, nodes, tempEdgeDrawCounts, selectedEdgeId, theme));
+    nodes.forEach(node => drawNode(tempCtx, node, selectedNodeIds, theme));
+    tempCtx.restore();
+
+    // 4. Generar y descargar la imagen
+    const dataUrl = tempCanvas.toDataURL(format, 0.9);
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = `${fileName}.${format.split('/')[1]}`;
+    a.click();
+
+    closeExportModal();
+}
+
+
+
+function autoSaveToLocalStorage() {
+    // Se prepara el objeto con todo lo necesario para guardar
+    const stateToSave = {
+        nodes: nodes,
+        edges: edges,
+        nodeCounter: nodeCounter,
+        projectName: projectName,
+        lastSave: new Date().getTime() // Guarda la fecha del guardado
+    };
+
+    // Convierte el objeto a texto JSON y lo guarda en localStorage.
+    localStorage.setItem('lexomata_autosave', JSON.stringify(stateToSave));
+}
+
+function loadFromLocalStorage() {
+    const savedStateJSON = localStorage.getItem('lexomata_autosave');
+    if (!savedStateJSON) return; // No hay nada guardado
+
+    const savedState = JSON.parse(savedStateJSON);
+
+    // Actualiza el estado de la aplicación.
+    nodes = savedState.nodes;
+    edges = savedState.edges;
+    nodeCounter = savedState.nodeCounter;
+    projectName = savedState.projectName;
+
+    // Reinicia el historial de deshacer y guarda este estado cargado.
+    history = [];
+    historyIndex = -1;
+    saveState();
+    redrawCanvas();
+}
+
+/**
+ * Calcula el rectángulo que envuelve a todos los nodos.
+ * @returns {object} - Un objeto con minX, minY, maxX, maxY.
+ */
+function calculateContentBoundingBox() {
+    if (nodes.length === 0) {
+        return { minX: 0, minY: 0, maxX: canvas.width, maxY: canvas.height };
+    }
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+    nodes.forEach(node => {
+        minX = Math.min(minX, node.x - node.radius);
+        minY = Math.min(minY, node.y - node.radius);
+        maxX = Math.max(maxX, node.x + node.radius);
+        maxY = Math.max(maxY, node.y + node.radius);
+    });
+
+    return { minX, minY, maxX, maxY };
+}
+
+
+function focusOnNode() {
+    const labelToFind = prompt("Ingresa la etiqueta del nodo a enfocar (ej: q1):");
+    if (!labelToFind) return;
+
+    const nodeToFocus = nodes.find(node => node.label === labelToFind.trim());
+
+    if (nodeToFocus) {
+        // Resetea el zoom a un nivel estándar para una mejor vista
+        scale = 1.0;
+        
+        // Calcula el paneo necesario para mover el nodo al centro de la pantalla
+        // Se tiene en cuenta el zoom actual (que acabamos de resetear)
+        panX = (canvas.width / 2) - (nodeToFocus.x * scale);
+        panY = (canvas.height / 2) - (nodeToFocus.y * scale);
+
+        redrawCanvas();
+    } else {
+        showMessage(`No se encontró ningún nodo con la etiqueta "${labelToFind}".`);
+    }
+}
+
+function centerCanvasContent() {
+    if (nodes.length === 0) return; // No hace nada si el lienzo está vacío
+
+    const bounds = calculateContentBoundingBox();
+    const contentWidth = bounds.maxX - bounds.minX;
+    const contentHeight = bounds.maxY - bounds.minY;
+
+    if (contentWidth === 0 || contentHeight === 0) return;
+
+    // Añade un margen del 10% alrededor del contenido
+    const padding = 0.1;
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+
+    // Calcula la escala necesaria para que todo quepa, considerando el padding
+    const scaleX = canvasWidth / (contentWidth * (1 + padding));
+    const scaleY = canvasHeight / (contentHeight * (1 + padding));
+    scale = Math.min(scaleX, scaleY); // Usa la escala más pequeña para asegurar que todo entre
+
+    // Calcula el paneo para centrar el contenido
+    const contentCenterX = bounds.minX + contentWidth / 2;
+    const contentCenterY = bounds.minY + contentHeight / 2;
+
+    panX = (canvasWidth / 2) - (contentCenterX * scale);
+    panY = (canvasHeight / 2) - (contentCenterY * scale);
+    
+    redrawCanvas();
+}
