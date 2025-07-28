@@ -159,6 +159,7 @@ function showEdgeLabelModal(fromNode, toNode) {
     saveButton.className = 'modal-button';
     saveButton.textContent = 'Guardar';
     saveButton.onclick = function() {
+
         saveEdgeLabels(fromNode, toNode);
     };
     
@@ -195,28 +196,13 @@ function addEdgeInput(container) {
     inputGroup.appendChild(input);
     container.appendChild(inputGroup);
 }
-
-// Resto de funciones permanecen igual
-
-function addEdgeInput(container) {
-    const inputGroup = document.createElement('div');
-    inputGroup.className = 'input-group';
-    
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'modal-input edge-input';
-    input.placeholder = 'Ingrese etiqueta de transición';
-    inputGroup.appendChild(input);
-    container.appendChild(inputGroup);
-}
-
 function saveEdgeLabels(fromNode, toNode) {
     const inputs = document.querySelectorAll('.edge-input');
     let hasValidInput = false;
-    
+    let regEx = /^[a-zA-Z0-9]+$/;
     inputs.forEach(input => {
         const label = input.value.trim();
-        if (label) {
+        if (label && regEx.exec(label)) {
             const newEdge = {
                 id: Date.now() + Math.floor(Math.random() * 1000),
                 from: fromNode.id,
