@@ -63,11 +63,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Si después de la lógica de selec ción, el clic fue sobre un nodo, preparamos el arrastre.
+            // Si después de la lógica de selección, el clic fue sobre un nodo, preparamos el arrastre.
             if (clickedObject && clickedObject.type === 'node') {
                 draggingNode = clickedObject.object;
             }
-
             redrawCanvas();
         }
     });

@@ -47,7 +47,6 @@ function closeMessage() {
     document.getElementById('modalInputContainer').style.display = 'none';
     customAlertModal.style.display = 'none';
 }
-
 function redirection() {
     window.location.href = '../index.html';
 }
@@ -132,33 +131,111 @@ function isClickOnEdge(px, py, edge, nodes) {
 
     return dist < clickTolerance;
 }
-
 function showEdgeLabelModal(fromNode, toNode) {
+    const modal = document.getElementById('customAlertModal');
+    const modalMessage = document.getElementById('modalMessage');
     const modalInputContainer = document.getElementById('modalInputContainer');
-    const modalTextInput = document.getElementById('modalTextInput');
-    const modalSaveButton = document.getElementById('modalSaveButton');
-
-    modalMessage.textContent = `Crear transición de ${fromNode.label} a ${toNode.label}`;
-    modalTextInput.value = '';
+    
+    // Configurar el mensaje
+    modalMessage.textContent = `Crear transiciones de ${fromNode.label} a ${toNode.label}`;
+    
+    // Limpiar y preparar el contenedor existente
+    modalInputContainer.innerHTML = '';
     modalInputContainer.style.display = 'block';
-    customAlertModal.style.display = 'flex';
+    
+    // Crear contenedor específico para los inputs
+    const inputsContainer = document.createElement('div');
+    inputsContainer.id = 'edgeInputsContainer';
+    
+    // Añadir primera caja de texto
+    addEdgeInput(inputsContainer);
+    
+    // Crear contenedor para botones
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'modal-actions';
+    
+    // Crear botón Guardar
+    const saveButton = document.createElement('button');
+    saveButton.className = 'modal-button';
+    saveButton.textContent = 'Guardar';
+    saveButton.onclick = function() {
+        saveEdgeLabels(fromNode, toNode);
+    };
+    
+    // Crear botón Añadir otra transición
+    const addMoreButton = document.createElement('button');
+    addMoreButton.className = 'modal-button secondary';
+    addMoreButton.textContent = 'Añadir otra transición';
+    addMoreButton.onclick = function() {
+        addEdgeInput(inputsContainer);
+    };
+    
+    // Añadir botones al contenedor
+    buttonContainer.appendChild(saveButton);
+    buttonContainer.appendChild(addMoreButton);
+    
+    // Añadir elementos al contenedor principal en el orden correcto
+    modalInputContainer.appendChild(inputsContainer);  // Primero los inputs
+    modalInputContainer.appendChild(buttonContainer);  // Luego los botones
+    
+    // Mostrar el modal
+    modal.style.display = 'flex';
+}
 
-    modalSaveButton.onclick = function () {
-        const label = modalTextInput.value.trim();
+// Función para añadir cajas de texto (sin cambios)
+function addEdgeInput(container) {
+    const inputGroup = document.createElement('div');
+    inputGroup.className = 'input-group';
+    
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'modal-input edge-input';
+    input.placeholder = 'Ingrese etiqueta de transición';
+    
+    inputGroup.appendChild(input);
+    container.appendChild(inputGroup);
+}
+
+// Resto de funciones permanecen igual
+
+function addEdgeInput(container) {
+    const inputGroup = document.createElement('div');
+    inputGroup.className = 'input-group';
+    
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'modal-input edge-input';
+    input.placeholder = 'Ingrese etiqueta de transición';
+    inputGroup.appendChild(input);
+    container.appendChild(inputGroup);
+}
+
+function saveEdgeLabels(fromNode, toNode) {
+    const inputs = document.querySelectorAll('.edge-input');
+    let hasValidInput = false;
+    
+    inputs.forEach(input => {
+        const label = input.value.trim();
         if (label) {
             const newEdge = {
-                id: Date.now(),
+                id: Date.now() + Math.floor(Math.random() * 1000),
                 from: fromNode.id,
                 to: toNode.id,
                 label: label
             };
             edges.push(newEdge);
-            redrawCanvas();
-            saveState();
+            hasValidInput = true;
         }
-        closeMessage();
-    };
+    });
+    
+    if (hasValidInput) {
+        redrawCanvas();
+        saveState();
+    }
+    
+    closeMessage();
 }
+
 // ---------------------------------------------------------------------------------
 // SECTION: Event Listeners
 // ---------------------------------------------------------------------------------
