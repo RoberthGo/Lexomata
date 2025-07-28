@@ -122,18 +122,22 @@
     <div class="canvas-wrapper">
       <canvas id="canvas" class="automata-canvas"></canvas>
     </div>
-
   </div>
-
-  <div id="customAlertModal" class="custom-modal">
+  <div id="customEdgeModal" class="custom-modal">
     <div class="custom-modal-content">
-      <span class="close-button" onclick="closeMessage()">&times;</span>
-      <p id="modalMessage"></p>
-      <div id="modalInputContainer" style="display: none;">
+      <span class="close-button" onclick="closeMessage('customEdgeModal')">&times;</span>
+      <p id="modalMessageEdge"></p>
+      <div id="modalEdgeContainer" style="display: none;">
         <input type="text" id="modalTextInput" class="modal-input" placeholder="Etiqueta...">
         <button id="modalSaveButton" class="modal-button">Guardar</button>
       </div>
     </div>
+  </div>
+
+  <div id="customAlertModal" class="custom-modal">
+    <div class="custom-modal-content">
+      <span class="close-button" onclick="closeMessage('customAlertModal')">&times;</span>
+      <p id="modalMessage"></p>
   </div>
 
   <div id="exportModal" class="custom-modal">

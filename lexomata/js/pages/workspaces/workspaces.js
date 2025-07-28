@@ -43,9 +43,9 @@ function showMessage(message) {
     customAlertModal.style.display = 'flex';
 }
 
-function closeMessage() {
-    document.getElementById('modalInputContainer').style.display = 'none';
-    customAlertModal.style.display = 'none';
+function closeMessage(id) {
+    document.getElementById(id).style.display = 'none';
+    //customAlertModal.style.display = 'none';
 }
 function redirection() {
     window.location.href = '../index.html';
@@ -132,13 +132,13 @@ function isClickOnEdge(px, py, edge, nodes) {
     return dist < clickTolerance;
 }
 function showEdgeLabelModal(fromNode, toNode) {
-    const modal = document.getElementById('customAlertModal');
-    const modalMessage = document.getElementById('modalMessage');
-    const modalInputContainer = document.getElementById('modalInputContainer');
+    const modal = document.getElementById('customEdgeModal');
+    const modalMessageEdge = document.getElementById('modalMessageEdge');
+    const modalInputContainer = document.getElementById('modalEdgeContainer');
     
     // Configurar el mensaje
-    modalMessage.textContent = `Crear transiciones de ${fromNode.label} a ${toNode.label}`;
-    
+    modalMessageEdge.textContent = `Crear transiciones de ${fromNode.label} a ${toNode.label}`;
+
     // Limpiar y preparar el contenedor existente
     modalInputContainer.innerHTML = '';
     modalInputContainer.style.display = 'block';
@@ -181,6 +181,7 @@ function showEdgeLabelModal(fromNode, toNode) {
     
     // Mostrar el modal
     modal.style.display = 'flex';
+
 }
 
 // Función para añadir cajas de texto (sin cambios)
@@ -218,8 +219,7 @@ function saveEdgeLabels(fromNode, toNode) {
         redrawCanvas();
         saveState();
     }
-    
-    closeMessage();
+    closeMessage('customEdgeModal');
 }
 
 // ---------------------------------------------------------------------------------
