@@ -4,14 +4,20 @@ function drawEdge(ctx, edge, nodes, edgeDrawCounts, selectedEdgeId, theme) {
     if (!fromNode || !toNode) return;
 
     const isSelected = (edge.id === selectedEdgeId);
-    const edgeKey = `${fromNode.id}-${toNode.id}`;
-    if (!edgeDrawCounts[edgeKey]) {
-        edgeDrawCounts[edgeKey] = 0;
+    const edgeKeyA = `${fromNode.id}-${toNode.id}`;
+    const edgeKeyB = `${toNode.id}-${fromNode.id}`;
+    if (!edgeDrawCounts[edgeKeyA]) {
+        edgeDrawCounts[edgeKeyA] = 0;
     }
-    const drawCount = edgeDrawCounts[edgeKey];
-    edgeDrawCounts[edgeKey] += 1;
-    edge._drawCount = drawCount;
-    if(edge._drawCount==1){
+    if (!edgeDrawCounts[edgeKeyB]) {
+        edgeDrawCounts[edgeKeyB] = 0;
+    }
+    edgeDrawCounts[edgeKeyA]+=1;
+    edgeDrawCounts[edgeKeyB]+=1;
+    const drawCountA = edgeDrawCounts[edgeKeyA];
+    const drawCountB = edgeDrawCounts[edgeKeyB];
+    edge._drawCount = drawCountA+drawCountB;
+    if(drawCountA<=1||drawCountB<=1){
         // Dibuja la línea
         ctx.beginPath();
         ctx.moveTo(fromNode.x, fromNode.y);
@@ -34,7 +40,8 @@ function drawEdge(ctx, edge, nodes, edgeDrawCounts, selectedEdgeId, theme) {
     ctx.fillStyle = isSelected ? theme.selectedEdge : theme.edgeText;
     ctx.font = '14px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(edge.label, midX, midY - (12 * (edge._drawCount + 1)));
+    console.log(edgeKeyA,edgeKeyB);
+    ctx.fillText(edge.label, midX, midY - (12 * (drawCountA + drawCountB + 1)));
 }
 
 // Función auxiliar para dibujar la flecha

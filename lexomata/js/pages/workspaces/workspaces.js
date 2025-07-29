@@ -131,6 +131,181 @@ function isClickOnEdge(px, py, edge, nodes) {
 
     return dist < clickTolerance;
 }
+
+function reverseEdge(edgeId) {
+    const edgeIndex = edges.findIndex(edge => edge.id === edgeId);
+    if (edgeIndex === -1) return;
+    
+    const edge = edges[edgeIndex];
+    // Intercambiar los nodos de origen y destino
+    const temp = edge.from;
+    edge.from = edge.to;
+    edge.to = temp;
+    
+    // Guardar el estado para undo/redo
+    saveState();
+    redrawCanvas();
+}
+
+function showEdgeContextMenu(x, y, edges) {
+    // Remover menú previo si existe
+    hideEdgeContextMenu();
+    
+    const contextMenu = document.createElement('div');
+    contextMenu.id = 'edgeContextMenu';
+    contextMenu.className = 'edge-context-menu';
+    contextMenu.style.position = 'fixed';
+    contextMenu.style.left = x + 'px';
+    contextMenu.style.top = y + 'px';
+    contextMenu.style.backgroundColor = '#ffffff';
+    contextMenu.style.border = '1px solid #ccc';
+    contextMenu.style.borderRadius = '8px';
+    contextMenu.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)';
+    contextMenu.style.zIndex = '1000';
+    contextMenu.style.minWidth = '250px';
+    contextMenu.style.padding = '8px 0';
+    contextMenu.style.fontSize = '14px';
+    
+    // Ajustar para tema oscuro
+    const isDarkMode = document.body.classList.contains('dark');
+    if (isDarkMode) {
+        contextMenu.style.backgroundColor = '#2d3748';
+        contextMenu.style.border = '1px solid #4a5568';
+        contextMenu.style.color = '#f7fafc';
+    }
+    
+    // Crear header del menú
+    const header = document.createElement('div');
+    header.textContent = `Seleccionar arista a invertir (${edges.length} encontradas):`;
+    header.style.padding = '12px 16px';
+    header.style.fontWeight = '600';
+    header.style.borderBottom = '1px solid #eee';
+    header.style.fontSize = '13px';
+    header.style.color = '#666';
+    if (isDarkMode) {
+        header.style.borderBottom = '1px solid #4a5568';
+        header.style.color = '#a0aec0';
+    }
+    contextMenu.appendChild(header);
+    
+    // Crear opciones para cada arista
+    edges.forEach((edge, index) => {
+        const fromNode = nodes.find(n => n.id === edge.from);
+        const toNode = nodes.find(n => n.id === edge.to);
+        if (!fromNode || !toNode) return;
+        
+        const option = document.createElement('div');
+        option.className = 'context-menu-option';
+        option.style.padding = '12px 16px';
+        option.style.cursor = 'pointer';
+        option.style.borderBottom = index < edges.length - 1 ? '1px solid #f0f0f0' : 'none';
+        option.style.display = 'flex';
+        option.style.alignItems = 'center';
+        option.style.justifyContent = 'space-between';
+        
+        // Crear contenido principal
+        const mainContent = document.createElement('div');
+        mainContent.style.flex = '1';
+        
+        // Mostrar información de la arista
+        const direction = document.createElement('div');
+        direction.textContent = `${fromNode.label} → ${toNode.label}`;
+        direction.style.fontWeight = '500';
+        direction.style.marginBottom = '2px';
+        
+        const labelInfo = document.createElement('div');
+        labelInfo.textContent = edge.label ? `Etiqueta: "${edge.label}"` : 'Sin etiqueta';
+        labelInfo.style.fontSize = '12px';
+        labelInfo.style.color = '#888';
+        if (isDarkMode) {
+            labelInfo.style.color = '#a0aec0';
+        }
+        
+        mainContent.appendChild(direction);
+        mainContent.appendChild(labelInfo);
+        
+        // Crear indicador de acción
+        const actionIndicator = document.createElement('div');
+        actionIndicator.textContent = '⇄';
+        actionIndicator.style.fontSize = '16px';
+        actionIndicator.style.fontWeight = 'bold';
+        actionIndicator.style.color = '#007bff';
+        actionIndicator.style.marginLeft = '12px';
+        if (isDarkMode) {
+            actionIndicator.style.color = '#63b3ed';
+        }
+        
+        option.appendChild(mainContent);
+        option.appendChild(actionIndicator);
+        
+        // Efectos hover
+        option.addEventListener('mouseenter', () => {
+            option.style.backgroundColor = isDarkMode ? '#4a5568' : '#f8f9fa';
+            actionIndicator.style.transform = 'scale(1.1)';
+        });
+        
+        option.addEventListener('mouseleave', () => {
+            option.style.backgroundColor = 'transparent';
+            actionIndicator.style.transform = 'scale(1)';
+        });
+        
+        // Click handler
+        option.addEventListener('click', (e) => {
+            e.stopPropagation();
+            reverseEdge(edge.id);
+            hideEdgeContextMenu();
+        });
+        
+        if (isDarkMode) {
+            option.style.borderBottom = index < edges.length - 1 ? '1px solid #4a5568' : 'none';
+        }
+        
+        contextMenu.appendChild(option);
+    });
+    
+    // Agregar footer con instrucciones
+    const footer = document.createElement('div');
+    footer.textContent = 'Click para invertir la dirección';
+    footer.style.padding = '8px 16px';
+    footer.style.fontSize = '11px';
+    footer.style.color = '#999';
+    footer.style.borderTop = '1px solid #eee';
+    footer.style.textAlign = 'center';
+    footer.style.fontStyle = 'italic';
+    if (isDarkMode) {
+        footer.style.borderTop = '1px solid #4a5568';
+        footer.style.color = '#718096';
+    }
+    contextMenu.appendChild(footer);
+    
+    // Agregar al DOM
+    document.body.appendChild(contextMenu);
+    
+    // Ajustar posición si se sale de la pantalla
+    const rect = contextMenu.getBoundingClientRect();
+    if (rect.right > window.innerWidth) {
+        contextMenu.style.left = (x - rect.width) + 'px';
+    }
+    if (rect.bottom > window.innerHeight) {
+        contextMenu.style.top = (y - rect.height) + 'px';
+    }
+    
+    // Event listener para cerrar el menú al hacer click fuera
+    setTimeout(() => {
+        document.addEventListener('click', hideEdgeContextMenu);
+        document.addEventListener('contextmenu', hideEdgeContextMenu);
+    }, 10);
+}
+
+function hideEdgeContextMenu() {
+    const existingMenu = document.getElementById('edgeContextMenu');
+    if (existingMenu) {
+        existingMenu.remove();
+        document.removeEventListener('click', hideEdgeContextMenu);
+        document.removeEventListener('contextmenu', hideEdgeContextMenu);
+    }
+}
+
 function showEdgeLabelModal(fromNode, toNode) {
     const modal = document.getElementById('customEdgeModal');
     const modalMessageEdge = document.getElementById('modalMessageEdge');

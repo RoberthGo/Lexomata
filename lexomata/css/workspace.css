@@ -1111,3 +1111,41 @@ body.dark #edgeInputsContainer::-webkit-scrollbar-track {
 body.dark #edgeInputsContainer::-webkit-scrollbar-thumb {
     background: #555;
 }
+
+/* Edge Context Menu Styles */
+.edge-context-menu {
+    font-family: 'Roboto', sans-serif;
+    user-select: none;
+    animation: fadeIn 0.15s ease-out;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.edge-context-menu .context-menu-option {
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.edge-context-menu .context-menu-option:hover {
+    background-color: #f8f9fa !important;
+    transform: translateX(2px);
+}
+
+body.dark .edge-context-menu .context-menu-option:hover {
+    background-color: #4a5568 !important;
+}
+
+.edge-context-menu .context-menu-option:active {
+    transform: translateX(2px) scale(0.98);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}

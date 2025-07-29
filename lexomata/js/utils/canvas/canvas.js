@@ -25,6 +25,22 @@ function getObjectAt(worldX, worldY) {
     return null;
 }
 
+/**
+ * Encuentra todas las aristas en una coordenada específica del mundo.
+ * @param {number} worldX - La coordenada X en el mundo del canvas.
+ * @param {number} worldY - La coordenada Y en el mundo del canvas.
+ * @returns {array} - Array de aristas que se encuentran en esa posición.
+ */
+function getAllEdgesAt(worldX, worldY) {
+    const foundEdges = [];
+    for (let i = 0; i < edges.length; i++) {
+        if (isClickOnEdge(worldX, worldY, edges[i], nodes)) {
+            foundEdges.push(edges[i]);
+        }
+    }
+    return foundEdges;
+}
+
 
 function getCanvasPoint(X, Y) {
     // 1. Obtener la posición del canvas relativo al viewport
