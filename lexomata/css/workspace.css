@@ -1116,6 +1116,10 @@ body.dark #edgeInputsContainer::-webkit-scrollbar-thumb {
 .edge-context-menu {
     font-family: 'Roboto', sans-serif;
     user-select: none;
+    max-height: 300px;
+    max-width: fit-content;
+    overflow-y: auto;
+    overflow-x: visible;
     animation: fadeIn 0.15s ease-out;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);

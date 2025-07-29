@@ -75,6 +75,12 @@ let selectedEdgeId = null;
 let autoSaveInterval = 5000; // 5s
 let currentTool = 'select';
 let edgeCreationState = { firstNode: null };
+let edgeReassignmentState = { 
+    isActive: false, 
+    selectedEdgeIds: [], 
+    mouseX: 0, 
+    mouseY: 0 
+};
 const undoButton = document.getElementById('undoButton');
 const redoButton = document.getElementById('redoButton');
 const undoMenuItem = document.getElementById('undoMenuItem');
@@ -96,7 +102,6 @@ function redrawCanvas() {
     // Aplica el zoom (escalado)
     ctx.scale(scale, scale);
 
-
     // Llama a la función de su archivo correspondiente
     edges.forEach(edge => {
         drawEdge(ctx, edge, nodes, edgeDrawCounts, selectedEdgeId, currentTheme);
@@ -107,6 +112,49 @@ function redrawCanvas() {
         drawNode(ctx, node, selectedNodeIds, currentTheme);
     });
 
+    // Dibujar líneas de reasignación si está activo el modo
+    if (edgeReassignmentState.isActive) {
+        drawReassignmentLines(ctx, currentTheme);
+    }
+
+    ctx.restore();
+}
+
+function drawReassignmentLines(ctx, theme) {
+    if (!edgeReassignmentState.isActive || edgeReassignmentState.selectedEdgeIds.length === 0) return;
+    
+    ctx.save();
+    
+    // Configurar estilo para las líneas de reasignación
+    ctx.strokeStyle = theme.selectedEdge;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]); // Línea punteada
+    ctx.globalAlpha = 0.8;
+    
+    // Dibujar líneas desde cada arista seleccionada hasta la posición del mouse
+    edgeReassignmentState.selectedEdgeIds.forEach(edgeId => {
+        const edge = edges.find(e => e.id === edgeId);
+        if (!edge) return;
+        
+        const fromNode = nodes.find(n => n.id === edge.from);
+        if (!fromNode) return;
+        
+        ctx.beginPath();
+        ctx.moveTo(fromNode.x, fromNode.y);
+        ctx.lineTo(edgeReassignmentState.mouseX, edgeReassignmentState.mouseY);
+        ctx.stroke();
+    });
+    
+    // Dibujar círculo en la posición del mouse
+    ctx.beginPath();
+    ctx.arc(edgeReassignmentState.mouseX, edgeReassignmentState.mouseY, 8, 0, 2 * Math.PI);
+    ctx.fillStyle = theme.selectedEdge;
+    ctx.fill();
+    ctx.strokeStyle = theme.background;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([]);
+    ctx.stroke();
+    
     ctx.restore();
 }
 
@@ -115,6 +163,29 @@ function isClickOnEdge(px, py, edge, nodes) {
     const toNode = nodes.find(n => n.id === edge.to);
     if (!fromNode || !toNode) return false;
 
+    const clickTolerance = 5 / scale;
+    
+    // Caso especial: Self-loop (auto-loop)
+    if (fromNode.id === toNode.id) {
+        return isClickOnSelfLoop(px, py, fromNode, clickTolerance);
+    }
+    
+    // Verificar si existe una arista en dirección opuesta
+    const oppositeEdgeExists = edges.some(e => 
+        e.from === edge.to && e.to === edge.from && e.id !== edge.id
+    );
+    
+    if (oppositeEdgeExists) {
+        // Caso especial: Arista curva
+        return isClickOnCurvedEdge(px, py, fromNode, toNode, clickTolerance);
+    } else {
+        // Caso normal: Arista recta
+        return isClickOnStraightEdge(px, py, fromNode, toNode, clickTolerance);
+    }
+}
+
+// Función auxiliar para detectar click en arista recta
+function isClickOnStraightEdge(px, py, fromNode, toNode, tolerance) {
     const dx = toNode.x - fromNode.x;
     const dy = toNode.y - fromNode.y;
     const lengthSq = dx * dx + dy * dy;
@@ -127,9 +198,95 @@ function isClickOnEdge(px, py, edge, nodes) {
     const closestX = fromNode.x + t * dx;
     const closestY = fromNode.y + t * dy;
     const dist = Math.sqrt((px - closestX) ** 2 + (py - closestY) ** 2);
-    const clickTolerance = 5 / scale;
 
-    return dist < clickTolerance;
+    return dist < tolerance;
+}
+
+// Función auxiliar para detectar click en arista curva
+function isClickOnCurvedEdge(px, py, fromNode, toNode, tolerance) {
+    const dx = toNode.x - fromNode.x;
+    const dy = toNode.y - fromNode.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const curvature = distance * 0.15;
+    
+    const perpX = -dy / distance;
+    const perpY = dx / distance;
+    
+    const controlX = (fromNode.x + toNode.x) / 2 + perpX * curvature;
+    const controlY = (fromNode.y + toNode.y) / 2 + perpY * curvature;
+    
+    // Verificar múltiples puntos a lo largo de la curva
+    for (let t = 0; t <= 1; t += 0.1) {
+        const curveX = (1 - t) * (1 - t) * fromNode.x + 2 * (1 - t) * t * controlX + t * t * toNode.x;
+        const curveY = (1 - t) * (1 - t) * fromNode.y + 2 * (1 - t) * t * controlY + t * t * toNode.y;
+        
+        const dist = Math.sqrt((px - curveX) ** 2 + (py - curveY) ** 2);
+        if (dist < tolerance) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+// Función auxiliar para detectar click en self-loop
+function isClickOnSelfLoop(px, py, node, tolerance) {
+    const radius = node.radius || 33;
+    const loopRadius = radius * 0.8;
+    
+    // Centro del loop
+    const centerX = node.x;
+    const centerY = node.y - radius - loopRadius;
+    
+    // Verificar si el click está cerca del círculo del loop
+    const distToCenter = Math.sqrt((px - centerX) ** 2 + (py - centerY) ** 2);
+    const isOnLoop = Math.abs(distToCenter - loopRadius) < tolerance;
+    
+    // También verificar las líneas conectoras
+    const startAngle = Math.PI * 0.25;
+    const endAngle = Math.PI * 0.75;
+    
+    const startX = node.x - Math.cos(startAngle) * radius;
+    const startY = node.y - Math.sin(startAngle) * radius;
+    const endX = node.x - Math.cos(endAngle) * radius;
+    const endY = node.y - Math.sin(endAngle) * radius;
+    
+    // Línea desde el nodo hasta el inicio del loop
+    const distToStartLine = distancePointToLine(px, py, startX, startY, centerX - loopRadius, centerY);
+    const distToEndLine = distancePointToLine(px, py, endX, endY, centerX + loopRadius, centerY);
+    
+    return isOnLoop || distToStartLine < tolerance || distToEndLine < tolerance;
+}
+
+// Función auxiliar para calcular distancia de punto a línea
+function distancePointToLine(px, py, x1, y1, x2, y2) {
+    const A = px - x1;
+    const B = py - y1;
+    const C = x2 - x1;
+    const D = y2 - y1;
+
+    const dot = A * C + B * D;
+    const lenSq = C * C + D * D;
+
+    if (lenSq === 0) return Math.sqrt(A * A + B * B);
+
+    const param = dot / lenSq;
+    
+    let xx, yy;
+    if (param < 0) {
+        xx = x1;
+        yy = y1;
+    } else if (param > 1) {
+        xx = x2;
+        yy = y2;
+    } else {
+        xx = x1 + param * C;
+        yy = y1 + param * D;
+    }
+
+    const dx = px - xx;
+    const dy = py - yy;
+    return Math.sqrt(dx * dx + dy * dy);
 }
 
 function reverseEdge(edgeId) {
@@ -144,6 +301,116 @@ function reverseEdge(edgeId) {
     
     // Guardar el estado para undo/redo
     saveState();
+    redrawCanvas();
+}
+
+function reverseMultipleEdges(edgeIds) {
+    if (!edgeIds || edgeIds.length === 0) return;
+    
+    // Invertir todas las aristas seleccionadas
+    edgeIds.forEach(edgeId => {
+        const edgeIndex = edges.findIndex(edge => edge.id === edgeId);
+        if (edgeIndex !== -1) {
+            const edge = edges[edgeIndex];
+            // Intercambiar los nodos de origen y destino
+            const temp = edge.from;
+            edge.from = edge.to;
+            edge.to = temp;
+        }
+    });
+    
+    // Guardar el estado para undo/redo (una sola vez para toda la operación)
+    saveState();
+    redrawCanvas();
+}
+
+function startEdgeReassignment(edgeIds) {
+    if (!edgeIds || edgeIds.length === 0) return;
+    
+    edgeReassignmentState.isActive = true;
+    edgeReassignmentState.selectedEdgeIds = [...edgeIds];
+    
+    // Cambiar cursor para indicar modo de reasignación
+    canvas.style.cursor = 'crosshair';
+    
+    // Agregar event listeners temporales
+    canvas.addEventListener('mousemove', handleReassignmentMouseMove);
+    canvas.addEventListener('click', handleReassignmentClick);
+    canvas.addEventListener('contextmenu', cancelEdgeReassignment);
+    
+    redrawCanvas();
+}
+
+function handleReassignmentMouseMove(event) {
+    if (!edgeReassignmentState.isActive) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    edgeReassignmentState.mouseX = (event.clientX - rect.left - panX) / scale;
+    edgeReassignmentState.mouseY = (event.clientY - rect.top - panY) / scale;
+    
+    redrawCanvas();
+}
+
+function handleReassignmentClick(event) {
+    if (!edgeReassignmentState.isActive) return;
+    
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const rect = canvas.getBoundingClientRect();
+    const clickX = (event.clientX - rect.left - panX) / scale;
+    const clickY = (event.clientY - rect.top - panY) / scale;
+    
+    // Buscar si se hizo click en un nodo
+    const clickedNode = nodes.find(node => {
+        const distance = Math.sqrt(
+            Math.pow(clickX - node.x, 2) + 
+            Math.pow(clickY - node.y, 2)
+        );
+        return distance <= node.radius;
+    });
+    
+    if (clickedNode) {
+        // Reasignar el nodo de destino de todas las aristas seleccionadas
+        reassignEdgeDestinations(edgeReassignmentState.selectedEdgeIds, clickedNode.id);
+    }
+    
+    cancelEdgeReassignment();
+}
+
+function reassignEdgeDestinations(edgeIds, newDestinationNodeId) {
+    let reassignedCount = 0;
+    
+    edgeIds.forEach(edgeId => {
+        const edgeIndex = edges.findIndex(edge => edge.id === edgeId);
+        if (edgeIndex !== -1) {
+            const edge = edges[edgeIndex];
+            // Solo reasignar si el nuevo destino es diferente al actual
+            if (edge.to !== newDestinationNodeId) {
+                edge.to = newDestinationNodeId;
+                reassignedCount++;
+            }
+        }
+    });
+    
+    if (reassignedCount > 0) {
+        saveState();
+        redrawCanvas();
+    }
+}
+
+function cancelEdgeReassignment() {
+    edgeReassignmentState.isActive = false;
+    edgeReassignmentState.selectedEdgeIds = [];
+    
+    // Restaurar cursor normal
+    canvas.style.cursor = 'default';
+    
+    // Remover event listeners temporales
+    canvas.removeEventListener('mousemove', handleReassignmentMouseMove);
+    canvas.removeEventListener('click', handleReassignmentClick);
+    canvas.removeEventListener('contextmenu', cancelEdgeReassignment);
+    
     redrawCanvas();
 }
 
@@ -162,9 +429,11 @@ function showEdgeContextMenu(x, y, edges) {
     contextMenu.style.borderRadius = '8px';
     contextMenu.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)';
     contextMenu.style.zIndex = '1000';
-    contextMenu.style.minWidth = '250px';
+    contextMenu.style.minWidth = '280px';
     contextMenu.style.padding = '8px 0';
     contextMenu.style.fontSize = '14px';
+    contextMenu.style.maxHeight = '400px';
+    contextMenu.style.overflowY = 'auto';
     
     // Ajustar para tema oscuro
     const isDarkMode = document.body.classList.contains('dark');
@@ -176,7 +445,7 @@ function showEdgeContextMenu(x, y, edges) {
     
     // Crear header del menú
     const header = document.createElement('div');
-    header.textContent = `Seleccionar arista a invertir (${edges.length} encontradas):`;
+    header.textContent = `Invertir aristas (${edges.length} encontradas):`;
     header.style.padding = '12px 16px';
     header.style.fontWeight = '600';
     header.style.borderBottom = '1px solid #eee';
@@ -188,7 +457,15 @@ function showEdgeContextMenu(x, y, edges) {
     }
     contextMenu.appendChild(header);
     
-    // Crear opciones para cada arista
+    // Contenedor para las opciones con scroll
+    const optionsContainer = document.createElement('div');
+    optionsContainer.style.maxHeight = '200px';
+    optionsContainer.style.overflowY = 'auto';
+    
+    // Array para almacenar las aristas seleccionadas
+    let selectedEdges = [];
+    
+    // Crear opciones para cada arista con checkbox
     edges.forEach((edge, index) => {
         const fromNode = nodes.find(n => n.id === edge.from);
         const toNode = nodes.find(n => n.id === edge.to);
@@ -196,16 +473,24 @@ function showEdgeContextMenu(x, y, edges) {
         
         const option = document.createElement('div');
         option.className = 'context-menu-option';
-        option.style.padding = '12px 16px';
+        option.style.padding = '8px 16px';
         option.style.cursor = 'pointer';
         option.style.borderBottom = index < edges.length - 1 ? '1px solid #f0f0f0' : 'none';
         option.style.display = 'flex';
         option.style.alignItems = 'center';
         option.style.justifyContent = 'space-between';
         
+        // Crear checkbox
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `edge_${edge.id}`;
+        checkbox.style.marginRight = '12px';
+        checkbox.style.cursor = 'pointer';
+        
         // Crear contenido principal
         const mainContent = document.createElement('div');
         mainContent.style.flex = '1';
+        mainContent.style.cursor = 'pointer';
         
         // Mostrar información de la arista
         const direction = document.createElement('div');
@@ -224,17 +509,19 @@ function showEdgeContextMenu(x, y, edges) {
         mainContent.appendChild(direction);
         mainContent.appendChild(labelInfo);
         
-        // Crear indicador de acción
+        // Crear indicador de acción individual
         const actionIndicator = document.createElement('div');
         actionIndicator.textContent = '⇄';
         actionIndicator.style.fontSize = '16px';
         actionIndicator.style.fontWeight = 'bold';
         actionIndicator.style.color = '#007bff';
-        actionIndicator.style.marginLeft = '12px';
+        actionIndicator.style.marginLeft = '8px';
+        actionIndicator.style.cursor = 'pointer';
         if (isDarkMode) {
             actionIndicator.style.color = '#63b3ed';
         }
         
+        option.appendChild(checkbox);
         option.appendChild(mainContent);
         option.appendChild(actionIndicator);
         
@@ -249,8 +536,37 @@ function showEdgeContextMenu(x, y, edges) {
             actionIndicator.style.transform = 'scale(1)';
         });
         
-        // Click handler
-        option.addEventListener('click', (e) => {
+        // Click en el checkbox o contenido principal para seleccionar
+        const toggleCheckbox = (e) => {
+            e.stopPropagation();
+            checkbox.checked = !checkbox.checked;
+            
+            if (checkbox.checked) {
+                if (!selectedEdges.includes(edge.id)) {
+                    selectedEdges.push(edge.id);
+                }
+            } else {
+                selectedEdges = selectedEdges.filter(id => id !== edge.id);
+            }
+            
+            updateActionButtons();
+        };
+        
+        checkbox.addEventListener('change', () => {
+            if (checkbox.checked) {
+                if (!selectedEdges.includes(edge.id)) {
+                    selectedEdges.push(edge.id);
+                }
+            } else {
+                selectedEdges = selectedEdges.filter(id => id !== edge.id);
+            }
+            updateActionButtons();
+        });
+        
+        mainContent.addEventListener('click', toggleCheckbox);
+        
+        // Click en indicador de acción para invertir inmediatamente esta arista
+        actionIndicator.addEventListener('click', (e) => {
             e.stopPropagation();
             reverseEdge(edge.id);
             hideEdgeContextMenu();
@@ -260,18 +576,146 @@ function showEdgeContextMenu(x, y, edges) {
             option.style.borderBottom = index < edges.length - 1 ? '1px solid #4a5568' : 'none';
         }
         
-        contextMenu.appendChild(option);
+        optionsContainer.appendChild(option);
     });
+    
+    contextMenu.appendChild(optionsContainer);
+    
+    // Contenedor para botones de acción
+    const actionsContainer = document.createElement('div');
+    actionsContainer.style.padding = '12px 16px';
+    actionsContainer.style.borderTop = '1px solid #eee';
+    actionsContainer.style.display = 'flex';
+    actionsContainer.style.gap = '8px';
+    actionsContainer.style.flexDirection = 'column';
+    if (isDarkMode) {
+        actionsContainer.style.borderTop = '1px solid #4a5568';
+    }
+    
+    // Botones de selección rápida
+    const quickSelectContainer = document.createElement('div');
+    quickSelectContainer.style.display = 'flex';
+    quickSelectContainer.style.gap = '8px';
+    quickSelectContainer.style.marginBottom = '8px';
+    
+    const selectAllBtn = document.createElement('button');
+    selectAllBtn.textContent = 'Seleccionar todas';
+    selectAllBtn.style.flex = '1';
+    selectAllBtn.style.padding = '6px 12px';
+    selectAllBtn.style.border = '1px solid #ddd';
+    selectAllBtn.style.borderRadius = '4px';
+    selectAllBtn.style.backgroundColor = isDarkMode ? '#4a5568' : '#f8f9fa';
+    selectAllBtn.style.color = isDarkMode ? '#f7fafc' : '#333';
+    selectAllBtn.style.cursor = 'pointer';
+    selectAllBtn.style.fontSize = '12px';
+    
+    const selectNoneBtn = document.createElement('button');
+    selectNoneBtn.textContent = 'Deseleccionar todas';
+    selectNoneBtn.style.flex = '1';
+    selectNoneBtn.style.padding = '6px 12px';
+    selectNoneBtn.style.border = '1px solid #ddd';
+    selectNoneBtn.style.borderRadius = '4px';
+    selectNoneBtn.style.backgroundColor = isDarkMode ? '#4a5568' : '#f8f9fa';
+    selectNoneBtn.style.color = isDarkMode ? '#f7fafc' : '#333';
+    selectNoneBtn.style.cursor = 'pointer';
+    selectNoneBtn.style.fontSize = '12px';
+    
+    quickSelectContainer.appendChild(selectAllBtn);
+    quickSelectContainer.appendChild(selectNoneBtn);
+    actionsContainer.appendChild(quickSelectContainer);
+    
+    // Botón para invertir seleccionadas
+    const reverseSelectedBtn = document.createElement('button');
+    reverseSelectedBtn.textContent = 'Invertir aristas seleccionadas (0)';
+    reverseSelectedBtn.style.width = '100%';
+    reverseSelectedBtn.style.padding = '10px 16px';
+    reverseSelectedBtn.style.border = 'none';
+    reverseSelectedBtn.style.borderRadius = '6px';
+    reverseSelectedBtn.style.backgroundColor = '#28a745';
+    reverseSelectedBtn.style.color = '#fff';
+    reverseSelectedBtn.style.cursor = 'pointer';
+    reverseSelectedBtn.style.fontWeight = '600';
+    reverseSelectedBtn.style.fontSize = '13px';
+    reverseSelectedBtn.style.marginBottom = '8px';
+    reverseSelectedBtn.disabled = true;
+    reverseSelectedBtn.style.opacity = '0.5';
+    
+    actionsContainer.appendChild(reverseSelectedBtn);
+    
+    // Botón para cambiar destino de aristas seleccionadas
+    const changeDestinationBtn = document.createElement('button');
+    changeDestinationBtn.textContent = 'Cambiar destino de aristas seleccionadas (0)';
+    changeDestinationBtn.style.width = '100%';
+    changeDestinationBtn.style.padding = '10px 16px';
+    changeDestinationBtn.style.border = 'none';
+    changeDestinationBtn.style.borderRadius = '6px';
+    changeDestinationBtn.style.backgroundColor = '#17a2b8';
+    changeDestinationBtn.style.color = '#fff';
+    changeDestinationBtn.style.cursor = 'pointer';
+    changeDestinationBtn.style.fontWeight = '600';
+    changeDestinationBtn.style.fontSize = '13px';
+    changeDestinationBtn.disabled = true;
+    changeDestinationBtn.style.opacity = '0.5';
+    
+    actionsContainer.appendChild(changeDestinationBtn);
+    
+    // Función para actualizar el estado de los botones
+    function updateActionButtons() {
+        const count = selectedEdges.length;
+        reverseSelectedBtn.textContent = `Invertir aristas seleccionadas (${count})`;
+        reverseSelectedBtn.disabled = count === 0;
+        reverseSelectedBtn.style.opacity = count === 0 ? '0.5' : '1';
+        reverseSelectedBtn.style.backgroundColor = count === 0 ? '#6c757d' : '#28a745';
+        
+        changeDestinationBtn.textContent = `Cambiar destino de aristas seleccionadas (${count})`;
+        changeDestinationBtn.disabled = count === 0;
+        changeDestinationBtn.style.opacity = count === 0 ? '0.5' : '1';
+        changeDestinationBtn.style.backgroundColor = count === 0 ? '#6c757d' : '#17a2b8';
+    }
+    
+    // Event listeners para botones
+    selectAllBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectedEdges = edges.map(edge => edge.id);
+        optionsContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+        updateActionButtons();
+    });
+    
+    selectNoneBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectedEdges = [];
+        optionsContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+        updateActionButtons();
+    });
+    
+    reverseSelectedBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (selectedEdges.length > 0) {
+            reverseMultipleEdges(selectedEdges);
+            hideEdgeContextMenu();
+        }
+    });
+    
+    changeDestinationBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (selectedEdges.length > 0) {
+            startEdgeReassignment(selectedEdges);
+            hideEdgeContextMenu();
+        }
+    });
+    
+    contextMenu.appendChild(actionsContainer);
     
     // Agregar footer con instrucciones
     const footer = document.createElement('div');
-    footer.textContent = 'Click para invertir la dirección';
+    footer.textContent = 'Selecciona con checkbox para acciones en lote, o click en ⇄ para invertir individual';
     footer.style.padding = '8px 16px';
     footer.style.fontSize = '11px';
     footer.style.color = '#999';
     footer.style.borderTop = '1px solid #eee';
     footer.style.textAlign = 'center';
     footer.style.fontStyle = 'italic';
+    footer.style.lineHeight = '1.3';
     if (isDarkMode) {
         footer.style.borderTop = '1px solid #4a5568';
         footer.style.color = '#718096';

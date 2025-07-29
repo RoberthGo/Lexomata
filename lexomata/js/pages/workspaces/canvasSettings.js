@@ -148,13 +148,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const edgesAtPosition = getAllEdgesAt(worldCoords.x, worldCoords.y);
         
         if (edgesAtPosition.length > 0) {
-            if (edgesAtPosition.length === 1) {
-                // Si solo hay una arista, invertir directamente
-                reverseEdge(edgesAtPosition[0].id);
-            } else {
                 // Si hay múltiples aristas, mostrar submenú
                 showEdgeContextMenu(e.clientX, e.clientY, edgesAtPosition);
-            }
         }
     });
 
