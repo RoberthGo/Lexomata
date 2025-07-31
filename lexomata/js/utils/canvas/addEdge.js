@@ -11,14 +11,13 @@ function handleEdgeCreationClick(x, y, nodes, redrawCanvasCallback, state) {
         console.log("Creación de arista cancelada.");
         return;
     }
-
     // 2. Comprueba si es el primer o segundo clic
     if (state.firstNode === null) {
         // Es el primer clic: guarda el nodo de inicio
         state.firstNode = clickedNode;
         console.log("Nodo de inicio seleccionado:", clickedNode.label);
         // Aquí se podría añadir un resaltado visual para el primer nodo si se quisiera
-    } else {
+    }else {
         // Es el segundo clic: obtenemos los dos nodos
         const fromNode = state.firstNode;
         const toNode = clickedNode;

@@ -79,7 +79,8 @@ let edgeReassignmentState = {
     isActive: false, 
     selectedEdgeIds: [], 
     mouseX: 0, 
-    mouseY: 0 
+    mouseY: 0,
+    mode: 'destination' // 'destination' o 'origin'
 };
 const undoButton = document.getElementById('undoButton');
 const redoButton = document.getElementById('redoButton');
@@ -131,21 +132,29 @@ function drawReassignmentLines(ctx, theme) {
     ctx.setLineDash([5, 5]); // Línea punteada
     ctx.globalAlpha = 0.8;
     
-    // Dibujar líneas desde cada arista seleccionada hasta la posición del mouse
+    // Dibujar líneas según el modo activo
     edgeReassignmentState.selectedEdgeIds.forEach(edgeId => {
         const edge = edges.find(e => e.id === edgeId);
         if (!edge) return;
         
-        const fromNode = nodes.find(n => n.id === edge.from);
-        if (!fromNode) return;
+        let nodeToConnect;
+        if (edgeReassignmentState.mode === 'destination') {
+            // Línea desde el nodo origen hasta el mouse
+            nodeToConnect = nodes.find(n => n.id === edge.from);
+        } else if (edgeReassignmentState.mode === 'origin') {
+            // Línea desde el nodo destino hasta el mouse
+            nodeToConnect = nodes.find(n => n.id === edge.to);
+        }
+        
+        if (!nodeToConnect) return;
         
         ctx.beginPath();
-        ctx.moveTo(fromNode.x, fromNode.y);
+        ctx.moveTo(nodeToConnect.x, nodeToConnect.y);
         ctx.lineTo(edgeReassignmentState.mouseX, edgeReassignmentState.mouseY);
         ctx.stroke();
     });
     
-    // Dibujar círculo en la posición del mouse
+    // Dibujar círculo en la posición del mouse con indicador del modo
     ctx.beginPath();
     ctx.arc(edgeReassignmentState.mouseX, edgeReassignmentState.mouseY, 8, 0, 2 * Math.PI);
     ctx.fillStyle = theme.selectedEdge;
@@ -155,6 +164,13 @@ function drawReassignmentLines(ctx, theme) {
     ctx.setLineDash([]);
     ctx.stroke();
     
+    // Agregar texto indicador del modo
+    ctx.fillStyle = theme.edgeText;
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    const modeText = edgeReassignmentState.mode === 'destination' ? 'DESTINO' : 'ORIGEN';
+    ctx.fillText(modeText, edgeReassignmentState.mouseX, edgeReassignmentState.mouseY - 15);
+    
     ctx.restore();
 }
 
@@ -163,7 +179,7 @@ function isClickOnEdge(px, py, edge, nodes) {
     const toNode = nodes.find(n => n.id === edge.to);
     if (!fromNode || !toNode) return false;
 
-    const clickTolerance = 5 / scale;
+    const clickTolerance = 8 / scale;
     
     // Caso especial: Self-loop (auto-loop)
     if (fromNode.id === toNode.id) {
@@ -329,6 +345,25 @@ function startEdgeReassignment(edgeIds) {
     
     edgeReassignmentState.isActive = true;
     edgeReassignmentState.selectedEdgeIds = [...edgeIds];
+    edgeReassignmentState.mode = 'destination'; // Modo por defecto
+    
+    // Cambiar cursor para indicar modo de reasignación
+    canvas.style.cursor = 'crosshair';
+    
+    // Agregar event listeners temporales
+    canvas.addEventListener('mousemove', handleReassignmentMouseMove);
+    canvas.addEventListener('click', handleReassignmentClick);
+    canvas.addEventListener('contextmenu', cancelEdgeReassignment);
+    
+    redrawCanvas();
+}
+
+function startEdgeOriginReassignment(edgeIds) {
+    if (!edgeIds || edgeIds.length === 0) return;
+    
+    edgeReassignmentState.isActive = true;
+    edgeReassignmentState.selectedEdgeIds = [...edgeIds];
+    edgeReassignmentState.mode = 'origin'; // Modo para cambiar origen
     
     // Cambiar cursor para indicar modo de reasignación
     canvas.style.cursor = 'crosshair';
@@ -371,8 +406,12 @@ function handleReassignmentClick(event) {
     });
     
     if (clickedNode) {
-        // Reasignar el nodo de destino de todas las aristas seleccionadas
-        reassignEdgeDestinations(edgeReassignmentState.selectedEdgeIds, clickedNode.id);
+        // Reasignar según el modo activo
+        if (edgeReassignmentState.mode === 'destination') {
+            reassignEdgeDestinations(edgeReassignmentState.selectedEdgeIds, clickedNode.id);
+        } else if (edgeReassignmentState.mode === 'origin') {
+            reassignEdgeOrigins(edgeReassignmentState.selectedEdgeIds, clickedNode.id);
+        }
     }
     
     cancelEdgeReassignment();
@@ -380,7 +419,6 @@ function handleReassignmentClick(event) {
 
 function reassignEdgeDestinations(edgeIds, newDestinationNodeId) {
     let reassignedCount = 0;
-    
     edgeIds.forEach(edgeId => {
         const edgeIndex = edges.findIndex(edge => edge.id === edgeId);
         if (edgeIndex !== -1) {
@@ -392,7 +430,25 @@ function reassignEdgeDestinations(edgeIds, newDestinationNodeId) {
             }
         }
     });
-    
+    if (reassignedCount > 0) {
+        saveState();
+        redrawCanvas();
+    }
+}
+
+function reassignEdgeOrigins(edgeIds, newOriginNodeId) {
+    let reassignedCount = 0;
+    edgeIds.forEach(edgeId => {
+        const edgeIndex = edges.findIndex(edge => edge.id === edgeId);
+        if (edgeIndex !== -1) {
+            const edge = edges[edgeIndex];
+            // Solo reasignar si el nuevo origen es diferente al actual
+            if (edge.from !== newOriginNodeId) {
+                edge.from = newOriginNodeId;
+                reassignedCount++;
+            }
+        }
+    });
     if (reassignedCount > 0) {
         saveState();
         redrawCanvas();
@@ -432,8 +488,10 @@ function showEdgeContextMenu(x, y, edges) {
     contextMenu.style.minWidth = '280px';
     contextMenu.style.padding = '8px 0';
     contextMenu.style.fontSize = '14px';
-    contextMenu.style.maxHeight = '400px';
-    contextMenu.style.overflowY = 'auto';
+    contextMenu.style.maxHeight = '500px'; // Altura máxima para todo el menú
+    contextMenu.style.display = 'flex';
+    contextMenu.style.flexDirection = 'column';
+    //contextMenu.style.overflowX = 'visible';
     
     // Ajustar para tema oscuro
     const isDarkMode = document.body.classList.contains('dark');
@@ -451,6 +509,7 @@ function showEdgeContextMenu(x, y, edges) {
     header.style.borderBottom = '1px solid #eee';
     header.style.fontSize = '13px';
     header.style.color = '#666';
+    header.style.flexShrink = '0'; // Evitar que se encoja
     if (isDarkMode) {
         header.style.borderBottom = '1px solid #4a5568';
         header.style.color = '#a0aec0';
@@ -459,8 +518,11 @@ function showEdgeContextMenu(x, y, edges) {
     
     // Contenedor para las opciones con scroll
     const optionsContainer = document.createElement('div');
-    optionsContainer.style.maxHeight = '200px';
+    optionsContainer.style.maxHeight = '250px'; // Altura específica para el scroll
     optionsContainer.style.overflowY = 'auto';
+    optionsContainer.style.overflowX = 'visible';
+    optionsContainer.style.flexShrink = '1'; // Permitir que se encoja si es necesario
+    optionsContainer.style.minHeight = '0'; // Importante para flexbox
     
     // Array para almacenar las aristas seleccionadas
     let selectedEdges = [];
@@ -588,6 +650,7 @@ function showEdgeContextMenu(x, y, edges) {
     actionsContainer.style.display = 'flex';
     actionsContainer.style.gap = '8px';
     actionsContainer.style.flexDirection = 'column';
+    actionsContainer.style.flexShrink = '0'; // Evitar que se encoja
     if (isDarkMode) {
         actionsContainer.style.borderTop = '1px solid #4a5568';
     }
@@ -654,10 +717,28 @@ function showEdgeContextMenu(x, y, edges) {
     changeDestinationBtn.style.cursor = 'pointer';
     changeDestinationBtn.style.fontWeight = '600';
     changeDestinationBtn.style.fontSize = '13px';
+    changeDestinationBtn.style.marginBottom = '8px';
     changeDestinationBtn.disabled = true;
     changeDestinationBtn.style.opacity = '0.5';
     
     actionsContainer.appendChild(changeDestinationBtn);
+    
+    // Botón para cambiar origen de aristas seleccionadas
+    const changeOriginBtn = document.createElement('button');
+    changeOriginBtn.textContent = 'Cambiar origen de aristas seleccionadas (0)';
+    changeOriginBtn.style.width = '100%';
+    changeOriginBtn.style.padding = '10px 16px';
+    changeOriginBtn.style.border = 'none';
+    changeOriginBtn.style.borderRadius = '6px';
+    changeOriginBtn.style.backgroundColor = '#fd7e14';
+    changeOriginBtn.style.color = '#fff';
+    changeOriginBtn.style.cursor = 'pointer';
+    changeOriginBtn.style.fontWeight = '600';
+    changeOriginBtn.style.fontSize = '13px';
+    changeOriginBtn.disabled = true;
+    changeOriginBtn.style.opacity = '0.5';
+    
+    actionsContainer.appendChild(changeOriginBtn);
     
     // Función para actualizar el estado de los botones
     function updateActionButtons() {
@@ -671,6 +752,11 @@ function showEdgeContextMenu(x, y, edges) {
         changeDestinationBtn.disabled = count === 0;
         changeDestinationBtn.style.opacity = count === 0 ? '0.5' : '1';
         changeDestinationBtn.style.backgroundColor = count === 0 ? '#6c757d' : '#17a2b8';
+        
+        changeOriginBtn.textContent = `Cambiar origen de aristas seleccionadas (${count})`;
+        changeOriginBtn.disabled = count === 0;
+        changeOriginBtn.style.opacity = count === 0 ? '0.5' : '1';
+        changeOriginBtn.style.backgroundColor = count === 0 ? '#6c757d' : '#fd7e14';
     }
     
     // Event listeners para botones
@@ -704,11 +790,19 @@ function showEdgeContextMenu(x, y, edges) {
         }
     });
     
+    changeOriginBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (selectedEdges.length > 0) {
+            startEdgeOriginReassignment(selectedEdges);
+            hideEdgeContextMenu();
+        }
+    });
+    
     contextMenu.appendChild(actionsContainer);
     
     // Agregar footer con instrucciones
     const footer = document.createElement('div');
-    footer.textContent = 'Selecciona con checkbox para acciones en lote, o click en ⇄ para invertir individual';
+    footer.textContent = 'Selecciona con checkbox para acciones en lote (invertir, cambiar origen/destino), o click en ⇄ para invertir individual';
     footer.style.padding = '8px 16px';
     footer.style.fontSize = '11px';
     footer.style.color = '#999';
@@ -716,6 +810,7 @@ function showEdgeContextMenu(x, y, edges) {
     footer.style.textAlign = 'center';
     footer.style.fontStyle = 'italic';
     footer.style.lineHeight = '1.3';
+    footer.style.flexShrink = '0'; // Evitar que se encoja
     if (isDarkMode) {
         footer.style.borderTop = '1px solid #4a5568';
         footer.style.color = '#718096';
