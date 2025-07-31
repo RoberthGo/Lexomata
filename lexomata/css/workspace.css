@@ -1153,3 +1153,12 @@ body.dark .edge-context-menu .context-menu-option:hover {
         transform: scale(1) translateY(0);
     }
 }
+
+.modal-textarea {
+    width: 100%;
+    min-height: 90px;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    font-family: 'Roboto', sans-serif;
+}

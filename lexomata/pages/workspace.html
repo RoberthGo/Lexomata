@@ -136,8 +136,15 @@
 
   <div id="customAlertModal" class="custom-modal">
     <div class="custom-modal-content">
-      <span class="close-button" onclick="closeMessage('customAlertModal')">&times;</span>
-      <p id="modalMessage"></p>
+        <span class="close-button" onclick="closeMessage('customAlertModal')">&times;</span>
+        <p id="modalMessage"></p>
+
+        <div id="noteEditorContainer" style="display: none; flex-direction: column; gap: 10px; margin-top: 15px;">
+            <textarea id="noteTextarea" class="modal-textarea" placeholder="Escribe tus anotaciones aquí..."></textarea>
+            <button id="noteSaveButton" class="modal-button">Guardar Nota</button>
+        </div>
+        
+    </div>
   </div>
 
   <div id="exportModal" class="custom-modal">

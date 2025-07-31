@@ -44,9 +44,19 @@ function showMessage(message) {
 }
 
 function closeMessage(id) {
-    document.getElementById(id).style.display = 'none';
-    //customAlertModal.style.display = 'none';
+    // Oculta el contenedor de notas si existe
+    const noteContainer = document.getElementById('noteEditorContainer');
+    if (noteContainer) {
+        noteContainer.style.display = 'none';
+    }
+
+    // Oculta el modal principal
+    const modalToClose = document.getElementById(id);
+    if (modalToClose) {
+        modalToClose.style.display = 'none';
+    }
 }
+
 function redirection() {
     window.location.href = '../index.html';
 }
@@ -571,6 +581,31 @@ function showEdgeContextMenu(x, y, edges) {
         mainContent.appendChild(direction);
         mainContent.appendChild(labelInfo);
         
+        // Contenedor para los íconos de notas
+        const actionIconsContainer = document.createElement('div');
+        actionIconsContainer.style.display = 'flex';
+        actionIconsContainer.style.alignItems = 'center';
+        actionIconsContainer.style.gap = '12px';
+        actionIconsContainer.style.marginLeft = '8px';
+
+        const noteIcon = document.createElement('div');
+        noteIcon.innerHTML = '📝';
+        noteIcon.title = 'Ver/Editar nota';
+        noteIcon.style.fontSize = '16px';
+        noteIcon.style.cursor = 'pointer';
+        noteIcon.style.transition = 'transform 0.2s';
+
+        noteIcon.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showNoteEditor(edge); // Esto llamará a la función que crearemos en el siguiente paso
+            hideEdgeContextMenu();
+        });
+
+        noteIcon.addEventListener('mouseenter', () => noteIcon.style.transform = 'scale(1.2)');
+        noteIcon.addEventListener('mouseleave', () => noteIcon.style.transform = 'scale(1)');
+
+        actionIconsContainer.appendChild(noteIcon);
+
         // Crear indicador de acción individual
         const actionIndicator = document.createElement('div');
         actionIndicator.textContent = '⇄';
@@ -584,8 +619,11 @@ function showEdgeContextMenu(x, y, edges) {
         }
         
         option.appendChild(checkbox);
+
+        actionIconsContainer.appendChild(actionIndicator); // Añade el ícono de invertir al nuevo contenedor
+
         option.appendChild(mainContent);
-        option.appendChild(actionIndicator);
+        option.appendChild(actionIconsContainer);
         
         // Efectos hover
         option.addEventListener('mouseenter', () => {
@@ -836,6 +874,37 @@ function showEdgeContextMenu(x, y, edges) {
     }, 10);
 }
 
+
+// abre el modal para editar notas de nodos o aristas
+
+function showNoteEditor(element) {
+    const modal = document.getElementById('customAlertModal');
+    const message = document.getElementById('modalMessage');
+    const noteContainer = document.getElementById('noteEditorContainer');
+    const textarea = document.getElementById('noteTextarea');
+    const saveButton = document.getElementById('noteSaveButton');
+
+    // Configura el título del modal
+    const elementType = element.radius ? 'nodo' : 'arista'; // Distingue si es nodo o arista
+    const elementName = element.label;
+    message.textContent = `Nota para ${elementType} ${elementName}:`;
+
+    // Muestra el editor
+    noteContainer.style.display = 'flex';
+    textarea.value = element.note || ''; // Carga la nota existente o un texto vacío
+    
+    // Muestra el modal
+    modal.style.display = 'flex';
+    textarea.focus();
+
+    // Define qué hacer cuando se haga clic en "Guardar"
+    saveButton.onclick = () => {
+        element.note = textarea.value; // Guarda la nota en el objeto (nodo o arista)
+        saveState(); // Guarda el cambio en el historial
+        closeMessage('customAlertModal'); // Cierra el modal
+    };
+}
+
 function hideEdgeContextMenu() {
     const existingMenu = document.getElementById('edgeContextMenu');
     if (existingMenu) {
@@ -922,7 +991,8 @@ function saveEdgeLabels(fromNode, toNode) {
                 id: Date.now() + Math.floor(Math.random() * 1000),
                 from: fromNode.id,
                 to: toNode.id,
-                label: label
+                label: label,
+                note: ""
             };
             edges.push(newEdge);
             hasValidInput = true;
