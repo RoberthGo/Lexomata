@@ -520,7 +520,7 @@ function showEdgeContextMenu(x, y, edges) {
     const optionsContainer = document.createElement('div');
     optionsContainer.style.maxHeight = '250px'; // Altura específica para el scroll
     optionsContainer.style.overflowY = 'auto';
-    optionsContainer.style.overflowX = 'visible';
+    optionsContainer.style.overflowX = 'hidden';
     optionsContainer.style.flexShrink = '1'; // Permitir que se encoja si es necesario
     optionsContainer.style.minHeight = '0'; // Importante para flexbox
     
