@@ -1,9 +1,9 @@
-function drawEdge(ctx, edge, nodes, edgeDrawCounts, selectedEdgeId, theme) {
+function drawEdge(ctx, edge, nodes, edgeDrawCounts, selectedEdgeIds, theme) {
     const fromNode = nodes.find(n => n.id === edge.from);
     const toNode = nodes.find(n => n.id === edge.to);
     if (!fromNode || !toNode) return;
 
-    const isSelected = (edge.id === selectedEdgeId);
+    const isSelected = selectedEdgeIds.includes(edge.id);
     
     const edgeKeyA = `${fromNode.id}-${toNode.id}`;
     if (!edgeDrawCounts[edgeKeyA]) {

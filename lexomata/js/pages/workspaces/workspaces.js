@@ -81,7 +81,7 @@ let nodes = [];
 let edges = [];
 let nodeCounter = 0
 let selectedNodeIds = [];
-let selectedEdgeId = null;
+let selectedEdgeIds = []; 
 let autoSaveInterval = 5000; // 5s
 let currentTool = 'select';
 let edgeCreationState = { firstNode: null };
@@ -115,7 +115,7 @@ function redrawCanvas() {
 
     // Llama a la función de su archivo correspondiente
     edges.forEach(edge => {
-        drawEdge(ctx, edge, nodes, edgeDrawCounts, selectedEdgeId, currentTheme);
+        drawEdge(ctx, edge, nodes, edgeDrawCounts, selectedEdgeIds, currentTheme);
     });
 
     // Llama a la función de su archivo correspondiente

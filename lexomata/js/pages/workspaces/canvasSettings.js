@@ -34,39 +34,65 @@ document.addEventListener('DOMContentLoaded', () => {
             const clickedObject = getObjectAt(worldCoords.x, worldCoords.y);
 
             // --- MANEJO DE LA SELECCIÓN ---
-            if (e.shiftKey) { // SI SE USA SHIFT (Añadir/Quitar)
-                if (clickedObject && clickedObject.type === 'node') {
-                    const nodeId = clickedObject.object.id;
-                    if (selectedNodeIds.includes(nodeId)) {
-                        // Si ya está seleccionado, lo quitamos
-                        selectedNodeIds = selectedNodeIds.filter(id => id !== nodeId);
-                    } else {
-                        // Si no está, lo añadimos
-                        selectedNodeIds.push(nodeId);
+            if (e.shiftKey) { // SI SE USA SHIFT (Añadir/Quitar de la selección)
+                if (clickedObject) {
+                    if (clickedObject.type === 'node') {
+                        const nodeId = clickedObject.object.id;
+                        if (selectedNodeIds.includes(nodeId)) {
+                            selectedNodeIds = selectedNodeIds.filter(id => id !== nodeId);
+                        } else {
+                            selectedNodeIds.push(nodeId);
+                        }
+                    } else if (clickedObject.type === 'edge') {
+                        const edgeId = clickedObject.object.id;
+                        if (selectedEdgeIds.includes(edgeId)) {
+                            selectedEdgeIds = selectedEdgeIds.filter(id => id !== edgeId);
+                        } else {
+                            selectedEdgeIds.push(edgeId);
+                        }
                     }
                 }
-            } else { // SI NO SE USA SHIFT (Selección normal)
+            } else { // SI NO SE USA SHIFT (Selección con toggle)
                 if (clickedObject && clickedObject.type === 'node') {
-                    // Si el nodo no estaba ya seleccionado, se convierte en la única selección.
-                    // Si ya estaba seleccionado, no hacemos nada para permitir el arrastre del grupo.
-                    if (!selectedNodeIds.includes(clickedObject.object.id)) {
-                        selectedNodeIds = [clickedObject.object.id];
+                    const nodeId = clickedObject.object.id;
+                    // Comprueba si el nodo clickeado ya es el ÚNICO seleccionado
+                    const isAlreadyOnlySelected = selectedNodeIds.length === 1 && selectedNodeIds[0] === nodeId;
+
+                    if (isAlreadyOnlySelected) {
+                        // Si ya era el único seleccionado, lo deselecciona
+                        selectedNodeIds = [];
+                    } else {
+                        // De lo contrario, se convierte en la nueva y única selección
+                        selectedNodeIds = [nodeId];
                     }
-                    selectedEdgeId = null;
+                    selectedEdgeIds = []; // Siempre limpia la selección de aristas
+
                 } else if (clickedObject && clickedObject.type === 'edge') {
-                    selectedEdgeId = clickedObject.object.id;
-                    selectedNodeIds = [];
+                    const edgeId = clickedObject.object.id;
+                    const isAlreadyOnlySelected = selectedEdgeIds.length === 1 && selectedEdgeIds[0] === edgeId;
+
+                    if (isAlreadyOnlySelected) {
+                        selectedEdgeIds = [];
+                    } else {
+                        selectedEdgeIds = [edgeId];
+                    }
+                    selectedNodeIds = []; // Siempre limpia la selección de nodos
+
                 } else if (clickedObject === null) {
-                    // Si se hace clic en el vacío, se deselecciona todo.
+                    // Clic en el vacío deselecciona todo
                     selectedNodeIds = [];
-                    selectedEdgeId = null;
+                    selectedEdgeIds = [];
                 }
             }
 
-            // Si después de la lógica de selección, el clic fue sobre un nodo, preparamos el arrastre.
-            if (clickedObject && clickedObject.type === 'node') {
+            // --- MANEJO DEL ARRASTRE ---
+            // El arrastre solo inicia si el clic fue sobre un nodo Y ese nodo está seleccionado
+            if (clickedObject && clickedObject.type === 'node' && selectedNodeIds.includes(clickedObject.object.id)) {
                 draggingNode = clickedObject.object;
+            } else {
+                draggingNode = null;
             }
+
             redrawCanvas();
         }
     });
@@ -141,15 +167,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Event listener para click derecho (contextmenu) - Invertir dirección de edge
     canvas.addEventListener('contextmenu', (e) => {
         e.preventDefault(); // Prevenir el menú contextual del navegador
-        
+
         const worldCoords = getCanvasPoint(e.clientX, e.clientY);
-        
+
         // Buscar todas las aristas en la posición del click
         const edgesAtPosition = getAllEdgesAt(worldCoords.x, worldCoords.y);
-        
+
         if (edgesAtPosition.length > 0) {
-                // Si hay múltiples aristas, mostrar submenú
-                showEdgeContextMenu(e.clientX, e.clientY, edgesAtPosition);
+            // Si hay múltiples aristas, mostrar submenú
+            showEdgeContextMenu(e.clientX, e.clientY, edgesAtPosition);
         }
     });
 
