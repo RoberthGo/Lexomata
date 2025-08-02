@@ -9,6 +9,7 @@ const ZOOM_SENSITIVITY = 0.1;
 document.addEventListener('DOMContentLoaded', () => {
 
     const ctx = canvas.getContext('2d');
+    const contextMenu = document.getElementById('canvasContextMenu');
 
     // --- ESTADOS DE INTERACCIÓN ---
     let draggingNode = null;
@@ -97,6 +98,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    canvas.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        showCanvasContextMenu(e.clientX, e.clientY);
+    });
 
     window.addEventListener('mousemove', (e) => {
         hasDragged = true
@@ -162,21 +167,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         scale = newScale;
         redrawCanvas();
-    });
-
-    // Event listener para click derecho (contextmenu) - Invertir dirección de edge
-    canvas.addEventListener('contextmenu', (e) => {
-        e.preventDefault(); // Prevenir el menú contextual del navegador
-
-        const worldCoords = getCanvasPoint(e.clientX, e.clientY);
-
-        // Buscar todas las aristas en la posición del click
-        const edgesAtPosition = getAllEdgesAt(worldCoords.x, worldCoords.y);
-
-        if (edgesAtPosition.length > 0) {
-            // Si hay múltiples aristas, mostrar submenú
-            showEdgeContextMenu(e.clientX, e.clientY, edgesAtPosition);
-        }
     });
 
     window.addEventListener('keydown', (e) => {

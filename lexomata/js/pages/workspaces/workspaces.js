@@ -81,14 +81,14 @@ let nodes = [];
 let edges = [];
 let nodeCounter = 0
 let selectedNodeIds = [];
-let selectedEdgeIds = []; 
+let selectedEdgeIds = [];
 let autoSaveInterval = 5000; // 5s
 let currentTool = 'select';
 let edgeCreationState = { firstNode: null };
-let edgeReassignmentState = { 
-    isActive: false, 
-    selectedEdgeIds: [], 
-    mouseX: 0, 
+let edgeReassignmentState = {
+    isActive: false,
+    selectedEdgeIds: [],
+    mouseX: 0,
     mouseY: 0,
     mode: 'destination' // 'destination' o 'origin'
 };
@@ -96,6 +96,7 @@ const undoButton = document.getElementById('undoButton');
 const redoButton = document.getElementById('redoButton');
 const undoMenuItem = document.getElementById('undoMenuItem');
 const redoMenuItem = document.getElementById('redoMenuItem');
+
 
 
 function redrawCanvas() {
@@ -113,7 +114,6 @@ function redrawCanvas() {
     // Aplica el zoom (escalado)
     ctx.scale(scale, scale);
 
-    // Llama a la función de su archivo correspondiente
     edges.forEach(edge => {
         drawEdge(ctx, edge, nodes, edgeDrawCounts, selectedEdgeIds, currentTheme);
     });
@@ -133,20 +133,20 @@ function redrawCanvas() {
 
 function drawReassignmentLines(ctx, theme) {
     if (!edgeReassignmentState.isActive || edgeReassignmentState.selectedEdgeIds.length === 0) return;
-    
+
     ctx.save();
-    
+
     // Configurar estilo para las líneas de reasignación
     ctx.strokeStyle = theme.selectedEdge;
     ctx.lineWidth = 2;
     ctx.setLineDash([5, 5]); // Línea punteada
     ctx.globalAlpha = 0.8;
-    
+
     // Dibujar líneas según el modo activo
     edgeReassignmentState.selectedEdgeIds.forEach(edgeId => {
         const edge = edges.find(e => e.id === edgeId);
         if (!edge) return;
-        
+
         let nodeToConnect;
         if (edgeReassignmentState.mode === 'destination') {
             // Línea desde el nodo origen hasta el mouse
@@ -155,15 +155,15 @@ function drawReassignmentLines(ctx, theme) {
             // Línea desde el nodo destino hasta el mouse
             nodeToConnect = nodes.find(n => n.id === edge.to);
         }
-        
+
         if (!nodeToConnect) return;
-        
+
         ctx.beginPath();
         ctx.moveTo(nodeToConnect.x, nodeToConnect.y);
         ctx.lineTo(edgeReassignmentState.mouseX, edgeReassignmentState.mouseY);
         ctx.stroke();
     });
-    
+
     // Dibujar círculo en la posición del mouse con indicador del modo
     ctx.beginPath();
     ctx.arc(edgeReassignmentState.mouseX, edgeReassignmentState.mouseY, 8, 0, 2 * Math.PI);
@@ -173,14 +173,14 @@ function drawReassignmentLines(ctx, theme) {
     ctx.lineWidth = 2;
     ctx.setLineDash([]);
     ctx.stroke();
-    
+
     // Agregar texto indicador del modo
     ctx.fillStyle = theme.edgeText;
     ctx.font = '12px Arial';
     ctx.textAlign = 'center';
     const modeText = edgeReassignmentState.mode === 'destination' ? 'DESTINO' : 'ORIGEN';
     ctx.fillText(modeText, edgeReassignmentState.mouseX, edgeReassignmentState.mouseY - 15);
-    
+
     ctx.restore();
 }
 
@@ -190,17 +190,17 @@ function isClickOnEdge(px, py, edge, nodes) {
     if (!fromNode || !toNode) return false;
 
     const clickTolerance = 8 / scale;
-    
+
     // Caso especial: Self-loop (auto-loop)
     if (fromNode.id === toNode.id) {
         return isClickOnSelfLoop(px, py, fromNode, clickTolerance);
     }
-    
+
     // Verificar si existe una arista en dirección opuesta
-    const oppositeEdgeExists = edges.some(e => 
+    const oppositeEdgeExists = edges.some(e =>
         e.from === edge.to && e.to === edge.from && e.id !== edge.id
     );
-    
+
     if (oppositeEdgeExists) {
         // Caso especial: Arista curva
         return isClickOnCurvedEdge(px, py, fromNode, toNode, clickTolerance);
@@ -234,24 +234,24 @@ function isClickOnCurvedEdge(px, py, fromNode, toNode, tolerance) {
     const dy = toNode.y - fromNode.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
     const curvature = distance * 0.15;
-    
+
     const perpX = -dy / distance;
     const perpY = dx / distance;
-    
+
     const controlX = (fromNode.x + toNode.x) / 2 + perpX * curvature;
     const controlY = (fromNode.y + toNode.y) / 2 + perpY * curvature;
-    
+
     // Verificar múltiples puntos a lo largo de la curva
     for (let t = 0; t <= 1; t += 0.1) {
         const curveX = (1 - t) * (1 - t) * fromNode.x + 2 * (1 - t) * t * controlX + t * t * toNode.x;
         const curveY = (1 - t) * (1 - t) * fromNode.y + 2 * (1 - t) * t * controlY + t * t * toNode.y;
-        
+
         const dist = Math.sqrt((px - curveX) ** 2 + (py - curveY) ** 2);
         if (dist < tolerance) {
             return true;
         }
     }
-    
+
     return false;
 }
 
@@ -259,28 +259,28 @@ function isClickOnCurvedEdge(px, py, fromNode, toNode, tolerance) {
 function isClickOnSelfLoop(px, py, node, tolerance) {
     const radius = node.radius || 33;
     const loopRadius = radius * 0.8;
-    
+
     // Centro del loop
     const centerX = node.x;
     const centerY = node.y - radius - loopRadius;
-    
+
     // Verificar si el click está cerca del círculo del loop
     const distToCenter = Math.sqrt((px - centerX) ** 2 + (py - centerY) ** 2);
     const isOnLoop = Math.abs(distToCenter - loopRadius) < tolerance;
-    
+
     // También verificar las líneas conectoras
     const startAngle = Math.PI * 0.25;
     const endAngle = Math.PI * 0.75;
-    
+
     const startX = node.x - Math.cos(startAngle) * radius;
     const startY = node.y - Math.sin(startAngle) * radius;
     const endX = node.x - Math.cos(endAngle) * radius;
     const endY = node.y - Math.sin(endAngle) * radius;
-    
+
     // Línea desde el nodo hasta el inicio del loop
     const distToStartLine = distancePointToLine(px, py, startX, startY, centerX - loopRadius, centerY);
     const distToEndLine = distancePointToLine(px, py, endX, endY, centerX + loopRadius, centerY);
-    
+
     return isOnLoop || distToStartLine < tolerance || distToEndLine < tolerance;
 }
 
@@ -297,7 +297,7 @@ function distancePointToLine(px, py, x1, y1, x2, y2) {
     if (lenSq === 0) return Math.sqrt(A * A + B * B);
 
     const param = dot / lenSq;
-    
+
     let xx, yy;
     if (param < 0) {
         xx = x1;
@@ -318,13 +318,13 @@ function distancePointToLine(px, py, x1, y1, x2, y2) {
 function reverseEdge(edgeId) {
     const edgeIndex = edges.findIndex(edge => edge.id === edgeId);
     if (edgeIndex === -1) return;
-    
+
     const edge = edges[edgeIndex];
     // Intercambiar los nodos de origen y destino
     const temp = edge.from;
     edge.from = edge.to;
     edge.to = temp;
-    
+
     // Guardar el estado para undo/redo
     saveState();
     redrawCanvas();
@@ -332,7 +332,7 @@ function reverseEdge(edgeId) {
 
 function reverseMultipleEdges(edgeIds) {
     if (!edgeIds || edgeIds.length === 0) return;
-    
+
     // Invertir todas las aristas seleccionadas
     edgeIds.forEach(edgeId => {
         const edgeIndex = edges.findIndex(edge => edge.id === edgeId);
@@ -344,7 +344,7 @@ function reverseMultipleEdges(edgeIds) {
             edge.to = temp;
         }
     });
-    
+
     // Guardar el estado para undo/redo (una sola vez para toda la operación)
     saveState();
     redrawCanvas();
@@ -352,69 +352,72 @@ function reverseMultipleEdges(edgeIds) {
 
 function startEdgeReassignment(edgeIds) {
     if (!edgeIds || edgeIds.length === 0) return;
-    
+
+    console.log("1. Iniciando modo de reasignación de destino para las aristas:", edgeIds);
+
+
     edgeReassignmentState.isActive = true;
     edgeReassignmentState.selectedEdgeIds = [...edgeIds];
     edgeReassignmentState.mode = 'destination'; // Modo por defecto
-    
+
     // Cambiar cursor para indicar modo de reasignación
     canvas.style.cursor = 'crosshair';
-    
+
     // Agregar event listeners temporales
     canvas.addEventListener('mousemove', handleReassignmentMouseMove);
     canvas.addEventListener('click', handleReassignmentClick);
     canvas.addEventListener('contextmenu', cancelEdgeReassignment);
-    
+
     redrawCanvas();
 }
 
 function startEdgeOriginReassignment(edgeIds) {
     if (!edgeIds || edgeIds.length === 0) return;
-    
+
     edgeReassignmentState.isActive = true;
     edgeReassignmentState.selectedEdgeIds = [...edgeIds];
     edgeReassignmentState.mode = 'origin'; // Modo para cambiar origen
-    
+
     // Cambiar cursor para indicar modo de reasignación
     canvas.style.cursor = 'crosshair';
-    
+
     // Agregar event listeners temporales
     canvas.addEventListener('mousemove', handleReassignmentMouseMove);
     canvas.addEventListener('click', handleReassignmentClick);
     canvas.addEventListener('contextmenu', cancelEdgeReassignment);
-    
+
     redrawCanvas();
 }
 
 function handleReassignmentMouseMove(event) {
     if (!edgeReassignmentState.isActive) return;
-    
+
     const rect = canvas.getBoundingClientRect();
     edgeReassignmentState.mouseX = (event.clientX - rect.left - panX) / scale;
     edgeReassignmentState.mouseY = (event.clientY - rect.top - panY) / scale;
-    
+
     redrawCanvas();
 }
 
 function handleReassignmentClick(event) {
     if (!edgeReassignmentState.isActive) return;
-    
+
     event.preventDefault();
     event.stopPropagation();
-    
+
     const rect = canvas.getBoundingClientRect();
     const clickX = (event.clientX - rect.left - panX) / scale;
     const clickY = (event.clientY - rect.top - panY) / scale;
-    
+
     // Buscar si se hizo click en un nodo
     const clickedNode = nodes.find(node => {
         const distance = Math.sqrt(
-            Math.pow(clickX - node.x, 2) + 
+            Math.pow(clickX - node.x, 2) +
             Math.pow(clickY - node.y, 2)
         );
         return distance <= node.radius;
     });
-    
+
     if (clickedNode) {
         // Reasignar según el modo activo
         if (edgeReassignmentState.mode === 'destination') {
@@ -423,7 +426,7 @@ function handleReassignmentClick(event) {
             reassignEdgeOrigins(edgeReassignmentState.selectedEdgeIds, clickedNode.id);
         }
     }
-    
+
     cancelEdgeReassignment();
 }
 
@@ -468,411 +471,18 @@ function reassignEdgeOrigins(edgeIds, newOriginNodeId) {
 function cancelEdgeReassignment() {
     edgeReassignmentState.isActive = false;
     edgeReassignmentState.selectedEdgeIds = [];
-    
+
     // Restaurar cursor normal
     canvas.style.cursor = 'default';
-    
+
     // Remover event listeners temporales
     canvas.removeEventListener('mousemove', handleReassignmentMouseMove);
     canvas.removeEventListener('click', handleReassignmentClick);
     canvas.removeEventListener('contextmenu', cancelEdgeReassignment);
-    
+
     redrawCanvas();
 }
 
-function showEdgeContextMenu(x, y, edges) {
-    // Remover menú previo si existe
-    hideEdgeContextMenu();
-    
-    const contextMenu = document.createElement('div');
-    contextMenu.id = 'edgeContextMenu';
-    contextMenu.className = 'edge-context-menu';
-    contextMenu.style.position = 'fixed';
-    contextMenu.style.left = x + 'px';
-    contextMenu.style.top = y + 'px';
-    contextMenu.style.backgroundColor = '#ffffff';
-    contextMenu.style.border = '1px solid #ccc';
-    contextMenu.style.borderRadius = '8px';
-    contextMenu.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)';
-    contextMenu.style.zIndex = '1000';
-    contextMenu.style.minWidth = '280px';
-    contextMenu.style.padding = '8px 0';
-    contextMenu.style.fontSize = '14px';
-    contextMenu.style.maxHeight = '500px'; // Altura máxima para todo el menú
-    contextMenu.style.display = 'flex';
-    contextMenu.style.flexDirection = 'column';
-    //contextMenu.style.overflowX = 'visible';
-    
-    // Ajustar para tema oscuro
-    const isDarkMode = document.body.classList.contains('dark');
-    if (isDarkMode) {
-        contextMenu.style.backgroundColor = '#2d3748';
-        contextMenu.style.border = '1px solid #4a5568';
-        contextMenu.style.color = '#f7fafc';
-    }
-    
-    // Crear header del menú
-    const header = document.createElement('div');
-    header.textContent = `Invertir aristas (${edges.length} encontradas):`;
-    header.style.padding = '12px 16px';
-    header.style.fontWeight = '600';
-    header.style.borderBottom = '1px solid #eee';
-    header.style.fontSize = '13px';
-    header.style.color = '#666';
-    header.style.flexShrink = '0'; // Evitar que se encoja
-    if (isDarkMode) {
-        header.style.borderBottom = '1px solid #4a5568';
-        header.style.color = '#a0aec0';
-    }
-    contextMenu.appendChild(header);
-    
-    // Contenedor para las opciones con scroll
-    const optionsContainer = document.createElement('div');
-    optionsContainer.style.maxHeight = '250px'; // Altura específica para el scroll
-    optionsContainer.style.overflowY = 'auto';
-    optionsContainer.style.overflowX = 'hidden';
-    optionsContainer.style.flexShrink = '1'; // Permitir que se encoja si es necesario
-    optionsContainer.style.minHeight = '0'; // Importante para flexbox
-    
-    // Array para almacenar las aristas seleccionadas
-    let selectedEdges = [];
-    
-    // Crear opciones para cada arista con checkbox
-    edges.forEach((edge, index) => {
-        const fromNode = nodes.find(n => n.id === edge.from);
-        const toNode = nodes.find(n => n.id === edge.to);
-        if (!fromNode || !toNode) return;
-        
-        const option = document.createElement('div');
-        option.className = 'context-menu-option';
-        option.style.padding = '8px 16px';
-        option.style.cursor = 'pointer';
-        option.style.borderBottom = index < edges.length - 1 ? '1px solid #f0f0f0' : 'none';
-        option.style.display = 'flex';
-        option.style.alignItems = 'center';
-        option.style.justifyContent = 'space-between';
-        
-        // Crear checkbox
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.id = `edge_${edge.id}`;
-        checkbox.style.marginRight = '12px';
-        checkbox.style.cursor = 'pointer';
-        
-        // Crear contenido principal
-        const mainContent = document.createElement('div');
-        mainContent.style.flex = '1';
-        mainContent.style.cursor = 'pointer';
-        
-        // Mostrar información de la arista
-        const direction = document.createElement('div');
-        direction.textContent = `${fromNode.label} → ${toNode.label}`;
-        direction.style.fontWeight = '500';
-        direction.style.marginBottom = '2px';
-        
-        const labelInfo = document.createElement('div');
-        labelInfo.textContent = edge.label ? `Etiqueta: "${edge.label}"` : 'Sin etiqueta';
-        labelInfo.style.fontSize = '12px';
-        labelInfo.style.color = '#888';
-        if (isDarkMode) {
-            labelInfo.style.color = '#a0aec0';
-        }
-        
-        mainContent.appendChild(direction);
-        mainContent.appendChild(labelInfo);
-        
-        // Contenedor para los íconos de notas
-        const actionIconsContainer = document.createElement('div');
-        actionIconsContainer.style.display = 'flex';
-        actionIconsContainer.style.alignItems = 'center';
-        actionIconsContainer.style.gap = '12px';
-        actionIconsContainer.style.marginLeft = '8px';
-
-        const noteIcon = document.createElement('div');
-        noteIcon.innerHTML = '📝';
-        noteIcon.title = 'Ver/Editar nota';
-        noteIcon.style.fontSize = '16px';
-        noteIcon.style.cursor = 'pointer';
-        noteIcon.style.transition = 'transform 0.2s';
-
-        noteIcon.addEventListener('click', (e) => {
-            e.stopPropagation();
-            showNoteEditor(edge); // Esto llamará a la función que crearemos en el siguiente paso
-            hideEdgeContextMenu();
-        });
-
-        noteIcon.addEventListener('mouseenter', () => noteIcon.style.transform = 'scale(1.2)');
-        noteIcon.addEventListener('mouseleave', () => noteIcon.style.transform = 'scale(1)');
-
-        actionIconsContainer.appendChild(noteIcon);
-
-        // Crear indicador de acción individual
-        const actionIndicator = document.createElement('div');
-        actionIndicator.textContent = '⇄';
-        actionIndicator.style.fontSize = '16px';
-        actionIndicator.style.fontWeight = 'bold';
-        actionIndicator.style.color = '#007bff';
-        actionIndicator.style.marginLeft = '8px';
-        actionIndicator.style.cursor = 'pointer';
-        if (isDarkMode) {
-            actionIndicator.style.color = '#63b3ed';
-        }
-        
-        option.appendChild(checkbox);
-
-        actionIconsContainer.appendChild(actionIndicator); // Añade el ícono de invertir al nuevo contenedor
-
-        option.appendChild(mainContent);
-        option.appendChild(actionIconsContainer);
-        
-        // Efectos hover
-        option.addEventListener('mouseenter', () => {
-            option.style.backgroundColor = isDarkMode ? '#4a5568' : '#f8f9fa';
-            actionIndicator.style.transform = 'scale(1.1)';
-        });
-        
-        option.addEventListener('mouseleave', () => {
-            option.style.backgroundColor = 'transparent';
-            actionIndicator.style.transform = 'scale(1)';
-        });
-        
-        // Click en el checkbox o contenido principal para seleccionar
-        const toggleCheckbox = (e) => {
-            e.stopPropagation();
-            checkbox.checked = !checkbox.checked;
-            
-            if (checkbox.checked) {
-                if (!selectedEdges.includes(edge.id)) {
-                    selectedEdges.push(edge.id);
-                }
-            } else {
-                selectedEdges = selectedEdges.filter(id => id !== edge.id);
-            }
-            
-            updateActionButtons();
-        };
-        
-        checkbox.addEventListener('change', () => {
-            if (checkbox.checked) {
-                if (!selectedEdges.includes(edge.id)) {
-                    selectedEdges.push(edge.id);
-                }
-            } else {
-                selectedEdges = selectedEdges.filter(id => id !== edge.id);
-            }
-            updateActionButtons();
-        });
-        
-        mainContent.addEventListener('click', toggleCheckbox);
-        
-        // Click en indicador de acción para invertir inmediatamente esta arista
-        actionIndicator.addEventListener('click', (e) => {
-            e.stopPropagation();
-            reverseEdge(edge.id);
-            hideEdgeContextMenu();
-        });
-        
-        if (isDarkMode) {
-            option.style.borderBottom = index < edges.length - 1 ? '1px solid #4a5568' : 'none';
-        }
-        
-        optionsContainer.appendChild(option);
-    });
-    
-    contextMenu.appendChild(optionsContainer);
-    
-    // Contenedor para botones de acción
-    const actionsContainer = document.createElement('div');
-    actionsContainer.style.padding = '12px 16px';
-    actionsContainer.style.borderTop = '1px solid #eee';
-    actionsContainer.style.display = 'flex';
-    actionsContainer.style.gap = '8px';
-    actionsContainer.style.flexDirection = 'column';
-    actionsContainer.style.flexShrink = '0'; // Evitar que se encoja
-    if (isDarkMode) {
-        actionsContainer.style.borderTop = '1px solid #4a5568';
-    }
-    
-    // Botones de selección rápida
-    const quickSelectContainer = document.createElement('div');
-    quickSelectContainer.style.display = 'flex';
-    quickSelectContainer.style.gap = '8px';
-    quickSelectContainer.style.marginBottom = '8px';
-    
-    const selectAllBtn = document.createElement('button');
-    selectAllBtn.textContent = 'Seleccionar todas';
-    selectAllBtn.style.flex = '1';
-    selectAllBtn.style.padding = '6px 12px';
-    selectAllBtn.style.border = '1px solid #ddd';
-    selectAllBtn.style.borderRadius = '4px';
-    selectAllBtn.style.backgroundColor = isDarkMode ? '#4a5568' : '#f8f9fa';
-    selectAllBtn.style.color = isDarkMode ? '#f7fafc' : '#333';
-    selectAllBtn.style.cursor = 'pointer';
-    selectAllBtn.style.fontSize = '12px';
-    
-    const selectNoneBtn = document.createElement('button');
-    selectNoneBtn.textContent = 'Deseleccionar todas';
-    selectNoneBtn.style.flex = '1';
-    selectNoneBtn.style.padding = '6px 12px';
-    selectNoneBtn.style.border = '1px solid #ddd';
-    selectNoneBtn.style.borderRadius = '4px';
-    selectNoneBtn.style.backgroundColor = isDarkMode ? '#4a5568' : '#f8f9fa';
-    selectNoneBtn.style.color = isDarkMode ? '#f7fafc' : '#333';
-    selectNoneBtn.style.cursor = 'pointer';
-    selectNoneBtn.style.fontSize = '12px';
-    
-    quickSelectContainer.appendChild(selectAllBtn);
-    quickSelectContainer.appendChild(selectNoneBtn);
-    actionsContainer.appendChild(quickSelectContainer);
-    
-    // Botón para invertir seleccionadas
-    const reverseSelectedBtn = document.createElement('button');
-    reverseSelectedBtn.textContent = 'Invertir aristas seleccionadas (0)';
-    reverseSelectedBtn.style.width = '100%';
-    reverseSelectedBtn.style.padding = '10px 16px';
-    reverseSelectedBtn.style.border = 'none';
-    reverseSelectedBtn.style.borderRadius = '6px';
-    reverseSelectedBtn.style.backgroundColor = '#28a745';
-    reverseSelectedBtn.style.color = '#fff';
-    reverseSelectedBtn.style.cursor = 'pointer';
-    reverseSelectedBtn.style.fontWeight = '600';
-    reverseSelectedBtn.style.fontSize = '13px';
-    reverseSelectedBtn.style.marginBottom = '8px';
-    reverseSelectedBtn.disabled = true;
-    reverseSelectedBtn.style.opacity = '0.5';
-    
-    actionsContainer.appendChild(reverseSelectedBtn);
-    
-    // Botón para cambiar destino de aristas seleccionadas
-    const changeDestinationBtn = document.createElement('button');
-    changeDestinationBtn.textContent = 'Cambiar destino de aristas seleccionadas (0)';
-    changeDestinationBtn.style.width = '100%';
-    changeDestinationBtn.style.padding = '10px 16px';
-    changeDestinationBtn.style.border = 'none';
-    changeDestinationBtn.style.borderRadius = '6px';
-    changeDestinationBtn.style.backgroundColor = '#17a2b8';
-    changeDestinationBtn.style.color = '#fff';
-    changeDestinationBtn.style.cursor = 'pointer';
-    changeDestinationBtn.style.fontWeight = '600';
-    changeDestinationBtn.style.fontSize = '13px';
-    changeDestinationBtn.style.marginBottom = '8px';
-    changeDestinationBtn.disabled = true;
-    changeDestinationBtn.style.opacity = '0.5';
-    
-    actionsContainer.appendChild(changeDestinationBtn);
-    
-    // Botón para cambiar origen de aristas seleccionadas
-    const changeOriginBtn = document.createElement('button');
-    changeOriginBtn.textContent = 'Cambiar origen de aristas seleccionadas (0)';
-    changeOriginBtn.style.width = '100%';
-    changeOriginBtn.style.padding = '10px 16px';
-    changeOriginBtn.style.border = 'none';
-    changeOriginBtn.style.borderRadius = '6px';
-    changeOriginBtn.style.backgroundColor = '#fd7e14';
-    changeOriginBtn.style.color = '#fff';
-    changeOriginBtn.style.cursor = 'pointer';
-    changeOriginBtn.style.fontWeight = '600';
-    changeOriginBtn.style.fontSize = '13px';
-    changeOriginBtn.disabled = true;
-    changeOriginBtn.style.opacity = '0.5';
-    
-    actionsContainer.appendChild(changeOriginBtn);
-    
-    // Función para actualizar el estado de los botones
-    function updateActionButtons() {
-        const count = selectedEdges.length;
-        reverseSelectedBtn.textContent = `Invertir aristas seleccionadas (${count})`;
-        reverseSelectedBtn.disabled = count === 0;
-        reverseSelectedBtn.style.opacity = count === 0 ? '0.5' : '1';
-        reverseSelectedBtn.style.backgroundColor = count === 0 ? '#6c757d' : '#28a745';
-        
-        changeDestinationBtn.textContent = `Cambiar destino de aristas seleccionadas (${count})`;
-        changeDestinationBtn.disabled = count === 0;
-        changeDestinationBtn.style.opacity = count === 0 ? '0.5' : '1';
-        changeDestinationBtn.style.backgroundColor = count === 0 ? '#6c757d' : '#17a2b8';
-        
-        changeOriginBtn.textContent = `Cambiar origen de aristas seleccionadas (${count})`;
-        changeOriginBtn.disabled = count === 0;
-        changeOriginBtn.style.opacity = count === 0 ? '0.5' : '1';
-        changeOriginBtn.style.backgroundColor = count === 0 ? '#6c757d' : '#fd7e14';
-    }
-    
-    // Event listeners para botones
-    selectAllBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        selectedEdges = edges.map(edge => edge.id);
-        optionsContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
-        updateActionButtons();
-    });
-    
-    selectNoneBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        selectedEdges = [];
-        optionsContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-        updateActionButtons();
-    });
-    
-    reverseSelectedBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (selectedEdges.length > 0) {
-            reverseMultipleEdges(selectedEdges);
-            hideEdgeContextMenu();
-        }
-    });
-    
-    changeDestinationBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (selectedEdges.length > 0) {
-            startEdgeReassignment(selectedEdges);
-            hideEdgeContextMenu();
-        }
-    });
-    
-    changeOriginBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (selectedEdges.length > 0) {
-            startEdgeOriginReassignment(selectedEdges);
-            hideEdgeContextMenu();
-        }
-    });
-    
-    contextMenu.appendChild(actionsContainer);
-    
-    // Agregar footer con instrucciones
-    const footer = document.createElement('div');
-    footer.textContent = 'Selecciona con checkbox para acciones en lote (invertir, cambiar origen/destino), o click en ⇄ para invertir individual';
-    footer.style.padding = '8px 16px';
-    footer.style.fontSize = '11px';
-    footer.style.color = '#999';
-    footer.style.borderTop = '1px solid #eee';
-    footer.style.textAlign = 'center';
-    footer.style.fontStyle = 'italic';
-    footer.style.lineHeight = '1.3';
-    footer.style.flexShrink = '0'; // Evitar que se encoja
-    if (isDarkMode) {
-        footer.style.borderTop = '1px solid #4a5568';
-        footer.style.color = '#718096';
-    }
-    contextMenu.appendChild(footer);
-    
-    // Agregar al DOM
-    document.body.appendChild(contextMenu);
-    
-    // Ajustar posición si se sale de la pantalla
-    const rect = contextMenu.getBoundingClientRect();
-    if (rect.right > window.innerWidth) {
-        contextMenu.style.left = (x - rect.width) + 'px';
-    }
-    if (rect.bottom > window.innerHeight) {
-        contextMenu.style.top = (y - rect.height) + 'px';
-    }
-    
-    // Event listener para cerrar el menú al hacer click fuera
-    setTimeout(() => {
-        document.addEventListener('click', hideEdgeContextMenu);
-        document.addEventListener('contextmenu', hideEdgeContextMenu);
-    }, 10);
-}
 
 
 // abre el modal para editar notas de nodos o aristas
@@ -892,7 +502,7 @@ function showNoteEditor(element) {
     // Muestra el editor
     noteContainer.style.display = 'flex';
     textarea.value = element.note || ''; // Carga la nota existente o un texto vacío
-    
+
     // Muestra el modal
     modal.style.display = 'flex';
     textarea.focus();
@@ -905,63 +515,95 @@ function showNoteEditor(element) {
     };
 }
 
-function hideEdgeContextMenu() {
-    const existingMenu = document.getElementById('edgeContextMenu');
-    if (existingMenu) {
-        existingMenu.remove();
-        document.removeEventListener('click', hideEdgeContextMenu);
-        document.removeEventListener('contextmenu', hideEdgeContextMenu);
-    }
+
+
+function showCanvasContextMenu(x, y) {
+    hideCanvasContextMenu();
+
+    const contextMenu = document.getElementById('canvasContextMenu');
+    if (!contextMenu) return;
+
+    const menuItems = contextMenu.querySelectorAll('.simple-context-menu-item');
+    const hasSelection = selectedEdgeIds.length > 0;
+
+    // Habilita o deshabilita las opciones
+    menuItems.forEach(item => {
+        item.classList.toggle('disabled', !hasSelection);
+    });
+
+    // Mide las dimensiones
+    const menuRect = contextMenu.getBoundingClientRect();
+
+    // Calcula la posición para que no se salga de la pantalla
+    const xPos = (x + menuRect.width > window.innerWidth) ? window.innerWidth - menuRect.width - 5 : x;
+    const yPos = (y + menuRect.height > window.innerHeight) ? window.innerHeight - menuRect.height - 5 : y;
+
+    // Aplica la posición y muestra el menú
+    contextMenu.style.left = `${xPos}px`;
+    contextMenu.style.top = `${yPos}px`;
+    contextMenu.classList.add('visible');
+
+    // Listener para cerrar al hacer clic fuera
+    setTimeout(() => document.addEventListener('click', hideCanvasContextMenu), 0);
 }
+
+function hideCanvasContextMenu() {
+    const contextMenu = document.getElementById('canvasContextMenu');
+    if (contextMenu) {
+        contextMenu.classList.remove('visible');
+    }
+    document.removeEventListener('click', hideCanvasContextMenu);
+}
+
 
 function showEdgeLabelModal(fromNode, toNode) {
     const modal = document.getElementById('customEdgeModal');
     const modalMessageEdge = document.getElementById('modalMessageEdge');
     const modalInputContainer = document.getElementById('modalEdgeContainer');
-    
+
     // Configurar el mensaje
     modalMessageEdge.textContent = `Crear transiciones de ${fromNode.label} a ${toNode.label}`;
 
     // Limpiar y preparar el contenedor existente
     modalInputContainer.innerHTML = '';
     modalInputContainer.style.display = 'block';
-    
+
     // Crear contenedor específico para los inputs
     const inputsContainer = document.createElement('div');
     inputsContainer.id = 'edgeInputsContainer';
-    
+
     // Añadir primera caja de texto
     addEdgeInput(inputsContainer);
-    
+
     // Crear contenedor para botones
     const buttonContainer = document.createElement('div');
     buttonContainer.className = 'modal-actions';
-    
+
     // Crear botón Guardar
     const saveButton = document.createElement('button');
     saveButton.className = 'modal-button';
     saveButton.textContent = 'Guardar';
-    saveButton.onclick = function() {
+    saveButton.onclick = function () {
 
         saveEdgeLabels(fromNode, toNode);
     };
-    
+
     // Crear botón Añadir otra transición
     const addMoreButton = document.createElement('button');
     addMoreButton.className = 'modal-button secondary';
     addMoreButton.textContent = 'Añadir otra transición';
-    addMoreButton.onclick = function() {
+    addMoreButton.onclick = function () {
         addEdgeInput(inputsContainer);
     };
-    
+
     // Añadir botones al contenedor
     buttonContainer.appendChild(saveButton);
     buttonContainer.appendChild(addMoreButton);
-    
+
     // Añadir elementos al contenedor principal en el orden correcto
     modalInputContainer.appendChild(inputsContainer);  // Primero los inputs
     modalInputContainer.appendChild(buttonContainer);  // Luego los botones
-    
+
     // Mostrar el modal
     modal.style.display = 'flex';
 
@@ -971,40 +613,46 @@ function showEdgeLabelModal(fromNode, toNode) {
 function addEdgeInput(container) {
     const inputGroup = document.createElement('div');
     inputGroup.className = 'input-group';
-    
+
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'modal-input edge-input';
     input.placeholder = 'Ingrese etiqueta de transición';
-    
+
     inputGroup.appendChild(input);
     container.appendChild(inputGroup);
 }
+
 function saveEdgeLabels(fromNode, toNode) {
     const inputs = document.querySelectorAll('.edge-input');
-    let hasValidInput = false;
-    let regEx = /^[a-zA-Z0-9]+$/;
+    const labels = [];
+    const regEx = /^[a-zA-Z0-9,]+$/; // Permitimos comas para múltiples valores
+
     inputs.forEach(input => {
-        const label = input.value.trim();
-        if (label && regEx.exec(label)) {
-            const newEdge = {
-                id: Date.now() + Math.floor(Math.random() * 1000),
-                from: fromNode.id,
-                to: toNode.id,
-                label: label,
-                note: ""
-            };
-            edges.push(newEdge);
-            hasValidInput = true;
+        const value = input.value.trim();
+        if (value && regEx.exec(value)) {
+            labels.push(value);
         }
     });
-    
-    if (hasValidInput) {
+
+    // 2. Si se encontraron etiquetas válidas, crea UNA SOLA arista
+    if (labels.length > 0) {
+        const newEdge = {
+            id: Date.now() + Math.floor(Math.random() * 1000),
+            from: fromNode.id,
+            to: toNode.id,
+            labels: labels, // 3. La arista ahora tiene una propiedad "labels" (plural)
+            note: ""
+        };
+        edges.push(newEdge); // 4. Se añade solo una vez
+
         redrawCanvas();
         saveState();
     }
+
     closeMessage('customEdgeModal');
 }
+
 
 // ---------------------------------------------------------------------------------
 // SECTION: Event Listeners
@@ -1020,6 +668,26 @@ window.onclick = function (event) {
 document.addEventListener('DOMContentLoaded', () => {
     const defaultToolButton = document.getElementById('select');
     const menuItems = document.querySelectorAll('.main-menu-item');
+    const contextMenu = document.getElementById('canvasContextMenu');
+
+    contextMenu.addEventListener('click', (e) => {
+        if (e.target.matches('.simple-context-menu-item') && !e.target.classList.contains('disabled')) {
+            const action = e.target.dataset.action;
+
+            switch (action) {
+                case 'invert':
+                    reverseMultipleEdges(selectedEdgeIds);
+                    break;
+                case 'change-destination':
+                    startEdgeReassignment(selectedEdgeIds);
+                    break;
+                case 'change-origin':
+                    startEdgeOriginReassignment(selectedEdgeIds);
+                    break;
+            }
+            hideCanvasContextMenu();
+        }
+    });
 
     if (defaultToolButton) {
         changeTool(defaultToolButton, 'select');
@@ -1340,7 +1008,7 @@ function focusOnNode() {
     if (nodeToFocus) {
         // Resetea el zoom a un nivel estándar para una mejor vista
         scale = 1.0;
-        
+
         // Calcula el paneo necesario para mover el nodo al centro de la pantalla
         // Se tiene en cuenta el zoom actual (que acabamos de resetear)
         panX = (canvas.width / 2) - (nodeToFocus.x * scale);
@@ -1377,6 +1045,6 @@ function centerCanvasContent() {
 
     panX = (canvasWidth / 2) - (contentCenterX * scale);
     panY = (canvasHeight / 2) - (contentCenterY * scale);
-    
+
     redrawCanvas();
 }

@@ -136,14 +136,14 @@
 
   <div id="customAlertModal" class="custom-modal">
     <div class="custom-modal-content">
-        <span class="close-button" onclick="closeMessage('customAlertModal')">&times;</span>
-        <p id="modalMessage"></p>
+      <span class="close-button" onclick="closeMessage('customAlertModal')">&times;</span>
+      <p id="modalMessage"></p>
 
-        <div id="noteEditorContainer" style="display: none; flex-direction: column; gap: 10px; margin-top: 15px;">
-            <textarea id="noteTextarea" class="modal-textarea" placeholder="Escribe tus anotaciones aquí..."></textarea>
-            <button id="noteSaveButton" class="modal-button">Guardar Nota</button>
-        </div>
-        
+      <div id="noteEditorContainer" style="display: none; flex-direction: column; gap: 10px; margin-top: 15px;">
+        <textarea id="noteTextarea" class="modal-textarea" placeholder="Escribe tus anotaciones aquí..."></textarea>
+        <button id="noteSaveButton" class="modal-button">Guardar Nota</button>
+      </div>
+
     </div>
   </div>
 
@@ -192,20 +192,33 @@
         </div>
       </div>
     </div>
+  </div>
 
-    <script src="../js/utils/canvas/exportCanvasToImage.js"></script>
-    <script src="../js/pages/workspaces/workspaces.js"> </script>
-    <script src="../js/pages/workspaces/canvasSettings.js"></script>
-    <script src="../js/pages/workspaces/toolbar.js"> </script>
-    <script src="../js/utils/canvas/canvas.js"></script>
-    <script src="../js/models/State.js"></script>
-    <script src="../js/models/Edge.js"></script>
-    <script src="../js/utils/canvas/Node/addNode.js"></script>
-    <script src="../js/utils/canvas/addEdge.js"></script>
-    <script src="../js/utils/Draw/drawNode.js"></script>
-    <script src="../js/utils/Draw/drawEdge.js"></script>
-    <script src="../js/utils/canvas/deleteTool.js"></script>
-    <script src="../js/utils/file/jsonHandler.js"></script>
+  <div id="canvasContextMenu" class="simple-context-menu">
+    <div class="simple-context-menu-item" data-action="invert">
+      Invertir aristas seleccionadas
+    </div>
+    <div class="simple-context-menu-item" data-action="change-destination">
+      Cambiar destino de aristas seleccionadas
+    </div>
+    <div class="simple-context-menu-item" data-action="change-origin">
+      Cambiar origen de aristas seleccionadas
+    </div>
+  </div>
+
+  <script src="../js/utils/canvas/exportCanvasToImage.js"></script>
+  <script src="../js/pages/workspaces/workspaces.js"> </script>
+  <script src="../js/pages/workspaces/canvasSettings.js"></script>
+  <script src="../js/pages/workspaces/toolbar.js"> </script>
+  <script src="../js/utils/canvas/canvas.js"></script>
+  <script src="../js/models/State.js"></script>
+  <script src="../js/models/Edge.js"></script>
+  <script src="../js/utils/canvas/Node/addNode.js"></script>
+  <script src="../js/utils/canvas/addEdge.js"></script>
+  <script src="../js/utils/Draw/drawNode.js"></script>
+  <script src="../js/utils/Draw/drawEdge.js"></script>
+  <script src="../js/utils/canvas/deleteTool.js"></script>
+  <script src="../js/utils/file/jsonHandler.js"></script>
 
 </body>
 

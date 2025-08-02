@@ -1162,3 +1162,56 @@ body.dark .edge-context-menu .context-menu-option:hover {
     border: 1px solid #ccc;
     font-family: 'Roboto', sans-serif;
 }
+
+.simple-context-menu {
+    position: fixed;
+    z-index: 1000;
+    background-color: #ffffff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    min-width: 280px;
+    padding: 5px 0;
+    
+    visibility: hidden;
+    opacity: 0;
+    transform: scale(0.95);
+    transition: opacity 0.1s ease-out, visibility 0.1s ease-out, transform 0.1s ease-out;
+}
+
+.simple-context-menu.visible {
+    visibility: visible;
+    opacity: 1;
+    transform: scale(1);
+}
+
+.simple-context-menu-item {
+    padding: 10px 20px;
+    cursor: pointer;
+    font-family: 'Roboto', sans-serif;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+}
+
+.simple-context-menu-item:not(.disabled):hover {
+    background-color: #f0f0f0;
+}
+
+.simple-context-menu-item.disabled {
+    color: #a0a0a0;
+    cursor: default;
+}
+
+body.dark .simple-context-menu {
+    background-color: #2d3748;
+    border-color: #4a5568;
+    color: #f7fafc;
+}
+
+body.dark .simple-context-menu-item:not(.disabled):hover {
+    background-color: #4a5568;
+}
+
+body.dark .simple-context-menu-item.disabled {
+    color: #718096;
+}
