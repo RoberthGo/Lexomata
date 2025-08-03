@@ -46,8 +46,8 @@
       <span class="main-menu-item" id="menuEjecucion">Ejecución
         <div class="submenu">
           <span class="submenu-item" onclick="showMessage('Opciones de Ejecución: Paso a Paso')">Paso a Paso</span>
-          <span class="submenu-item" onclick="showMessage('Opciones de Ejecución: Cinta')">Cinta</span>
-          <span class="submenu-item" id="multipleRunBtn" onclick="showMessage('Opciones de Ejecución: Múltiple Run')">Múltiple Run</span>
+          <span class="submenu-item" onclick="showTuringTape()">Cinta</span>
+          <span class="submenu-item" id="multipleRunBtn">Múltiple Run</span>
         </div>
       </span>
 
@@ -120,32 +120,37 @@
         </div>
       </aside>
 
-            <div class="canvas-wrapper">
+      <div class="canvas-wrapper">
         <canvas id="canvas" class="automata-canvas"></canvas>
         
         <div class="turing-tape-container">
-          <div class="turing-tape-header">
-            <h3 class="turing-tape-title">Cinta de Máquina de Turing</h3>
-            <div class="turing-tape-controls">
-              <button class="turing-tape-button" id="resetTapeButton">
-                <i class="fas fa-undo"></i> Reiniciar
-              </button>
-              <button class="turing-tape-button" id="clearTapeButton">
-                <i class="fas fa-eraser"></i> Limpiar
-              </button>
-              <button class="turing-tape-button" id="toggleTapeButton">
-                <i class="fas fa-chevron-down"></i> 
-              </button>
+            
+            <div class="turing-tape-header">
+                <h3 class="turing-tape-title">Cinta de Máquina de Turing</h3>
+                
+                <div class="turing-tape-controls"> 
+                    <button class="turing-tape-button" id="resetTapeButton">
+                        <i class="fas fa-undo"></i> Reiniciar
+                    </button>
+                    <button class="turing-tape-button" id="clearTapeButton">
+                        <i class="fas fa-eraser"></i> Limpiar
+                    </button>
+                    <button class="turing-tape-button" id="toggleTapeButton">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <button class="turing-tape-button" id="closeTapeContainerBtn" title="Cerrar Panel">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
-          </div>
-          <div class="turing-tape-wrapper">
-            <canvas id="turingTapeCanvas" class="turing-tape-canvas"></canvas>
-            <div class="turing-tape-head">
-              <div class="turing-tape-head-indicator"></div>
+            
+            <div class="turing-tape-wrapper">
+                <canvas id="turingTapeCanvas" class="turing-tape-canvas"></canvas>
+                <div class="turing-tape-head">
+                    <div class="turing-tape-head-indicator"></div>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
     </div>
   </div>
   </div>

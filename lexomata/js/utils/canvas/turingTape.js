@@ -6,167 +6,163 @@ let turingTapeState = {
     isCollapsed: false,
     cells: [],
     headPosition: 0,
-    cellWidth: 50,
+    cellWidth: 55,
     totalCells: 20
 };
 
-// Inicializar la cinta de Turing
-function initializeTuringTape() {
-    const turingCanvas = document.getElementById('turingTapeCanvas');
-    const toggleButton = document.getElementById('toggleTapeButton');
-    const resetButton = document.getElementById('resetTapeButton');
-    const clearButton = document.getElementById('clearTapeButton');
-    
-    if (!turingCanvas) return;
-    
-    // Configurar el canvas
-    resizeTuringCanvas();
-    drawTuringTape();
-    
-    // Event listeners
-    if (toggleButton) {
-        toggleButton.addEventListener('click', toggleTuringTape);
+// --- FUNCIONES DE CONTROL DEL PANEL ---
+
+function showTuringTape() {
+    const tapeContainer = document.querySelector('.turing-tape-container');
+    if (tapeContainer) {
+        tapeContainer.style.display = 'block';
+        resizeTuringCanvas();
     }
-    
-    if (resetButton) {
-        resetButton.addEventListener('click', resetTuringTape);
-    }
-    
-    if (clearButton) {
-        clearButton.addEventListener('click', clearTuringTape);
-    }
-    
-    // Redimensionar canvas cuando cambie el tamaño de la ventana
-    window.addEventListener('resize', resizeTuringCanvas);
 }
 
-// Redimensionar el canvas de la cinta
+function toggleTuringTape() {
+    const tapeContainer = document.querySelector('.turing-tape-container');
+    if (tapeContainer) {
+        tapeContainer.classList.toggle('collapsed');
+    }
+}
+
+// --- FUNCIONES DE DIBUJO ---
+
 function resizeTuringCanvas() {
     const turingCanvas = document.getElementById('turingTapeCanvas');
-    if (!turingCanvas) return;
-    
+    if (!turingCanvas || !turingCanvas.parentElement) return;
+
+    const ctx = turingCanvas.getContext('2d');
     const container = turingCanvas.parentElement;
-    turingCanvas.width = container.clientWidth - 40; // Padding
-    turingCanvas.height = 80;
-    
-    drawTuringTape();
+    const dpr = window.devicePixelRatio || 1;
+    const cssWidth = container.clientWidth > 40 ? container.clientWidth - 40 : 0;
+    const cssHeight = 80;
+
+    turingCanvas.width = cssWidth * dpr;
+    turingCanvas.height = cssHeight * dpr;
+    turingCanvas.style.width = cssWidth + 'px';
+    turingCanvas.style.height = cssHeight + 'px';
+
+    ctx.scale(dpr, dpr);
+
+    drawTuringTape(ctx, cssWidth, cssHeight);
 }
 
-// Dibujar la cinta de Turing
-function drawTuringTape() {
+function drawTuringTape(ctx, canvasCssWidth, canvasCssHeight) {
     const turingCanvas = document.getElementById('turingTapeCanvas');
     if (!turingCanvas) return;
-    
-    const ctx = turingCanvas.getContext('2d');
+
     const isDarkMode = document.body.classList.contains('dark');
-    
-    // Usar el mismo sistema de colores que el resto del proyecto
-    const currentTheme = isDarkMode ? colorPalette.dark : colorPalette.light;
-    
+    const currentTheme = isDarkMode ? (window.colorPalette?.dark || {}) : (window.colorPalette?.light || {});
+
+    // Colores por defecto
+    const cellFill = currentTheme.turingCellFill || (isDarkMode ? '#2a2a3e' : '#ffffff');
+    const cellStroke = currentTheme.turingCellStroke || (isDarkMode ? '#3a3a50' : '#ccc');
+    const headStroke = currentTheme.turingHeadStroke || '#20c997';
+    const cellText = currentTheme.turingCellText || (isDarkMode ? '#e0e0e0' : '#333');
+    const indexText = currentTheme.turingIndexText || (isDarkMode ? '#aaa' : '#666');
+
+    // Limpiar el canvas
     ctx.clearRect(0, 0, turingCanvas.width, turingCanvas.height);
-    
+
     const cellWidth = turingTapeState.cellWidth;
     const cellHeight = 50;
-    const startY = (turingCanvas.height - cellHeight) / 2;
-    const visibleCells = Math.floor(turingCanvas.width / cellWidth);
+    const startY = (canvasCssHeight - cellHeight) / 2;
+    const visibleCells = Math.floor(canvasCssWidth / cellWidth);
     const startIndex = Math.max(0, turingTapeState.headPosition - Math.floor(visibleCells / 2));
-    
-    // Dibujar las celdas
+
     for (let i = 0; i < visibleCells; i++) {
         const cellIndex = startIndex + i;
         const x = i * cellWidth;
-        
-        // Dibujar celda
-        ctx.fillStyle = currentTheme.turingCellFill;
+
+        ctx.fillStyle = cellFill;
         ctx.fillRect(x, startY, cellWidth, cellHeight);
-        
-        // Dibujar borde
-        ctx.strokeStyle = currentTheme.turingCellStroke;
+
+        ctx.strokeStyle = cellStroke;
         ctx.lineWidth = 1;
         ctx.strokeRect(x, startY, cellWidth, cellHeight);
-        
-        // Resaltar la celda donde está la cabeza lectora
+
         if (cellIndex === turingTapeState.headPosition) {
-            ctx.strokeStyle = currentTheme.turingHeadStroke;
-            ctx.lineWidth = 3;
+            ctx.strokeStyle = headStroke;
+            ctx.lineWidth = 2;
             ctx.strokeRect(x, startY, cellWidth, cellHeight);
         }
-        
-        // Dibujar contenido de la celda
+
         const cellContent = turingTapeState.cells[cellIndex] || '';
         if (cellContent) {
-            ctx.fillStyle = currentTheme.turingCellText;
+            ctx.fillStyle = cellText;
             ctx.font = '16px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(cellContent, x + cellWidth / 2, startY + cellHeight / 2);
         }
-        
-        // Dibujar índice de la celda (pequeño)
-        ctx.fillStyle = currentTheme.turingIndexText;
+
+        ctx.fillStyle = indexText;
         ctx.font = '10px Arial';
-        ctx.fillText(cellIndex.toString(), x + cellWidth / 2, startY - 5);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(cellIndex.toString(), x + cellWidth / 2, startY - 5);;
     }
 }
 
-// Toggle mostrar/ocultar cinta
-function toggleTuringTape() {
-    const tapeContainer = document.querySelector('.turing-tape-wrapper');
-    const toggleButton = document.getElementById('toggleTapeButton');
-    const icon = toggleButton.querySelector('i');
-    
-    if (tapeContainer.style.display === 'none') {
-        tapeContainer.style.display = 'block';
-        icon.className = 'fas fa-chevron-down';
-    } else {
-        tapeContainer.style.display = 'none';
-        icon.className = 'fas fa-chevron-up';
-    }
-}
+// --- FUNCIONES DE MANIPULACIÓN DE LA CINTA ---
 
-// Reiniciar la cinta
 function resetTuringTape() {
-    turingTapeState.cells = [''];
+    turingTapeState.cells = [];
     turingTapeState.headPosition = 0;
-    drawTuringTape();
+    resizeTuringCanvas();
 }
 
-// Limpiar la cinta
 function clearTuringTape() {
-    turingTapeState.cells = new Array(turingTapeState.totalCells).fill('');
-    drawTuringTape();
+    turingTapeState.cells = [];
+    resizeTuringCanvas();
 }
 
-// Escribir en la celda actual
 function writeTuringCell(symbol) {
     while (turingTapeState.cells.length <= turingTapeState.headPosition) {
         turingTapeState.cells.push('');
     }
-    turingTapeState.cells[turingTapeState.headPosition] = symbol;
-    drawTuringTape();
+    turingTapeState.cells [turingTapeState.headPosition] = symbol;
+    resizeTuringCanvas();
 }
 
-// Mover la cabeza lectora
 function moveTuringHead(direction) {
     if (direction === 'L' && turingTapeState.headPosition > 0) {
         turingTapeState.headPosition--;
     } else if (direction === 'R') {
         turingTapeState.headPosition++;
-        // Extender la cinta si es necesario
         while (turingTapeState.cells.length <= turingTapeState.headPosition) {
             turingTapeState.cells.push('');
         }
     }
-    drawTuringTape();
+    resizeTuringCanvas();
 }
 
-// Leer la celda actual
 function readTuringCell() {
-    return turingTapeState.cells[turingTapeState.headPosition] || '';
+    return turingTapeState.cells [turingTapeState.headPosition] || '';
 }
 
-// Inicializar cuando se cargue el DOM
+// --- INICIALIZACIÓN ---
+
+function initializeTuringTape() {
+    const toggleButton = document.getElementById('toggleTapeButton');
+    const resetButton = document.getElementById('resetTapeButton');
+    const clearButton = document.getElementById('clearTapeButton');
+    const closeButton = document.getElementById('closeTapeContainerBtn');
+
+    if (toggleButton) toggleButton.addEventListener('click', toggleTuringTape);
+    if (resetButton) resetButton.addEventListener('click', resetTuringTape);
+    if (clearButton) clearButton.addEventListener('click', clearTuringTape);
+    if (closeButton) {
+        closeButton.addEventListener('click', () => {
+            document.querySelector('.turing-tape-container').style.display = 'none';
+        });
+    }
+
+    window.addEventListener('resize', resizeTuringCanvas);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    // Pequeño delay para asegurar que todos los elementos estén cargados
     setTimeout(initializeTuringTape, 100);
 });
