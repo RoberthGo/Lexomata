@@ -1464,15 +1464,28 @@ body.dark .turing-tape-head-indicator {
     border-bottom: 1px solid #ddd;
     padding-bottom: 10px;
 } 
+
 #close-button {
-    padding: 10px 10px;
-    font-size: 10px;
-    font-weight: bold;
-    cursor: pointer;
-    border: none;
-    border-radius: 5px;
+   display: flex;
+   justify-content: center;
+   align-items: center;
+   width: 30px;
+   height: 30px;
+   font-size: 16px;
+   font-weight: bold;
+   color: #555;
+   background-color: #f0f0f0;
+   border: 1px solid #ddd;
+   border-radius: 6px;
+   cursor: pointer;
+   transition: all 0.2s ease;
 }
-#close-button { background-color: #4e555d; color: white; }
+
+#close-button:hover {
+   color: #dc3545;
+   border-color: #dc3545;
+   background-color: rgba(220, 53, 69, 0.1);
+}
 
 /* Estilos de la tabla */
 #inputTable {
@@ -1555,7 +1568,6 @@ body.dark .turing-tape-head-indicator {
 .run-icon { color: #28a745; }
 .delete-icon { color: #dc3545; }
 
-
 /* Pie de página del modal */
 .modal-footer {
     margin-top: 20px;
@@ -1564,75 +1576,65 @@ body.dark .turing-tape-head-indicator {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
+    transition: border-color 0.3s;
 }
+
+/* Estilo base para los botones del footer */
 #addRowBtn, #runAllBtn {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Espacio entre el icono y el texto */
     padding: 10px 20px;
     font-size: 16px;
-    font-weight: bold;
+    font-weight: 600; /* Un poco más grueso */
     cursor: pointer;
-    border: none;
-    border-radius: 5px;
-}
-#addRowBtn { background-color: #007bff; color: white; }
-#runAllBtn { background-color: #28a745; color: white; }
+    border-radius: 6px;
+    transition: all 0.2s ease;
 
-body.dark .modal-content {
-    background-color: #2d3436; /* Fondo oscuro principal */
-    color: #dfe6e9; /* Texto claro */
-    border-color: #555;
+    /* Estilo por defecto (Modo Claro) */
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    color: #333;
 }
 
-/* Encabezado y pie de página del modal */
-body.dark .modal-header,
-body.dark .modal-footer {
-    border-color: #4a4a60; /* Bordes más oscuros */
+#addRowBtn svg, #runAllBtn svg {
+    width: 18px;
+    height: 18px;
 }
 
-/* Botón de cierre 'X' */
-body.dark #close-button {
-    background-color: #4a4a60;
+/* Efecto hover para el botón "Añadir Fila" */
+#addRowBtn:hover {
+    color: #007bff;
+    border-color: #007bff;
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+/* Efecto hover para el botón "Ejecutar Todos" */
+#runAllBtn:hover {
+    color: #28a745;
+    border-color: #28a745;
+    background-color: rgba(40, 167, 69, 0.1);
+}
+
+
+/* === MODO OSCURO para los botones del footer === */
+body.dark #addRowBtn, 
+body.dark #runAllBtn {
+    background-color: #3a3a50;
+    border-color: #4a4a60;
     color: #dfe6e9;
 }
 
-/* Tabla - Encabezados */
-body.dark #inputTable th {
-    background-color: #353b48; /* Fondo oscuro para encabezados */
-    color: #dfe6e9;
-    border-color: #4a4a60;
+/* Efecto hover en modo oscuro para "Añadir Fila" */
+body.dark #addRowBtn:hover {
+    color: #58a6ff; /* Azul más brillante */
+    border-color: #58a6ff;
+    background-color: rgba(88, 166, 255, 0.1);
 }
 
-/* Tabla - Celdas */
-body.dark #inputTable td {
-    border-color: #4a4a60;
-}
-
-/* Tabla - Campo de Input */
-body.dark #inputTable input[type="text"] {
-    background-color: #3b4252;
-    color: #eceff4;
-    border-color: #555;
-}
-
-/* Tabla - Celda de Output */
-body.dark #inputTable .output-cell {
-    color: #88b6ff; /* Un azul más brillante para mejor contraste */
-}
-
-/* Tabla - Mensaje de Placeholder */
-body.dark #inputTable .placeholder-row td {
-    color: #999;
-}
-
-/* Celdas de resultado */
-body.dark .result-accept {
+/* Efecto hover en modo oscuro para "Ejecutar Todos" */
+body.dark #runAllBtn:hover {
     color: #2ecc71; /* Verde más brillante */
-}
-body.dark .result-reject {
-    color: #e74c3c; /* Rojo más brillante */
-}
-
-/* Botones de acción con iconos */
-body.dark .icon-button:hover {
-    background-color: #434c5e;
-    border-color: #555;
+    border-color: #2ecc71;
+    background-color: rgba(46, 204, 113, 0.1);
 }
