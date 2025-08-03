@@ -13,7 +13,13 @@ const colorPalette = {
         selectedNodeStroke: '#FFA500',
         edgeLine: '#000000',
         edgeText: '#000000',
-        selectedEdge: '#D62828'
+        selectedEdge: '#D62828',
+        // Colores de la cinta de Turing
+        turingCellFill: '#ffffff',
+        turingCellStroke: '#ccc',
+        turingCellText: '#333',
+        turingIndexText: '#666',
+        turingHeadStroke: '#20c997'
     },
     dark: {
         background: '#2d3748',
@@ -25,7 +31,13 @@ const colorPalette = {
         selectedNodeText: '#F7FAFC',
         edgeLine: '#A0AEC0',
         edgeText: '#E2E8F0',
-        selectedEdge: '#FC8181'
+        selectedEdge: '#FC8181',
+        // Colores de la cinta de Turing
+        turingCellFill: '#1a1a2e',
+        turingCellStroke: '#3a3a50',
+        turingCellText: '#e0e0e0',
+        turingIndexText: '#a0a0a0',
+        turingHeadStroke: '#20c997'
     }
 };
 
@@ -33,6 +45,11 @@ function toggleTheme() {
     document.body.classList.toggle('dark');
     document.querySelectorAll('.submenu').forEach(sub => sub.style.display = 'none');
     redrawCanvas();
+    
+    // Redibujar la cinta de Turing si existe
+    if (typeof drawTuringTape === 'function') {
+        drawTuringTape();
+    }
 }
 
 const customAlertModal = document.getElementById('customAlertModal');

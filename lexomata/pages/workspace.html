@@ -71,57 +71,83 @@
   </header>
 
   <div class="content-area">
-    <aside class="toolbar">
-      <button class="toolbar-toggle-button" id="toolbarToggleButton"
-        aria-label="Colapsar/Expandir barra de herramientas">
-        <i class="fas fa-chevron-left"></i>
-      </button>
-      <h2 class="toolbar-title">Herramientas</h2>
-      <div class="tool-buttons-group">
-
-        <button class="tool-button" data-tool="select" id="select" onclick="changeTool(this,'select')">
-          <i class="fas fa-mouse-pointer"></i> <span>Seleccionar</span> <span class="shortcut-key">S</span>
+    <div class="main-workspace">
+      <aside class="toolbar">
+        <button class="toolbar-toggle-button" id="toolbarToggleButton"
+          aria-label="Colapsar/Expandir barra de herramientas">
+          <i class="fas fa-chevron-left"></i>
         </button>
+        <h2 class="toolbar-title">Herramientas</h2>
+        <div class="tool-buttons-group">
 
-        <button class="tool-button" data-tool="add-state" id="node" onclick="changeTool(this,'addNode')">
-          <i class="fas fa-circle"></i> <span>Añadir Estado</span> <span class="shortcut-key">A</span>
-        </button>
+          <button class="tool-button" data-tool="select" id="select" onclick="changeTool(this,'select')">
+            <i class="fas fa-mouse-pointer"></i> <span>Seleccionar</span> <span class="shortcut-key">S</span>
+          </button>
 
-        <button class="tool-button" data-tool="add-transition" id="edge" onclick="changeTool(this,'addEdge')">
-          <i class="fas fa-arrow-right"></i> <span>Añadir Transición</span> <span class="shortcut-key">T</span>
-        </button>
+          <button class="tool-button" data-tool="add-state" id="node" onclick="changeTool(this,'addNode')">
+            <i class="fas fa-circle"></i> <span>Añadir Estado</span> <span class="shortcut-key">A</span>
+          </button>
 
-        <button class="tool-button" data-tool="delete" id="delete" onclick="changeTool(this,'delete')">
-          <i class="fas fa-trash-alt"></i> <span>Eliminar</span> <span class="shortcut-key">D</span>
-        </button>
+          <button class="tool-button" data-tool="add-transition" id="edge" onclick="changeTool(this,'addEdge')">
+            <i class="fas fa-arrow-right"></i> <span>Añadir Transición</span> <span class="shortcut-key">T</span>
+          </button>
 
+          <button class="tool-button" data-tool="delete" id="delete" onclick="changeTool(this,'delete')">
+            <i class="fas fa-trash-alt"></i> <span>Eliminar</span> <span class="shortcut-key">D</span>
+          </button>
+
+        </div>
+
+        <div class="tool-buttons-group">
+
+          <h3 class="tool-group-title">Estado Inicial</h3>
+          <button class="tool-button" data-tool="initial-state" onclick="changeTool(this,'setStart')">
+            <i class="fas fa-play-circle"></i> <span>Definir</span> <span class="shortcut-key">I</span>
+          </button>
+
+          <h3 class="tool-group-title">Estado Final</h3>
+
+          <button class="tool-button" data-tool="final-state" onclick="changeTool(this,'setEnd')">
+            <i class="fas fa-bullseye"></i> <span>Definir</span> <span class="shortcut-key">F</span>
+          </button>
+        </div>
+
+        <div class="tool-buttons-group">
+          <button class="tool-button" id="undoButton" onclick="undo()"> <i class="fas fa-undo"></i> <span>Deshacer</span>
+          </button>
+          <button class="tool-button" id="redoButton" onclick="redo()"> <i class="fas fa-redo"></i> <span>Rehacer</span>
+          </button>
+        </div>
+      </aside>
+
+            <div class="canvas-wrapper">
+        <canvas id="canvas" class="automata-canvas"></canvas>
+        
+        <div class="turing-tape-container">
+          <div class="turing-tape-header">
+            <h3 class="turing-tape-title">Cinta de Máquina de Turing</h3>
+            <div class="turing-tape-controls">
+              <button class="turing-tape-button" id="resetTapeButton">
+                <i class="fas fa-undo"></i> Reiniciar
+              </button>
+              <button class="turing-tape-button" id="clearTapeButton">
+                <i class="fas fa-eraser"></i> Limpiar
+              </button>
+              <button class="turing-tape-button" id="toggleTapeButton">
+                <i class="fas fa-chevron-down"></i> 
+              </button>
+            </div>
+          </div>
+          <div class="turing-tape-wrapper">
+            <canvas id="turingTapeCanvas" class="turing-tape-canvas"></canvas>
+            <div class="turing-tape-head">
+              <div class="turing-tape-head-indicator"></div>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <div class="tool-buttons-group">
-
-        <h3 class="tool-group-title">Estado Inicial</h3>
-        <button class="tool-button" data-tool="initial-state" onclick="changeTool(this,'setStart')">
-          <i class="fas fa-play-circle"></i> <span>Definir</span> <span class="shortcut-key">I</span>
-        </button>
-
-        <h3 class="tool-group-title">Estado Final</h3>
-
-        <button class="tool-button" data-tool="final-state" onclick="changeTool(this,'setEnd')">
-          <i class="fas fa-bullseye"></i> <span>Definir</span> <span class="shortcut-key">F</span>
-        </button>
-      </div>
-
-      <div class="tool-buttons-group">
-        <button class="tool-button" id="undoButton" onclick="undo()"> <i class="fas fa-undo"></i> <span>Deshacer</span>
-        </button>
-        <button class="tool-button" id="redoButton" onclick="redo()"> <i class="fas fa-redo"></i> <span>Rehacer</span>
-        </button>
-      </div>
-    </aside>
-
-    <div class="canvas-wrapper">
-      <canvas id="canvas" class="automata-canvas"></canvas>
     </div>
+  </div>
   </div>
   <div id="customEdgeModal" class="custom-modal">
     <div class="custom-modal-content">
@@ -219,6 +245,7 @@
   <script src="../js/utils/Draw/drawEdge.js"></script>
   <script src="../js/utils/canvas/deleteTool.js"></script>
   <script src="../js/utils/file/jsonHandler.js"></script>
+  <script src="../js/utils/canvas/turingTape.js"></script>
 
 </body>
 
