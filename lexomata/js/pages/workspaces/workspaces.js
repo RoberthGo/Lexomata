@@ -353,9 +353,6 @@ function reverseMultipleEdges(edgeIds) {
 function startEdgeReassignment(edgeIds) {
     if (!edgeIds || edgeIds.length === 0) return;
 
-    console.log("1. Iniciando modo de reasignación de destino para las aristas:", edgeIds);
-
-
     edgeReassignmentState.isActive = true;
     edgeReassignmentState.selectedEdgeIds = [...edgeIds];
     edgeReassignmentState.mode = 'destination'; // Modo por defecto
@@ -625,31 +622,52 @@ function addEdgeInput(container) {
 
 function saveEdgeLabels(fromNode, toNode) {
     const inputs = document.querySelectorAll('.edge-input');
-    const labels = [];
+    const newLabels = [];
     const regEx = /^[a-zA-Z0-9,]+$/; // Permitimos comas para múltiples valores
 
     inputs.forEach(input => {
         const value = input.value.trim();
         if (value && regEx.exec(value)) {
-            labels.push(value);
+            newLabels.push(value);
         }
     });
 
-    // 2. Si se encontraron etiquetas válidas, crea UNA SOLA arista
-    if (labels.length > 0) {
+    if (newLabels.length === 0) {
+        closeMessage('customEdgeModal');
+        return;
+    }
+
+    // 2. Busca si YA EXISTE una arista entre estos dos nodos.
+    let existingEdge = edges.find(e => e.from === fromNode.id && e.to === toNode.id);
+
+    if (existingEdge) {
+        // 3. SI EXISTE: simplemente añade las nuevas etiquetas a su arreglo.
+        if (!Array.isArray(existingEdge.labels)) {
+            existingEdge.labels = [existingEdge.label];
+        }
+
+        // Añade solo las etiquetas que no estén ya incluidas para evitar duplicados.
+        newLabels.forEach(label => {
+            if (!existingEdge.labels.includes(label)) {
+                existingEdge.labels.push(label);
+            }
+        });
+
+    } else {
+        // 4. SI NO EXISTE: crea una arista nueva con las etiquetas recolectadas.
         const newEdge = {
             id: Date.now() + Math.floor(Math.random() * 1000),
             from: fromNode.id,
             to: toNode.id,
-            labels: labels, // 3. La arista ahora tiene una propiedad "labels" (plural)
+            labels: newLabels, // La propiedad es un arreglo con las nuevas etiquetas.
             note: ""
         };
-        edges.push(newEdge); // 4. Se añade solo una vez
-
-        redrawCanvas();
-        saveState();
+        edges.push(newEdge);
     }
 
+    // 5. Redibuja el canvas y guarda el estado.
+    redrawCanvas();
+    saveState();
     closeMessage('customEdgeModal');
 }
 

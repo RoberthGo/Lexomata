@@ -162,8 +162,7 @@ function drawSelfLoop(ctx, node, edge, isSelected, theme, edgeCounts) {
     const lineHeight = 15;
 
     labels.forEach((label, index) => {
-        const isFirstLabel = index === 0;
-        ctx.fillStyle = (isSelected && isFirstLabel) ? theme.selectedEdge : theme.edgeText;
+        ctx.fillStyle = isSelected ? theme.selectedEdge : theme.edgeText;
         ctx.fillText(label, centerX, centerY - loopRadius - (index * lineHeight) - 5);
     });
 }
@@ -197,11 +196,7 @@ function drawEdgeLabel(ctx, fromNode, toNode, edge, isSelected, theme, isCurved)
     const lineHeight = 15; // Espacio vertical entre cada etiqueta
 
     labels.forEach((label, index) => {
-        // Para la primera etiqueta (index 0), el color depende de si la arista está seleccionada.
-        // Las demás etiquetas siempre se dibujan en el color normal.
-        const isFirstLabel = index === 0;
-        ctx.fillStyle = (isSelected && isFirstLabel) ? theme.selectedEdge : theme.edgeText;
-
+        ctx.fillStyle = isSelected ? theme.selectedEdge : theme.edgeText;
         // Dibuja cada etiqueta, una encima de la otra
         ctx.fillText(label, labelX, labelY - (index * lineHeight));
     });
