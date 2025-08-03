@@ -4,8 +4,8 @@
 
 let turingTapeState = {
     isCollapsed: false,
-    cells: ['a', 'b', '1', '0', '1'],
-    headPosition: 2,
+    cells: [],
+    headPosition: 0,
     cellWidth: 50,
     totalCells: 20
 };
