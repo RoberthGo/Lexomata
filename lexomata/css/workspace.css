@@ -239,6 +239,13 @@ body.dark .sun-icon-header { display: inline; }
     width: 100%;
 }
 
+/* Main workspace area (toolbar + canvas) */
+.main-workspace {
+    display: flex;
+    flex: 1;
+    width: 100%;
+}
+
 /* Toolbar sidebar */
 .toolbar {
     width: 280px;
@@ -262,24 +269,43 @@ body.dark .toolbar {
 }
 
 .toolbar.collapsed {
-    width: 80px;
+    width: 70px;
     align-items: center;
     padding: 1.5rem 0.5rem;
 }
 
 .toolbar-toggle-button {
     position: absolute;
-    top: 1rem;
-    right: -.6rem;
-    margin: 0;
-    background: none;
-    border: none;
-    font-size: 1.2rem;
-    color: #555;
-    cursor: pointer;
-    transition: transform 0.3s ease, color 0.2s ease;
-    z-index: 10;
+    top: 15px;
+    right: -12px;
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
     display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease, color 0.2s ease;
+}
+
+.toolbar-toggle-button i {
+    transition: transform 0.3s ease-in-out;
+}
+
+.toolbar.collapsed .tool-button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.8rem;
+    height: auto;
+}
+
+.toolbar.collapsed .toolbar-toggle-button i {
+    transform: rotate(180deg);
 }
 
 body.dark .toolbar-toggle-button {
@@ -407,8 +433,7 @@ body.dark .tool-button.active {
 }
 
 .toolbar.collapsed .tool-button i {
-    width: 100%;
-    text-align: center;
+    width: auto;
     margin: 0;
 }
 
@@ -418,13 +443,8 @@ body.dark .tool-button.active {
     transition: opacity 0.1s ease, max-width 0.1s ease;
 }
 
-.toolbar.collapsed .tool-button span:first-of-type,
-.toolbar.collapsed .tool-button .shortcut-key {
-    opacity: 0;
-    max-width: 0;
-    overflow: hidden;
-    padding: 0;
-    margin: 0;
+.toolbar.collapsed .tool-button span {
+    display: none;
 }
 
 .tool-button .shortcut-key {
@@ -592,6 +612,10 @@ body.dark .close-button:focus {
     }
 
     .content-area {
+        flex-direction: column;
+    }
+
+    .main-workspace {
         flex-direction: column;
     }
 
@@ -1214,4 +1238,390 @@ body.dark .simple-context-menu-item:not(.disabled):hover {
 
 body.dark .simple-context-menu-item.disabled {
     color: #718096;
+}
+
+/* ======================================================================================== */
+/* TURING TAPE STYLES (VERSIÓN CORREGIDA Y COMPLETA) */
+/* ======================================================================================== */
+
+.turing-tape-container {
+    display: none; 
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid #eee;
+    padding: 16px;
+    transition: all 0.3s ease;
+    z-index: 10;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+}
+
+body.dark .turing-tape-container {
+    background-color: rgba(42, 42, 62, 0.95);
+    border-top: 1px solid #3a3a50;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.turing-tape-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #eee;
+    transition: all 0.3s ease;
+}
+
+body.dark .turing-tape-header {
+    border-bottom: 1px solid #3a3a50;
+}
+
+.turing-tape-title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+}
+
+body.dark .turing-tape-title {
+    color: #e0e0e0;
+}
+
+.turing-tape-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.turing-tape-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background-color: #ffffff;
+    color: #555;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.turing-tape-button:hover {
+    background-color: #f8f8f8;
+    border-color: #20c997;
+    color: #20c997;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#closeTapeContainerBtn {
+    color: #dc3545;
+}
+#closeTapeContainerBtn:hover {
+    border-color: #dc3545;
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+body.dark .turing-tape-button {
+    background-color: #2a2a3e;
+    border-color: #3a3a50;
+    color: #ccc;
+}
+
+body.dark .turing-tape-button:hover {
+    background-color: #3a3a50;
+    border-color: #20c997;
+    color: #20c997;
+}
+
+body.dark #closeTapeContainerBtn:hover {
+    border-color: #e74c3c;
+    color: #e74c3c;
+    background-color: rgba(231, 76, 60, 0.1);
+}
+
+.turing-tape-wrapper {
+    position: relative;
+    background-color: rgba(248, 248, 248, 0.8);
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 20px;
+    overflow: hidden;
+    backdrop-filter: blur(5px);
+    max-height: 150px;
+    opacity: 1;
+    transition: max-height 0.4s ease-out, opacity 0.3s ease-in-out, padding 0.4s ease-out, margin 0.4s ease-out, border 0.4s ease-out;
+}
+
+body.dark .turing-tape-wrapper {
+    background-color: rgba(26, 26, 46, 0.8);
+    border-color: #3a3a50;
+}
+
+.turing-tape-canvas {
+    display: block;
+    background-color: transparent;
+    border: none;
+    min-width: 100%;
+    cursor: crosshair;
+    image-rendering: -webkit-crisp-edges;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+}
+
+#toggleTapeButton i {
+    transition: transform 0.4s ease;
+}
+
+.turing-tape-container.collapsed .turing-tape-wrapper {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: 0;
+    border-width: 0;
+}
+
+.turing-tape-container.collapsed .turing-tape-header {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.turing-tape-container.collapsed #toggleTapeButton i {
+    transform: rotate(180deg);
+}
+
+.turing-tape-head {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+}
+
+.turing-tape-head-indicator {
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 12px solid #20c997;
+}
+
+body.dark .turing-tape-head-indicator {
+    border-top-color: #20c997;
+}
+
+/* CSS multipleRun */
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+}
+.modal-content {
+    background-color: #fefefe;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 70%;
+    max-width: 900px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
+}
+
+/* Encabezado del modal y botón de cierre */
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 10px;
+} 
+
+#close-button {
+   display: flex;
+   justify-content: center;
+   align-items: center;
+   width: 30px;
+   height: 30px;
+   font-size: 16px;
+   font-weight: bold;
+   color: #555;
+   background-color: #f0f0f0;
+   border: 1px solid #ddd;
+   border-radius: 6px;
+   cursor: pointer;
+   transition: all 0.2s ease;
+}
+
+#close-button:hover {
+   color: #dc3545;
+   border-color: #dc3545;
+   background-color: rgba(220, 53, 69, 0.1);
+}
+
+/* Estilos de la tabla */
+#inputTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    table-layout: fixed;
+}
+#inputTable th,
+#inputTable td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+    vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#inputTable th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+    color: #333;
+    position: relative;
+}
+
+.resize-handle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 5px;
+    height: 100%;
+    cursor: col-resize;
+    user-select: none;
+}
+
+#inputTable input[type="text"] {
+    width: 95%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+#inputTable .output-cell {
+    color: #0056b3;
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: bold;
+}
+#inputTable .placeholder-row td {
+    text-align: center;
+    color: #888;
+    font-style: italic;
+}
+
+/* Estilos para la celda de resultado */
+.result-cell { font-weight: bold; }
+.result-accept { color: #28a745; }
+.result-reject { color: #dc3545; }
+
+
+/* Estilos para los botones con iconos */
+.row-actions { text-align: center; }
+.icon-button {
+    background: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    padding: 5px;
+    margin: 0 5px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.icon-button svg {
+    width: 18px;
+    height: 18px;
+}
+.icon-button:hover {
+    background-color: #f0f0f0;
+    border-color: #ccc;
+}
+.run-icon { color: #28a745; }
+.delete-icon { color: #dc3545; }
+
+/* Pie de página del modal */
+.modal-footer {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #ddd;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    transition: border-color 0.3s;
+}
+
+/* Estilo base para los botones del footer */
+#addRowBtn, #runAllBtn {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Espacio entre el icono y el texto */
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: 600; /* Un poco más grueso */
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+
+    /* Estilo por defecto (Modo Claro) */
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    color: #333;
+}
+
+#addRowBtn svg, #runAllBtn svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Efecto hover para el botón "Añadir Fila" */
+#addRowBtn:hover {
+    color: #007bff;
+    border-color: #007bff;
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+/* Efecto hover para el botón "Ejecutar Todos" */
+#runAllBtn:hover {
+    color: #28a745;
+    border-color: #28a745;
+    background-color: rgba(40, 167, 69, 0.1);
+}
+
+
+/* === MODO OSCURO para los botones del footer === */
+body.dark #addRowBtn, 
+body.dark #runAllBtn {
+    background-color: #3a3a50;
+    border-color: #4a4a60;
+    color: #dfe6e9;
+}
+
+/* Efecto hover en modo oscuro para "Añadir Fila" */
+body.dark #addRowBtn:hover {
+    color: #58a6ff; /* Azul más brillante */
+    border-color: #58a6ff;
+    background-color: rgba(88, 166, 255, 0.1);
+}
+
+/* Efecto hover en modo oscuro para "Ejecutar Todos" */
+body.dark #runAllBtn:hover {
+    color: #2ecc71; /* Verde más brillante */
+    border-color: #2ecc71;
+    background-color: rgba(46, 204, 113, 0.1);
 }

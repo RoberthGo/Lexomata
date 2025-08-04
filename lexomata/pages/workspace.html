@@ -46,8 +46,8 @@
       <span class="main-menu-item" id="menuEjecucion">Ejecución
         <div class="submenu">
           <span class="submenu-item" onclick="showMessage('Opciones de Ejecución: Paso a Paso')">Paso a Paso</span>
-          <span class="submenu-item" onclick="showMessage('Opciones de Ejecución: Cinta')">Cinta</span>
-          <span class="submenu-item" onclick="showMessage('Opciones de Ejecución: Múltiple Run')">Múltiple Run</span>
+          <span class="submenu-item" onclick="showTuringTape()">Cinta</span>
+          <span class="submenu-item" id="multipleRunBtn">Múltiple Run</span>
         </div>
       </span>
 
@@ -71,57 +71,88 @@
   </header>
 
   <div class="content-area">
-    <aside class="toolbar">
-      <button class="toolbar-toggle-button" id="toolbarToggleButton"
-        aria-label="Colapsar/Expandir barra de herramientas">
-        <i class="fas fa-chevron-left"></i>
-      </button>
-      <h2 class="toolbar-title">Herramientas</h2>
-      <div class="tool-buttons-group">
-
-        <button class="tool-button" data-tool="select" id="select" onclick="changeTool(this,'select')">
-          <i class="fas fa-mouse-pointer"></i> <span>Seleccionar</span> <span class="shortcut-key">S</span>
+    <div class="main-workspace">
+      <aside class="toolbar">
+        <button class="toolbar-toggle-button" id="toolbarToggleButton"
+          aria-label="Colapsar/Expandir barra de herramientas">
+          <i class="fas fa-chevron-left"></i>
         </button>
+        <h2 class="toolbar-title">Herramientas</h2>
+        <div class="tool-buttons-group">
 
-        <button class="tool-button" data-tool="add-state" id="node" onclick="changeTool(this,'addNode')">
-          <i class="fas fa-circle"></i> <span>Añadir Estado</span> <span class="shortcut-key">A</span>
-        </button>
+          <button class="tool-button" data-tool="select" id="select" onclick="changeTool(this,'select')">
+            <i class="fas fa-mouse-pointer"></i> <span>Seleccionar</span> <span class="shortcut-key">S</span>
+          </button>
 
-        <button class="tool-button" data-tool="add-transition" id="edge" onclick="changeTool(this,'addEdge')">
-          <i class="fas fa-arrow-right"></i> <span>Añadir Transición</span> <span class="shortcut-key">T</span>
-        </button>
+          <button class="tool-button" data-tool="add-state" id="node" onclick="changeTool(this,'addNode')">
+            <i class="fas fa-circle"></i> <span>Añadir Estado</span> <span class="shortcut-key">A</span>
+          </button>
 
-        <button class="tool-button" data-tool="delete" id="delete" onclick="changeTool(this,'delete')">
-          <i class="fas fa-trash-alt"></i> <span>Eliminar</span> <span class="shortcut-key">D</span>
-        </button>
+          <button class="tool-button" data-tool="add-transition" id="edge" onclick="changeTool(this,'addEdge')">
+            <i class="fas fa-arrow-right"></i> <span>Añadir Transición</span> <span class="shortcut-key">T</span>
+          </button>
 
-      </div>
+          <button class="tool-button" data-tool="delete" id="delete" onclick="changeTool(this,'delete')">
+            <i class="fas fa-trash-alt"></i> <span>Eliminar</span> <span class="shortcut-key">D</span>
+          </button>
 
-      <div class="tool-buttons-group">
+        </div>
 
-        <h3 class="tool-group-title">Estado Inicial</h3>
-        <button class="tool-button" data-tool="initial-state" onclick="changeTool(this,'setStart')">
-          <i class="fas fa-play-circle"></i> <span>Definir</span> <span class="shortcut-key">I</span>
-        </button>
+        <div class="tool-buttons-group">
 
-        <h3 class="tool-group-title">Estado Final</h3>
+          <h3 class="tool-group-title">Estado Inicial</h3>
+          <button class="tool-button" data-tool="initial-state" onclick="changeTool(this,'setStart')">
+            <i class="fas fa-play-circle"></i> <span>Definir</span> <span class="shortcut-key">I</span>
+          </button>
 
-        <button class="tool-button" data-tool="final-state" onclick="changeTool(this,'setEnd')">
-          <i class="fas fa-bullseye"></i> <span>Definir</span> <span class="shortcut-key">F</span>
-        </button>
-      </div>
+          <h3 class="tool-group-title">Estado Final</h3>
 
-      <div class="tool-buttons-group">
-        <button class="tool-button" id="undoButton" onclick="undo()"> <i class="fas fa-undo"></i> <span>Deshacer</span>
-        </button>
-        <button class="tool-button" id="redoButton" onclick="redo()"> <i class="fas fa-redo"></i> <span>Rehacer</span>
-        </button>
-      </div>
-    </aside>
+          <button class="tool-button" data-tool="final-state" onclick="changeTool(this,'setEnd')">
+            <i class="fas fa-bullseye"></i> <span>Definir</span> <span class="shortcut-key">F</span>
+          </button>
+        </div>
 
-    <div class="canvas-wrapper">
-      <canvas id="canvas" class="automata-canvas"></canvas>
+        <div class="tool-buttons-group">
+          <button class="tool-button" id="undoButton" onclick="undo()"> <i class="fas fa-undo"></i> <span>Deshacer</span>
+          </button>
+          <button class="tool-button" id="redoButton" onclick="redo()"> <i class="fas fa-redo"></i> <span>Rehacer</span>
+          </button>
+        </div>
+      </aside>
+
+      <div class="canvas-wrapper">
+        <canvas id="canvas" class="automata-canvas"></canvas>
+        
+        <div class="turing-tape-container">
+            
+            <div class="turing-tape-header">
+                <h3 class="turing-tape-title">Cinta de Máquina de Turing</h3>
+                
+                <div class="turing-tape-controls"> 
+                    <button class="turing-tape-button" id="resetTapeButton">
+                        <i class="fas fa-undo"></i> Reiniciar
+                    </button>
+                    <button class="turing-tape-button" id="clearTapeButton">
+                        <i class="fas fa-eraser"></i> Limpiar
+                    </button>
+                    <button class="turing-tape-button" id="toggleTapeButton">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <button class="turing-tape-button" id="closeTapeContainerBtn" title="Cerrar Panel">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="turing-tape-wrapper">
+                <canvas id="turingTapeCanvas" class="turing-tape-canvas"></canvas>
+                <div class="turing-tape-head">
+                    <div class="turing-tape-head-indicator"></div>
+                </div>
+            </div>
+        </div>
     </div>
+  </div>
   </div>
   <div id="customEdgeModal" class="custom-modal">
     <div class="custom-modal-content">
@@ -206,6 +237,52 @@
     </div>
   </div>
 
+  <div id="multipleRunModal" class="modal">
+      <div class="modal-content">
+
+        <div class="modal-header">
+          <h2>Resultados de Múltiples Ejecuciones</h2>
+          <button id="close-button">X</button>
+        </div>
+
+        <div class="modal-body">
+          <table id="inputTable">
+            <thead>
+              <tr>
+                <th>Input</th>
+                <th>Output</th>
+                <th>Result</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="placeholder-row">
+                <td colspan="4">Presiona "Añadir Fila" para ingresar datos...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="modal-footer">
+        <button id="addRowBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+          </svg>
+          Añadir Fila
+        </button>
+        <button id="runAllBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M6.79 5.093A.5.5 0 0 0 6 5.5v5a.5.5 0 0 0 .79.407l3.5-2.5a.5.5 0 0 0 0-.814l-3.5-2.5z"/>
+            <path d="M12.79 5.093A.5.5 0 0 0 12 5.5v5a.5.5 0 0 0 .79.407l3.5-2.5a.5.5 0 0 0 0-.814l-3.5-2.5z"/>
+          </svg>
+          Ejecutar Todos
+        </button>
+      </div>
+
+      </div>
+    </div>
+
+
 
   <script src="../js/models/State.js"></script>
   <script src="../js/models/EdgeAutomata.js"></script>
@@ -220,6 +297,8 @@
   <script src="../js/utils/Draw/drawEdge.js"></script>
   <script src="../js/utils/canvas/deleteTool.js"></script>
   <script src="../js/utils/file/jsonHandler.js"></script>
+  <script src="../js/utils/canvas/turingTape.js"></script>
+  <script src="../js/utils/canvas/multipleRun.js"></script>
 
 </body>
 
