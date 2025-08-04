@@ -21,7 +21,7 @@ class ExecutionController {
     initialize() {
         const startNode = this.nodes.find(n => n.IsStart);
         if (!startNode) {
-            console.error("Error: No se encontró un nodo inicial.");
+            showMessage("Error: No se encontró un nodo inicial.");
             this.history.push({
                 currentNodeId: null,
                 consumedInput: "",

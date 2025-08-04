@@ -111,24 +111,23 @@ function updateStepButtons() {
 function startAutomataAnalysis() {
     // Verificar que hay una cadena para analizar
     if (!stringAnalyzerState.inputString || stringAnalyzerState.inputString.trim() === '') {
-        alert('Por favor, ingrese una cadena para analizar.');
+        showMessage('Por favor, ingrese una cadena para analizar.');
         return;
     }
     
     // Verificar que hay nodos y aristas disponibles (esto debería venir del contexto global)
     if (typeof nodes === 'undefined' || typeof edges === 'undefined') {
-        console.error('Error: No se encontraron nodos o aristas del autómata.');
-        alert('Error: No hay un autómata definido para el análisis.');
+        showMessage('Error: No se encontraron nodos o aristas del autómata.');
         return;
     }
     
     if (!nodes || nodes.length === 0) {
-        alert('Error: No hay estados definidos en el autómata.');
+        showMessage('Error: No hay estados definidos en el autómata.');
         return;
     }
     
     if (!edges || edges.length === 0) {
-        alert('Error: No hay transiciones definidas en el autómata.');
+        showMessage('Error: No hay transiciones definidas en el autómata.');
         return;
     }
     
@@ -150,8 +149,7 @@ function startAutomataAnalysis() {
         showStringAnalyzer();
         
     } catch (error) {
-        console.error('Error al iniciar el análisis:', error);
-        alert('Error al iniciar el análisis del autómata.');
+        showMessage('Error al iniciar el análisis:', error);
     }
 }
 
