@@ -92,78 +92,97 @@ function drawCurvedEdge(ctx, fromNode, toNode, edge, isSelected, theme, isBidire
     const color = isSelected ? theme.selectedEdge : theme.edgeLine;
     const lineWidth = isSelected ? 3 : 2;
 
-    // Calcular puntos de control para la curva
+    // 1. Calcular el punto de control para la curva
     const dx = toNode.x - fromNode.x;
     const dy = toNode.y - fromNode.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
+    const curvature = distance * 0.15;
 
-    // Determinar el offset de curvatura basado en la dirección
-    const curvature = distance * 0.15; // 15% de la distancia como curvatura
-
-    // Vector perpendicular para el offset
     const perpX = -dy / distance;
     const perpY = dx / distance;
 
-    // Punto de control para la curva (offset hacia un lado)
     const controlX = (fromNode.x + toNode.x) / 2 + perpX * curvature;
     const controlY = (fromNode.y + toNode.y) / 2 + perpY * curvature;
 
-    // Dibujar la curva
+    // 2. Calcular el punto final ajustado en el borde del nodo
+    const angleToCenter = Math.atan2(toNode.y - controlY, toNode.x - controlX);
+    const radius = toNode.radius || 30;
+    const adjustedEndX = toNode.x - Math.cos(angleToCenter) * radius;
+    const adjustedEndY = toNode.y - Math.sin(angleToCenter) * radius;
+
+    // 3. Dibujar la curva hasta el punto ajustado
     ctx.beginPath();
     ctx.moveTo(fromNode.x, fromNode.y);
-    ctx.quadraticCurveTo(controlX, controlY, toNode.x, toNode.y);
+    ctx.quadraticCurveTo(controlX, controlY, adjustedEndX, adjustedEndY);
     ctx.strokeStyle = color;
     ctx.lineWidth = lineWidth;
     ctx.stroke();
 
-    // Dibujar la flecha en el extremo de la curva
-    drawCurvedArrow(ctx, fromNode, toNode, controlX, controlY, color, lineWidth);
+    // 4. Calcular el ángulo TANGENTE REAL en el punto final ajustado
+    const finalAngle = Math.atan2(adjustedEndY - controlY, adjustedEndX - controlX);
+
+    // 5. Dibujar la flecha con el ángulo correcto
+    drawArrowHead(ctx, adjustedEndX, adjustedEndY, finalAngle, color, lineWidth);
+
 }
 
 // Función para dibujar auto-loop (self-edge)
 
-function drawSelfLoop(ctx, node, edge, isSelected, theme, edgeCounts) {
+/**
+ * Dibuja un bucle (arista a sí mismo) con una forma parabólica/ovalada
+ * para una apariencia más fluida y estética.
+ * @param {CanvasRenderingContext2D} ctx - El contexto del canvas.
+ * @param {object} node - El nodo donde se dibuja el bucle.
+ * @param {object} edge - El objeto de la arista.
+ * @param {boolean} isSelected - Indica si la arista está seleccionada.
+ * @param {object} theme - El objeto de tema con los colores.
+ * @param {number} drawCount - El índice del bucle (para múltiples bucles).
+ */
+function drawSelfLoop(ctx, node, edge, isSelected, theme, drawCount) {
     const color = isSelected ? theme.selectedEdge : theme.edgeLine;
-    const lineWidth = isSelected ? 3 : 2;
-    const radius = node.radius || 33;
-    const loopRadius = radius * 0.8;
-    const centerX = node.x;
-    const centerY = node.y - radius - loopRadius;
-    const startAngle = Math.PI * 0.25;
-    const endAngle = Math.PI * 0.75;
-    const startX = node.x - Math.cos(startAngle) * radius;
-    const startY = node.y - Math.sin(startAngle) * radius;
-    const endX = node.x - Math.cos(endAngle) * radius;
-    const endY = node.y - Math.sin(endAngle) * radius;
-    ctx.beginPath();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = lineWidth;
-    ctx.moveTo(startX, startY);
-    ctx.arc(centerX, centerY, loopRadius, Math.PI, 0, false);
-    ctx.lineTo(endX, endY);
-    ctx.stroke();
-    const headLength = 15;
-    const arrowAngle = Math.atan2(node.y - endY, node.x - endX);
-    ctx.beginPath();
-    ctx.moveTo(endX, endY);
-    ctx.lineTo(endX - headLength * Math.cos(arrowAngle - Math.PI / 6), endY - headLength * Math.sin(arrowAngle - Math.PI / 6));
-    ctx.moveTo(endX, endY);
-    ctx.lineTo(endX - headLength * Math.cos(arrowAngle + Math.PI / 6), endY - headLength * Math.sin(arrowAngle - Math.PI / 6));
-    ctx.stroke();
-
-
-    // Dibujar la etiqueta del self-loop con apilado
-    ctx.font = '14px Arial';
-    ctx.textAlign = 'center';
-
-    // --- LÓGICA DE APILADO PARA SELF-LOOP ---
     const labels = edge.labels || [edge.label];
-    const lineHeight = 15;
 
-    labels.forEach((label, index) => {
-        ctx.fillStyle = isSelected ? theme.selectedEdge : theme.edgeText;
-        ctx.fillText(label, centerX, centerY - loopRadius - (index * lineHeight) - 5);
-    });
+    // --- 1. Definir la geometría del bucle ---
+    // Rotamos toda la estructura para bucles múltiples.
+    const baseAngle = -Math.PI / 2 + (drawCount - 1) * (Math.PI / 2);
+    const angleSpread = Math.PI / 8; // Separación entre el inicio y el fin del bucle.
+
+    // Puntos de inicio y fin en la circunferencia del nodo (las "patas").
+    const startAngle = baseAngle - angleSpread;
+    const endAngle = baseAngle + angleSpread;
+    const startX = node.x + node.radius * Math.cos(startAngle);
+    const startY = node.y + node.radius * Math.sin(startAngle);
+    const endX = node.x + node.radius * Math.cos(endAngle);
+    const endY = node.y + node.radius * Math.sin(endAngle);
+
+    // --- 2. Calcular el punto de control para la curva ---
+    // Esto define la "altura" y forma del bucle. Aumenta el valor para un bucle más alto.
+    const controlPointOffset = 80.0;
+    const midX = (startX + endX) / 2;
+    const midY = (startY + endY) / 2;
+    const controlX = midX + controlPointOffset * Math.cos(baseAngle);
+    const controlY = midY + controlPointOffset * Math.sin(baseAngle);
+
+    // --- 3. Dibujar la curva parabólica ---
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.quadraticCurveTo(controlX, controlY, endX, endY);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // --- 4. Dibujar la flecha ---
+    // La flecha se dibuja al final de la curva, alineada con la tangente.
+    const arrowAngle = Math.atan2(endY - controlY, endX - controlX);
+    drawArrowHead(ctx, endX, endY, arrowAngle, color);
+
+    // --- 5. Dibujar la etiqueta ---
+    // La posicionamos cerca del punto más alto de la curva.
+    const labelPos = {
+        x: controlX,
+        y: controlY
+    };
+    drawEdgeLabel(ctx, labelPos, labels, theme.edgeText);
 }
 
 // Función para dibujar la etiqueta de la arista

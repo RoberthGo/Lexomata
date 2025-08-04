@@ -3,7 +3,7 @@ let scale = 1.0;
 let panX = 0;
 let panY = 0;
 const MIN_ZOOM = 0.3;
-const MAX_ZOOM = 4.0;
+const MAX_ZOOM = 6.0;
 const ZOOM_SENSITIVITY = 0.1;
 
 document.addEventListener('DOMContentLoaded', () => {

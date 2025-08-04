@@ -45,7 +45,7 @@ function toggleTheme() {
     document.body.classList.toggle('dark');
     document.querySelectorAll('.submenu').forEach(sub => sub.style.display = 'none');
     redrawCanvas();
-    
+
     // Redibujar la cinta de Turing si existe
     if (typeof drawTuringTape === 'function') {
         drawTuringTape();
@@ -201,29 +201,31 @@ function drawReassignmentLines(ctx, theme) {
     ctx.restore();
 }
 
-function isClickOnEdge(px, py, edge, nodes) {
+/**
+ * Función principal para detectar clics en cualquier tipo de arista.
+ * @param {number} px - Coordenada X del clic.
+ * @param {number} py - Coordenada Y del clic.
+ * @param {object} edge - La arista a comprobar.
+ * @param {object[]} nodes - La lista de todos los nodos.
+ * @param {number} [tolerance=8] - El margen de error en píxeles.
+ * @returns {boolean} - True si el clic fue sobre la arista.
+ */
+function isClickOnEdge(px, py, edge, nodes, tolerance = 8) {
     const fromNode = nodes.find(n => n.id === edge.from);
     const toNode = nodes.find(n => n.id === edge.to);
     if (!fromNode || !toNode) return false;
 
-    const clickTolerance = 8 / scale;
-
-    // Caso especial: Self-loop (auto-loop)
     if (fromNode.id === toNode.id) {
-        return isClickOnSelfLoop(px, py, fromNode, clickTolerance);
+        // Usa el contador de dibujado que guardaste en la arista.
+        return isClickOnSelfLoop(px, py, fromNode, edge._drawCount || 1, tolerance);
     }
 
-    // Verificar si existe una arista en dirección opuesta
-    const oppositeEdgeExists = edges.some(e =>
-        e.from === edge.to && e.to === edge.from && e.id !== edge.id
-    );
+    const oppositeEdgeExists = edges.some(e => e.from === edge.to && e.to === edge.from);
 
     if (oppositeEdgeExists) {
-        // Caso especial: Arista curva
-        return isClickOnCurvedEdge(px, py, fromNode, toNode, clickTolerance);
+        return isClickOnCurvedEdge(px, py, fromNode, toNode, tolerance);
     } else {
-        // Caso normal: Arista recta
-        return isClickOnStraightEdge(px, py, fromNode, toNode, clickTolerance);
+        return isClickOnStraightEdge(px, py, fromNode, toNode, tolerance);
     }
 }
 
@@ -246,59 +248,73 @@ function isClickOnStraightEdge(px, py, fromNode, toNode, tolerance) {
 }
 
 // Función auxiliar para detectar click en arista curva
+/**
+ * Comprueba si un clic se realizó sobre una arista curva.
+ * Replica la geometría de la función drawCurvedEdge.
+ * @param {number} px - Coordenada X del clic.
+ * @param {number} py - Coordenada Y del clic.
+ * @param {object} fromNode - El nodo de origen.
+ * @param {object} toNode - El nodo de destino.
+ * @param {number} tolerance - El margen de error.
+ * @returns {boolean}
+ */
 function isClickOnCurvedEdge(px, py, fromNode, toNode, tolerance) {
+    // Recreamos la misma geometría usada para dibujar la curva.
     const dx = toNode.x - fromNode.x;
     const dy = toNode.y - fromNode.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
     const curvature = distance * 0.15;
-
     const perpX = -dy / distance;
     const perpY = dx / distance;
-
     const controlX = (fromNode.x + toNode.x) / 2 + perpX * curvature;
     const controlY = (fromNode.y + toNode.y) / 2 + perpY * curvature;
 
-    // Verificar múltiples puntos a lo largo de la curva
-    for (let t = 0; t <= 1; t += 0.1) {
-        const curveX = (1 - t) * (1 - t) * fromNode.x + 2 * (1 - t) * t * controlX + t * t * toNode.x;
-        const curveY = (1 - t) * (1 - t) * fromNode.y + 2 * (1 - t) * t * controlY + t * t * toNode.y;
-
-        const dist = Math.sqrt((px - curveX) ** 2 + (py - curveY) ** 2);
-        if (dist < tolerance) {
+    // Muestreamos puntos a lo largo de la curva para ver si alguno está cerca del clic.
+    for (let t = 0; t <= 1; t += 0.05) {
+        const x = (1 - t) ** 2 * fromNode.x + 2 * (1 - t) * t * controlX + t ** 2 * toNode.x;
+        const y = (1 - t) ** 2 * fromNode.y + 2 * (1 - t) * t * controlY + t ** 2 * toNode.y;
+        if (Math.sqrt((px - x) ** 2 + (py - y) ** 2) < tolerance) {
             return true;
         }
     }
-
     return false;
 }
-
 // Función auxiliar para detectar click en self-loop
-function isClickOnSelfLoop(px, py, node, tolerance) {
-    const radius = node.radius || 33;
-    const loopRadius = radius * 0.8;
+/**
+ * Comprueba si un clic se realizó sobre un bucle (self-loop).
+ * Replica la geometría de la función drawSelfLoop.
+ * @param {number} px - Coordenada X del clic.
+ * @param {number} py - Coordenada Y del clic.
+ * @param {object} node - El nodo del bucle.
+ * @param {number} drawCount - El índice del bucle (para su rotación).
+ * @param {number} tolerance - El margen de error.
+ * @returns {boolean}
+ */
+function isClickOnSelfLoop(px, py, node, drawCount, tolerance) {
+    // Recreamos la misma geometría usada para dibujar el bucle.
+    const baseAngle = -Math.PI / 2 + (drawCount - 1) * (Math.PI / 2);
+    const angleSpread = Math.PI / 8;
+    const startAngle = baseAngle - angleSpread;
+    const endAngle = baseAngle + angleSpread;
+    const startX = node.x + node.radius * Math.cos(startAngle);
+    const startY = node.y + node.radius * Math.sin(startAngle);
+    const endX = node.x + node.radius * Math.cos(endAngle);
+    const endY = node.y + node.radius * Math.sin(endAngle);
+    const controlPointOffset = 80.0; // Usa el mismo valor que en tu drawSelfLoop
+    const midX = (startX + endX) / 2;
+    const midY = (startY + endY) / 2;
+    const controlX = midX + controlPointOffset * Math.cos(baseAngle);
+    const controlY = midY + controlPointOffset * Math.sin(baseAngle);
 
-    // Centro del loop
-    const centerX = node.x;
-    const centerY = node.y - radius - loopRadius;
-
-    // Verificar si el click está cerca del círculo del loop
-    const distToCenter = Math.sqrt((px - centerX) ** 2 + (py - centerY) ** 2);
-    const isOnLoop = Math.abs(distToCenter - loopRadius) < tolerance;
-
-    // También verificar las líneas conectoras
-    const startAngle = Math.PI * 0.25;
-    const endAngle = Math.PI * 0.75;
-
-    const startX = node.x - Math.cos(startAngle) * radius;
-    const startY = node.y - Math.sin(startAngle) * radius;
-    const endX = node.x - Math.cos(endAngle) * radius;
-    const endY = node.y - Math.sin(endAngle) * radius;
-
-    // Línea desde el nodo hasta el inicio del loop
-    const distToStartLine = distancePointToLine(px, py, startX, startY, centerX - loopRadius, centerY);
-    const distToEndLine = distancePointToLine(px, py, endX, endY, centerX + loopRadius, centerY);
-
-    return isOnLoop || distToStartLine < tolerance || distToEndLine < tolerance;
+    // Muestreamos puntos a lo largo de la curva.
+    for (let t = 0; t <= 1; t += 0.05) {
+        const x = (1 - t) ** 2 * startX + 2 * (1 - t) * t * controlX + t ** 2 * endX;
+        const y = (1 - t) ** 2 * startY + 2 * (1 - t) * t * controlY + t ** 2 * endY;
+        if (Math.sqrt((px - x) ** 2 + (py - y) ** 2) < tolerance) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // Función auxiliar para calcular distancia de punto a línea

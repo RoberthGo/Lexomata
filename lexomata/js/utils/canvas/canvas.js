@@ -1,25 +1,26 @@
 /**
- * Encuentra el objeto (nodo o arista) en una coordenada específica del mundo.
- * @param {number} worldX - La coordenada X en el mundo del canvas.
- * @param {number} worldY - La coordenada Y en el mundo del canvas.
- * @returns {object|null} - Un objeto con el tipo y la referencia al elemento, o null si no se encuentra nada.
+ * Encuentra el objeto (nodo o arista) en una coordenada específica del lienzo.
+ * @param {number} x - La coordenada X en el espacio del canvas.
+ * @param {number} y - La coordenada Y en el espacio del canvas.
+ * @returns {object|null} - Un objeto {type, object} si se encuentra algo, o null.
  */
-function getObjectAt(worldX, worldY) {
-    // 1. Buscar nodos (si no se encontró una arista)
-    for (let i = nodes.length - 1; i >= 0; i--) {
-        const node = nodes[i];
-        const distance = Math.sqrt((worldX - node.x) ** 2 + (worldY - node.y) ** 2);
-        if (distance <= node.radius) {
-            return { type: 'node', object: node };
-        }
-    }
+function getObjectAt(x, y) {
+    // 1. Primero, buscar nodos (tienen prioridad)
+    // Se busca en orden inverso para detectar primero los nodos dibujados encima.
+    const clickedNode = nodes.slice().reverse().find(node => {
+        const distance = Math.sqrt((x - node.x) ** 2 + (y - node.y) ** 2);
+        return distance <= node.radius;
+    });
 
-    // 2. Buscar aristas primero (si quieres que tengan prioridad)
-    for (let i = edges.length - 1; i >= 0; i--) {
-        if (isClickOnEdge(worldX, worldY, edges[i], nodes)) {
-            return { type: 'edge', object: edges[i] };
-        }
-    }
+    if (clickedNode) return { type: 'node', object: clickedNode };
+
+    // 2. Si no se encontró un nodo, buscar aristas
+    // La función isClickOnEdge y sus ayudantes deben estar definidos en tu código.
+    const clickedEdge = edges.slice().reverse().find(edge =>
+        isClickOnEdge(x, y, edge, nodes)
+    );
+
+    if (clickedEdge) return { type: 'edge', object: clickedEdge };
 
     // 3. Si no se encontró nada
     return null;
