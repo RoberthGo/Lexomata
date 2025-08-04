@@ -84,3 +84,10 @@ function distanceToLine(px, py, x1, y1, x2, y2) {
     const dy = py - yy;
     return Math.sqrt(dx * dx + dy * dy);
 }
+
+function handleMode(){
+    let params = new URLSearchParams(location.search);
+    var mode = params.get('mode');
+    if(mode=="turing")showTuringTape();
+    else if(mode=="automata") showStringAnalyzer();
+}

@@ -14,8 +14,17 @@ let turingTapeState = {
 
 function showTuringTape() {
     const tapeContainer = document.querySelector('.turing-tape-container');
+    const stringContainer = document.querySelector('.string-analyzer-container');
+    
     if (tapeContainer) {
         tapeContainer.style.display = 'block';
+        
+        // Coordinar con el analizador de cadenas si está visible
+        if (stringContainer && stringContainer.style.display === 'block') {
+            tapeContainer.classList.add('with-string-analyzer');
+            stringContainer.classList.add('with-turing-tape');
+        }
+        
         resizeTuringCanvas();
     }
 }
@@ -156,7 +165,16 @@ function initializeTuringTape() {
     if (clearButton) clearButton.addEventListener('click', clearTuringTape);
     if (closeButton) {
         closeButton.addEventListener('click', () => {
-            document.querySelector('.turing-tape-container').style.display = 'none';
+            const tapeContainer = document.querySelector('.turing-tape-container');
+            const stringContainer = document.querySelector('.string-analyzer-container');
+            
+            tapeContainer.style.display = 'none';
+            tapeContainer.classList.remove('with-string-analyzer');
+            
+            // Limpiar clases de coordinación del analizador de cadenas
+            if (stringContainer) {
+                stringContainer.classList.remove('with-turing-tape');
+            }
         });
     }
 

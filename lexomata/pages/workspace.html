@@ -45,8 +45,7 @@
 
       <span class="main-menu-item" id="menuEjecucion">Ejecución
         <div class="submenu">
-          <span class="submenu-item" onclick="showMessage('Opciones de Ejecución: Paso a Paso')">Paso a Paso</span>
-          <span class="submenu-item" onclick="showTuringTape()">Cinta</span>
+          <span class="submenu-item" onclick="handleMode()">Paso a Paso</span>
           <span class="submenu-item" id="multipleRunBtn">Múltiple Run</span>
         </div>
       </span>
@@ -55,6 +54,8 @@
         <div class="submenu">
           <span class="submenu-item" onclick="focusOnNode()">Enfocar el nodo X</span>
           <span class="submenu-item" onclick="centerCanvasContent()">Centrar Contenido</span>
+          <span class="submenu-item" onclick="showTuringTape()">Mostrar Cinta de Turing</span>
+          <span class="submenu-item" onclick="showStringAnalyzer()">Mostrar Analizador de Cadenas</span>
         </div>
       </span>
 
@@ -151,8 +152,56 @@
                 </div>
             </div>
         </div>
+        
+        <div class="string-analyzer-container">
+            
+            <div class="string-analyzer-header">
+                <h3 class="string-analyzer-title">Análisis de Cadena - Autómata Finito</h3>
+                
+                <div class="string-analyzer-controls"> 
+                    <button class="string-analyzer-button" id="stepBackwardButton" title="Paso Anterior">
+                        <i class="fas fa-step-backward"></i> Anterior
+                    </button>
+                    <button class="string-analyzer-button" id="stepForwardButton" title="Siguiente Paso">
+                        <i class="fas fa-step-forward"></i> Siguiente
+                    </button>
+                    <button class="string-analyzer-button" id="resetStringButton">
+                        <i class="fas fa-undo"></i> Reiniciar
+                    </button>
+                    <button class="string-analyzer-button" id="clearStringButton">
+                        <i class="fas fa-eraser"></i> Limpiar
+                    </button>
+                    <button class="string-analyzer-button" id="startAutomata">
+                        <i class="fas fa-play"></i> Iniciar Análisis
+                    </button>
+                    <button class="string-analyzer-button" id="toggleStringButton">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <button class="string-analyzer-button" id="closeStringContainerBtn" title="Cerrar Panel">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="string-analyzer-wrapper">
+                <div class="string-analyzer-input-section">
+                    <input type="text" id="stringInput" class="string-input" placeholder="Ingrese la cadena a analizar..." maxlength="50">
+                    <button id="applyStringButton" class="apply-string-button">
+                        <i class="fas fa-check"></i> Aplicar
+                    </button>
+                </div>
+                <div class="string-analyzer-display">
+                    <div class="string-character-container" id="stringCharacterContainer">
+                        <div class="placeholder-text">Ingrese una cadena para comenzar el análisis...</div>
+                    </div>
+                    <div class="string-analyzer-pointer">
+                        <div class="string-analyzer-pointer-indicator"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </div>
     </div>
-  </div>
   </div>
   <div id="customEdgeModal" class="custom-modal">
     <div class="custom-modal-content">
@@ -161,6 +210,24 @@
       <div id="modalEdgeContainer" style="display: none;">
         <input type="text" id="modalTextInput" class="modal-input" placeholder="Etiqueta...">
         <button id="modalSaveButton" class="modal-button">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="stringInputModal" class="custom-modal">
+    <div class="custom-modal-content">
+      <span class="close-button" onclick="closeStringInputModal()">&times;</span>
+      <h3>Ingresar Cadena para Análisis</h3>
+      <div class="string-input-modal-container">
+        <label for="modalStringInput">Cadena de entrada:</label>
+        <input type="text" id="modalStringInput" class="modal-input" placeholder="Ingrese la cadena a analizar..." maxlength="50">
+        <div class="string-input-info">
+          <small>Máximo 50 caracteres. Solo se permiten letras, números y algunos símbolos básicos.</small>
+        </div>
+        <div class="modal-actions">
+          <button id="confirmStringButton" class="modal-button">Aplicar Cadena</button>
+          <button onclick="closeStringInputModal()" class="modal-button secondary">Cancelar</button>
+        </div>
       </div>
     </div>
   </div>
@@ -290,6 +357,7 @@
   <script src="../js/pages/workspaces/workspaces.js"> </script>
   <script src="../js/pages/workspaces/canvasSettings.js"></script>
   <script src="../js/pages/workspaces/toolbar.js"> </script>
+  <script src="../js/utils/automataExecution/ExecutionController.js"></script>
   <script src="../js/utils/canvas/canvas.js"></script>
   <script src="../js/utils/canvas/Node/addNode.js"></script>
   <script src="../js/utils/canvas/addEdge.js"></script>
@@ -298,6 +366,7 @@
   <script src="../js/utils/canvas/deleteTool.js"></script>
   <script src="../js/utils/file/jsonHandler.js"></script>
   <script src="../js/utils/canvas/turingTape.js"></script>
+  <script src="../js/utils/canvas/stringAnalyzer.js"></script>
   <script src="../js/utils/canvas/multipleRun.js"></script>
 
 </body>

@@ -1259,6 +1259,10 @@ body.dark .simple-context-menu-item.disabled {
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
 }
 
+.turing-tape-container.with-string-analyzer {
+    bottom: 220px; /* Ajustar cuando el analizador de cadenas esté visible */
+}
+
 body.dark .turing-tape-container {
     background-color: rgba(42, 42, 62, 0.95);
     border-top: 1px solid #3a3a50;
@@ -1416,6 +1420,503 @@ body.dark .turing-tape-wrapper {
 
 body.dark .turing-tape-head-indicator {
     border-top-color: #20c997;
+}
+
+/* ======================================================================================== */
+/* STRING ANALYZER STYLES (PARA ANÁLISIS DE CADENAS DE AUTÓMATAS FINITOS) */
+/* ======================================================================================== */
+
+.string-analyzer-container {
+    display: none; 
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid #eee;
+    padding: 16px;
+    transition: all 0.3s ease;
+    z-index: 9;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.string-analyzer-container.with-turing-tape {
+    z-index: 8; /* Mantener debajo de la cinta de Turing cuando ambos estén visibles */
+}
+
+body.dark .string-analyzer-container {
+    background-color: rgba(42, 42, 62, 0.95);
+    border-top: 1px solid #3a3a50;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.string-analyzer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #eee;
+    transition: all 0.3s ease;
+}
+
+body.dark .string-analyzer-header {
+    border-bottom: 1px solid #3a3a50;
+}
+
+.string-analyzer-title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+}
+
+body.dark .string-analyzer-title {
+    color: #e0e0e0;
+}
+
+.string-analyzer-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.string-analyzer-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background-color: #ffffff;
+    color: #555;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.string-analyzer-button:hover {
+    background-color: #f8f8f8;
+    border-color: #007bff;
+    color: #007bff;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#closeStringContainerBtn {
+    color: #dc3545;
+}
+
+#closeStringContainerBtn:hover {
+    border-color: #dc3545;
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+#setStringButton:hover {
+    border-color: #28a745;
+    color: #28a745;
+}
+
+body.dark .string-analyzer-button {
+    background-color: #2a2a3e;
+    border-color: #3a3a50;
+    color: #ccc;
+}
+
+body.dark .string-analyzer-button:hover {
+    background-color: #3a3a50;
+    border-color: #007bff;
+    color: #007bff;
+}
+
+body.dark #closeStringContainerBtn:hover {
+    border-color: #e74c3c;
+    color: #e74c3c;
+    background-color: rgba(231, 76, 60, 0.1);
+}
+
+body.dark #setStringButton:hover {
+    border-color: #28a745;
+    color: #28a745;
+}
+
+#startAutomata {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: white;
+}
+
+#startAutomata:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+    color: white;
+}
+
+#startAutomata:disabled {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: #ffffff;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+#startAutomata:disabled:hover {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    transform: none;
+    box-shadow: none;
+}
+
+#stepForwardButton, #stepBackwardButton {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: white;
+}
+
+#stepForwardButton:hover, #stepBackwardButton:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+    color: white;
+}
+
+#stepForwardButton:disabled, #stepBackwardButton:disabled {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: #ffffff;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+#stepForwardButton:disabled:hover, #stepBackwardButton:disabled:hover {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    transform: none;
+    box-shadow: none;
+}
+
+body.dark #stepForwardButton, body.dark #stepBackwardButton {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: white;
+}
+
+body.dark #stepForwardButton:hover, body.dark #stepBackwardButton:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+    color: white;
+}
+
+body.dark #stepForwardButton:disabled, body.dark #stepBackwardButton:disabled {
+    background-color: #495057;
+    border-color: #495057;
+    color: #6c757d;
+}
+
+body.dark #startAutomata {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: white;
+}
+
+body.dark #startAutomata:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+    color: white;
+}
+
+body.dark #startAutomata:disabled {
+    background-color: #495057;
+    border-color: #495057;
+    color: #6c757d;
+}
+
+.string-analyzer-wrapper {
+    position: relative;
+    background-color: rgba(248, 248, 248, 0.8);
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 20px;
+    overflow: hidden;
+    backdrop-filter: blur(5px);
+    max-height: 200px;
+    opacity: 1;
+    transition: max-height 0.4s ease-out, opacity 0.3s ease-in-out, padding 0.4s ease-out, margin 0.4s ease-out, border 0.4s ease-out;
+}
+
+body.dark .string-analyzer-wrapper {
+    background-color: rgba(26, 26, 46, 0.8);
+    border-color: #3a3a50;
+}
+
+.string-analyzer-input-section {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    align-items: center;
+}
+
+.string-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: 'Courier New', monospace;
+    background-color: #ffffff;
+    color: #333;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.string-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+body.dark .string-input {
+    background-color: #2a2a3e;
+    border-color: #3a3a50;
+    color: #e0e0e0;
+}
+
+body.dark .string-input:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.apply-string-button {
+    padding: 8px 16px;
+    border: 1px solid #007bff;
+    border-radius: 6px;
+    background-color: #007bff;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.apply-string-button:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.string-analyzer-display {
+    position: relative;
+    min-height: 80px;
+}
+
+.string-character-container {
+    display: flex;
+    gap: 5px;
+    padding: 20px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    align-items: flex-start;
+}
+
+.string-character-container::-webkit-scrollbar {
+    display: none;
+}
+
+.character-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.string-character {
+    width: 35px;
+    height: 35px;
+    border: 2px solid #ccc;
+    border-radius: 6px;
+    background-color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.string-character.current {
+    border-color: #007bff;
+    background-color: #e3f2fd;
+    color: #007bff;
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+.string-character.processed {
+    border-color: #28a745;
+    background-color: #d4edda;
+    color: #28a745;
+}
+
+.string-character.end-of-string {
+    border-color: #6c757d;
+    background-color: #f8f9fa;
+    color: #6c757d;
+    font-size: 20px;
+}
+
+.string-character.end-of-string.current {
+    border-color: #007bff;
+    background-color: #e3f2fd;
+    color: #007bff;
+}
+
+.character-index {
+    font-size: 10px;
+    color: #666;
+    margin-top: 4px;
+    font-family: Arial, sans-serif;
+}
+
+body.dark .string-character {
+    background-color: #2a2a3e;
+    border-color: #3a3a50;
+    color: #e0e0e0;
+}
+
+body.dark .string-character.current {
+    border-color: #007bff;
+    background-color: #1a2332;
+    color: #007bff;
+}
+
+body.dark .string-character.processed {
+    border-color: #28a745;
+    background-color: #1a2e1f;
+    color: #28a745;
+}
+
+body.dark .string-character.end-of-string {
+    border-color: #6c757d;
+    background-color: #2a2a3e;
+    color: #adb5bd;
+}
+
+body.dark .character-index {
+    color: #adb5bd;
+}
+
+.string-analyzer-pointer {
+    position: absolute;
+    top: 8px;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: none;
+    transition: left 0.3s ease;
+}
+
+.string-analyzer-pointer-indicator {
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 12px solid #007bff;
+}
+
+body.dark .string-analyzer-pointer-indicator {
+    border-top-color: #007bff;
+}
+
+.placeholder-text {
+    color: #999;
+    font-style: italic;
+    font-size: 14px;
+    text-align: center;
+    padding: 20px;
+    width: 100%;
+}
+
+body.dark .placeholder-text {
+    color: #666;
+}
+
+/* Estados colapsados */
+.string-analyzer-container.collapsed .string-analyzer-wrapper {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: 0;
+    border-width: 0;
+}
+
+.string-analyzer-container.collapsed .string-analyzer-header {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.string-analyzer-container.collapsed #toggleStringButton i {
+    transform: rotate(180deg);
+}
+
+#toggleStringButton i {
+    transition: transform 0.4s ease;
+}
+
+/* Estilos para el modal de entrada de cadena */
+.string-input-modal-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.string-input-modal-container label {
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+body.dark .string-input-modal-container label {
+    color: #e0e0e0;
+}
+
+.string-input-info {
+    margin-top: -10px;
+}
+
+.string-input-info small {
+    color: #666;
+    font-size: 12px;
+}
+
+body.dark .string-input-info small {
+    color: #aaa;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
+.modal-button.secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+.modal-button.secondary:hover {
+    background-color: #5a6268;
+    border-color: #5a6268;
 }
 
 /* CSS multipleRun */

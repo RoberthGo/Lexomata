@@ -14,7 +14,7 @@ class ExecutionController {
 
         this.initialize();
     }
-
+    
     /**
      * Configura el estado inicial y ejecuta la simulación para generar el historial.
      */
