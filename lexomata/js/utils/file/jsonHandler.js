@@ -46,8 +46,18 @@ function parseAndLoadJSON(fileContent) {
         // Valida que el archivo tenga la estructura esperada
         if (data && data.nodes && data.edges) {
             // Actualiza el estado de la aplicación con los datos del archivo
-            nodes = data.nodes;
-            edges = data.edges;
+            nodes = data.nodes.map(nodeData => {
+                const node = new State(nodeData.id, nodeData.label, nodeData.x, nodeData.y);
+                node.IsStart = nodeData.IsStart || false;
+                node.IsEnd = nodeData.IsEnd || false;
+                node.note = nodeData.note || "";
+                return node;
+            });
+
+            edges = data.edges.map(edgeData => {
+                return new EdgeAutomata(edgeData.from, edgeData.to, edgeData.labels, edgeData.IsMetaCaracter);
+            });
+
             nodeCounter = data.nodeCounter || 0;
 
             // Guarda este nuevo estado en el historial y redibuja
@@ -55,7 +65,7 @@ function parseAndLoadJSON(fileContent) {
             historyIndex = -1;
             saveState();
             selectedNodeIds = [];
-            selectedEdgeId = null;
+            selectedEdgeIds = [];
             redrawCanvas();
         } else {
             alert("El archivo JSON no tiene el formato esperado.");

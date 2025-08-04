@@ -315,35 +315,21 @@ function distancePointToLine(px, py, x1, y1, x2, y2) {
     return Math.sqrt(dx * dx + dy * dy);
 }
 
-function reverseEdge(edgeId) {
-    const edgeIndex = edges.findIndex(edge => edge.id === edgeId);
-    if (edgeIndex === -1) return;
-
-    const edge = edges[edgeIndex];
-    // Intercambiar los nodos de origen y destino
-    const temp = edge.from;
-    edge.from = edge.to;
-    edge.to = temp;
-
-    // Guardar el estado para undo/redo
-    saveState();
-    redrawCanvas();
-}
 
 function reverseMultipleEdges(edgeIds) {
     if (!edgeIds || edgeIds.length === 0) return;
+    const edgesToDelete = new Set();
 
     // Invertir todas las aristas seleccionadas
     edgeIds.forEach(edgeId => {
-        const edgeIndex = edges.findIndex(edge => edge.id === edgeId);
-        if (edgeIndex !== -1) {
-            const edge = edges[edgeIndex];
-            // Intercambiar los nodos de origen y destino
-            const temp = edge.from;
-            edge.from = edge.to;
-            edge.to = temp;
-        }
+        const edge = edges.find(e => e.id === edgeId);
+        mergeOrUpdateEdge(edge, edge.to, edge.from, edgesToDelete);
     });
+
+
+    if (edgesToDelete.size > 0) {
+        edges = edges.filter(edge => !edgesToDelete.has(edge.id));
+    }
 
     // Guardar el estado para undo/redo (una sola vez para toda la operación)
     saveState();
@@ -428,41 +414,38 @@ function handleReassignmentClick(event) {
 }
 
 function reassignEdgeDestinations(edgeIds, newDestinationNodeId) {
-    let reassignedCount = 0;
+    if (!edgeIds || edgeIds.length === 0) return;
+    const edgesToDelete = new Set();
+
     edgeIds.forEach(edgeId => {
-        const edgeIndex = edges.findIndex(edge => edge.id === edgeId);
-        if (edgeIndex !== -1) {
-            const edge = edges[edgeIndex];
-            // Solo reasignar si el nuevo destino es diferente al actual
-            if (edge.to !== newDestinationNodeId) {
-                edge.to = newDestinationNodeId;
-                reassignedCount++;
-            }
-        }
+        const edge = edges.find(e => e.id === edgeId);
+        mergeOrUpdateEdge(edge, edge.from, newDestinationNodeId, edgesToDelete);
     });
-    if (reassignedCount > 0) {
-        saveState();
-        redrawCanvas();
+
+    if (edgesToDelete.size > 0) {
+        edges = edges.filter(edge => !edgesToDelete.has(edge.id));
     }
+
+    saveState();
+    redrawCanvas();
+
 }
 
 function reassignEdgeOrigins(edgeIds, newOriginNodeId) {
-    let reassignedCount = 0;
+    if (!edgeIds || edgeIds.length === 0) return;
+    const edgesToDelete = new Set();
+
     edgeIds.forEach(edgeId => {
-        const edgeIndex = edges.findIndex(edge => edge.id === edgeId);
-        if (edgeIndex !== -1) {
-            const edge = edges[edgeIndex];
-            // Solo reasignar si el nuevo origen es diferente al actual
-            if (edge.from !== newOriginNodeId) {
-                edge.from = newOriginNodeId;
-                reassignedCount++;
-            }
-        }
+        const edge = edges.find(e => e.id === edgeId);
+        mergeOrUpdateEdge(edge, newOriginNodeId, edge.to, edgesToDelete);
     });
-    if (reassignedCount > 0) {
-        saveState();
-        redrawCanvas();
+
+    if (edgesToDelete.size > 0) {
+        edges = edges.filter(edge => !edgesToDelete.has(edge.id));
     }
+
+    saveState();
+    redrawCanvas();
 }
 
 function cancelEdgeReassignment() {
@@ -655,13 +638,7 @@ function saveEdgeLabels(fromNode, toNode) {
 
     } else {
         // 4. SI NO EXISTE: crea una arista nueva con las etiquetas recolectadas.
-        const newEdge = {
-            id: Date.now() + Math.floor(Math.random() * 1000),
-            from: fromNode.id,
-            to: toNode.id,
-            labels: newLabels, // La propiedad es un arreglo con las nuevas etiquetas.
-            note: ""
-        };
+        const newEdge = new EdgeAutomata(fromNode.id, toNode.id, newLabels);
         edges.push(newEdge);
     }
 
@@ -689,9 +666,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const contextMenu = document.getElementById('canvasContextMenu');
 
     contextMenu.addEventListener('click', (e) => {
+        e.stopPropagation();
         if (e.target.matches('.simple-context-menu-item') && !e.target.classList.contains('disabled')) {
             const action = e.target.dataset.action;
-
             switch (action) {
                 case 'invert':
                     reverseMultipleEdges(selectedEdgeIds);
@@ -983,8 +960,18 @@ function loadFromLocalStorage() {
     const savedState = JSON.parse(savedStateJSON);
 
     // Actualiza el estado de la aplicación.
-    nodes = savedState.nodes;
-    edges = savedState.edges;
+    nodes = savedState.nodes.map(nodeData => {
+        const node = new State(nodeData.id, nodeData.label, nodeData.x, nodeData.y);
+        node.IsStart = nodeData.IsStart || false;
+        node.IsEnd = nodeData.IsEnd || false;
+        node.note = nodeData.note || "";
+        return node;
+    });
+
+    edges = savedState.edges.map(edgeData => {
+        return new EdgeAutomata(edgeData.from, edgeData.to, edgeData.labels, edgeData.IsMetaCaracter);
+    });
+
     nodeCounter = savedState.nodeCounter;
     projectName = savedState.projectName;
 
@@ -1065,4 +1052,25 @@ function centerCanvasContent() {
     panY = (canvasHeight / 2) - (contentCenterY * scale);
 
     redrawCanvas();
+}
+
+
+function mergeOrUpdateEdge(edgeToModify, newFromId, newToId, edgesToDelete) {
+    // Busca una arista existente que coincida con la nueva configuración (y que no sea la misma).
+    const existingEdge = edges.find(e => e.id !== edgeToModify.id && e.from === newFromId && e.to === newToId);
+
+    if (existingEdge) {
+        // Si se encuentra una arista, fusiona las etiquetas.
+        edgeToModify.labels.forEach(label => {
+            if (!existingEdge.labels.includes(label)) {
+                existingEdge.labels.push(label);
+            }
+        });
+        // Y marca la arista original para ser eliminada.
+        edgesToDelete.add(edgeToModify.id);
+    } else {
+        // Si no se encuentra, simplemente actualiza el origen y destino.
+        edgeToModify.from = newFromId;
+        edgeToModify.to = newToId;
+    }
 }

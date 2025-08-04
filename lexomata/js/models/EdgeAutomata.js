@@ -1,7 +1,10 @@
-class EdgeAutomata extends Edge {
-    constructor(stateOrigin, stateArrival, validation, isMetaCaracter, comment = '') {
-        super(stateOrigin, stateArrival, comment);
-        this.Validation = validation;
+class EdgeAutomata {
+    constructor(fromId, toId, labels = [], isMetaCaracter = false) {
+        this.id = Date.now() + Math.random();
+        this.from = fromId;
+        this.to = toId;
+        this.labels = labels;
+        this.note = "";
         this.IsMetaCaracter = isMetaCaracter;
     }
 }

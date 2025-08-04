@@ -123,7 +123,6 @@ function drawCurvedEdge(ctx, fromNode, toNode, edge, isSelected, theme, isBidire
 // Función para dibujar auto-loop (self-edge)
 
 function drawSelfLoop(ctx, node, edge, isSelected, theme, edgeCounts) {
-    // ... (toda la lógica para dibujar el arco y la flecha es la misma) ...
     const color = isSelected ? theme.selectedEdge : theme.edgeLine;
     const lineWidth = isSelected ? 3 : 2;
     const radius = node.radius || 33;
