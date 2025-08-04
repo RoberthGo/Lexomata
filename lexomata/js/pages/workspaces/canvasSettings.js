@@ -70,9 +70,16 @@ document.addEventListener('DOMContentLoaded', () => {
             // Si estamos arrastrando un nodo que no estaba seleccionado,
             // lo seleccionamos ahora, en el primer instante del movimiento.
             if (!selectedNodeIds.includes(draggingNode.id)) {
-                selectedNodeIds = [draggingNode.id];
-                selectedEdgeIds = [];
-                redrawCanvas();
+
+                if (e.shiftKey) {
+                    // Si Shift está presionado, AÑADE el nodo a la selección existente.
+                    selectedNodeIds.push(draggingNode.id);
+                } else {
+                    // Si Shift NO está presionado, este se convierte en la ÚNICA selección.
+                    selectedNodeIds = [draggingNode.id];
+                    selectedEdgeIds = [];
+                }
+                redrawCanvas(); 
             }
 
             // Usamos e.movementX/Y que nos da el delta del movimiento
@@ -92,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('mouseup', (e) => {
         const contextMenu = document.getElementById('canvasContextMenu');
-        
+
         if (contextMenu && contextMenu.contains(e.target)) {
             return;
         }
