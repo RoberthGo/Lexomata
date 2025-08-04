@@ -63,3 +63,14 @@ canvas.addEventListener('click', (event) => {
             break;
     }
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+    const toolbarToggleButton = document.getElementById('toolbarToggleButton');
+    const toolbar = document.querySelector('.toolbar');
+
+    if (toolbarToggleButton && toolbar) {
+        toolbarToggleButton.addEventListener('click', () => {
+            toolbar.classList.toggle('collapsed');
+        });
+    }
+});

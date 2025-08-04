@@ -269,24 +269,43 @@ body.dark .toolbar {
 }
 
 .toolbar.collapsed {
-    width: 80px;
+    width: 70px;
     align-items: center;
     padding: 1.5rem 0.5rem;
 }
 
 .toolbar-toggle-button {
     position: absolute;
-    top: 1rem;
-    right: -.6rem;
-    margin: 0;
-    background: none;
-    border: none;
-    font-size: 1.2rem;
-    color: #555;
-    cursor: pointer;
-    transition: transform 0.3s ease, color 0.2s ease;
-    z-index: 10;
+    top: 15px;
+    right: -12px;
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
     display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease, color 0.2s ease;
+}
+
+.toolbar-toggle-button i {
+    transition: transform 0.3s ease-in-out;
+}
+
+.toolbar.collapsed .tool-button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.8rem;
+    height: auto;
+}
+
+.toolbar.collapsed .toolbar-toggle-button i {
+    transform: rotate(180deg);
 }
 
 body.dark .toolbar-toggle-button {
@@ -414,8 +433,7 @@ body.dark .tool-button.active {
 }
 
 .toolbar.collapsed .tool-button i {
-    width: 100%;
-    text-align: center;
+    width: auto;
     margin: 0;
 }
 
@@ -425,13 +443,8 @@ body.dark .tool-button.active {
     transition: opacity 0.1s ease, max-width 0.1s ease;
 }
 
-.toolbar.collapsed .tool-button span:first-of-type,
-.toolbar.collapsed .tool-button .shortcut-key {
-    opacity: 0;
-    max-width: 0;
-    overflow: hidden;
-    padding: 0;
-    margin: 0;
+.toolbar.collapsed .tool-button span {
+    display: none;
 }
 
 .tool-button .shortcut-key {
