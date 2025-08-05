@@ -14,7 +14,7 @@ class ExecutionController {
 
         this.initialize();
     }
-    
+
     /**
      * Configura el estado inicial y ejecuta la simulación para generar el historial.
      */
@@ -28,6 +28,19 @@ class ExecutionController {
                 remainingInput: this.inputString,
                 status: 'REJECTED',
                 message: 'No hay estado inicial definido.'
+            });
+            return;
+        }
+
+        const hasFinalNode = this.nodes.some(n => n.IsEnd);
+        if (!hasFinalNode) {
+            showMessage("Error: No se ha definido ningún estado final.");
+            this.history.push({
+                currentNodeId: null,
+                consumedInput: "",
+                remainingInput: this.inputString,
+                status: 'REJECTED',
+                message: 'No hay estados finales definidos en el autómata.'
             });
             return;
         }

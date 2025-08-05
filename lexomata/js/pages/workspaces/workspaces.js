@@ -356,7 +356,7 @@ function reverseMultipleEdges(edgeIds) {
     // Invertir todas las aristas seleccionadas
     edgeIds.forEach(edgeId => {
         const edge = edges.find(e => e.id === edgeId);
-        mergeOrUpdateEdge(edge, edge.to, edge.from, edgesToDelete);
+        mergeOrUpdateEdge(edge, edge.to, edge.from, edgesToDelete, edgeIds);
     });
 
 
@@ -452,7 +452,7 @@ function reassignEdgeDestinations(edgeIds, newDestinationNodeId) {
 
     edgeIds.forEach(edgeId => {
         const edge = edges.find(e => e.id === edgeId);
-        mergeOrUpdateEdge(edge, edge.from, newDestinationNodeId, edgesToDelete);
+        mergeOrUpdateEdge(edge, edge.from, newDestinationNodeId, edgesToDelete, edgeIds);
     });
 
     if (edgesToDelete.size > 0) {
@@ -470,7 +470,7 @@ function reassignEdgeOrigins(edgeIds, newOriginNodeId) {
 
     edgeIds.forEach(edgeId => {
         const edge = edges.find(e => e.id === edgeId);
-        mergeOrUpdateEdge(edge, newOriginNodeId, edge.to, edgesToDelete);
+        mergeOrUpdateEdge(edge, newOriginNodeId, edge.to, edgesToDelete, edgeIds);
     });
 
     if (edgesToDelete.size > 0) {
@@ -1088,10 +1088,9 @@ function centerCanvasContent() {
 }
 
 
-function mergeOrUpdateEdge(edgeToModify, newFromId, newToId, edgesToDelete) {
+function mergeOrUpdateEdge(edgeToModify, newFromId, newToId, edgesToDelete, selectedIdsForOperation = []) {
     // Busca una arista existente que coincida con la nueva configuración (y que no sea la misma).
-    const existingEdge = edges.find(e => e.id !== edgeToModify.id && e.from === newFromId && e.to === newToId);
-
+    const existingEdge = edges.find(e => e.id !== edgeToModify.id && e.from === newFromId && e.to === newToId && !selectedIdsForOperation.includes(e.id));
     if (existingEdge) {
         // Si se encuentra una arista, fusiona las etiquetas.
         edgeToModify.labels.forEach(label => {

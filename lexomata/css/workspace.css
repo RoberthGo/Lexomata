@@ -499,7 +499,7 @@ body.dark .automata-canvas {
 .custom-modal {
     display: none;
     position: fixed;
-    z-index: 100;
+    z-index: 1000;
     left: 0;
     top: 0;
     width: 100%;
@@ -1925,7 +1925,7 @@ body.dark .string-input-info small {
 .modal {
     display: none;
     position: fixed;
-    z-index: 1000;
+    z-index: 200;
     left: 0;
     top: 0;
     width: 100%;
@@ -2125,4 +2125,12 @@ body.dark #runAllBtn:hover {
     color: #2ecc71; /* Verde más brillante */
     border-color: #2ecc71;
     background-color: rgba(46, 204, 113, 0.1);
+}
+
+.modal-body {
+    /* Límite: nunca será más alto que el 60% de la altura de la pantalla. */
+    max-height: 60vh; 
+    
+    /* Muestra una barra de scroll vertical automáticamente SI es necesario. */
+    overflow-y: auto; 
 }

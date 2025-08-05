@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     selectedNodeIds = [draggingNode.id];
                     selectedEdgeIds = [];
                 }
-                redrawCanvas(); 
+                redrawCanvas();
             }
 
             // Usamos e.movementX/Y que nos da el delta del movimiento

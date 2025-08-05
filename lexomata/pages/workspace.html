@@ -114,7 +114,8 @@
         </div>
 
         <div class="tool-buttons-group">
-          <button class="tool-button" id="undoButton" onclick="undo()"> <i class="fas fa-undo"></i> <span>Deshacer</span>
+          <button class="tool-button" id="undoButton" onclick="undo()"> <i class="fas fa-undo"></i>
+            <span>Deshacer</span>
           </button>
           <button class="tool-button" id="redoButton" onclick="redo()"> <i class="fas fa-redo"></i> <span>Rehacer</span>
           </button>
@@ -123,82 +124,83 @@
 
       <div class="canvas-wrapper">
         <canvas id="canvas" class="automata-canvas"></canvas>
-        
+
         <div class="turing-tape-container">
-            
-            <div class="turing-tape-header">
-                <h3 class="turing-tape-title">Cinta de Máquina de Turing</h3>
-                
-                <div class="turing-tape-controls"> 
-                    <button class="turing-tape-button" id="resetTapeButton">
-                        <i class="fas fa-undo"></i> Reiniciar
-                    </button>
-                    <button class="turing-tape-button" id="clearTapeButton">
-                        <i class="fas fa-eraser"></i> Limpiar
-                    </button>
-                    <button class="turing-tape-button" id="toggleTapeButton">
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
-                    <button class="turing-tape-button" id="closeTapeContainerBtn" title="Cerrar Panel">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
+
+          <div class="turing-tape-header">
+            <h3 class="turing-tape-title">Cinta de Máquina de Turing</h3>
+
+            <div class="turing-tape-controls">
+              <button class="turing-tape-button" id="resetTapeButton">
+                <i class="fas fa-undo"></i> Reiniciar
+              </button>
+              <button class="turing-tape-button" id="clearTapeButton">
+                <i class="fas fa-eraser"></i> Limpiar
+              </button>
+              <button class="turing-tape-button" id="toggleTapeButton">
+                <i class="fas fa-chevron-down"></i>
+              </button>
+              <button class="turing-tape-button" id="closeTapeContainerBtn" title="Cerrar Panel">
+                <i class="fas fa-times"></i>
+              </button>
             </div>
-            
-            <div class="turing-tape-wrapper">
-                <canvas id="turingTapeCanvas" class="turing-tape-canvas"></canvas>
-                <div class="turing-tape-head">
-                    <div class="turing-tape-head-indicator"></div>
-                </div>
+          </div>
+
+          <div class="turing-tape-wrapper">
+            <canvas id="turingTapeCanvas" class="turing-tape-canvas"></canvas>
+            <div class="turing-tape-head">
+              <div class="turing-tape-head-indicator"></div>
             </div>
+          </div>
         </div>
-        
+
         <div class="string-analyzer-container">
-            
-            <div class="string-analyzer-header">
-                <h3 class="string-analyzer-title">Análisis de Cadena - Autómata Finito</h3>
-                
-                <div class="string-analyzer-controls"> 
-                    <button class="string-analyzer-button" id="stepBackwardButton" title="Paso Anterior">
-                        <i class="fas fa-step-backward"></i> Anterior
-                    </button>
-                    <button class="string-analyzer-button" id="stepForwardButton" title="Siguiente Paso">
-                        <i class="fas fa-step-forward"></i> Siguiente
-                    </button>
-                    <button class="string-analyzer-button" id="resetStringButton">
-                        <i class="fas fa-undo"></i> Reiniciar
-                    </button>
-                    <button class="string-analyzer-button" id="clearStringButton">
-                        <i class="fas fa-eraser"></i> Limpiar
-                    </button>
-                    <button class="string-analyzer-button" id="startAutomata">
-                        <i class="fas fa-play"></i> Iniciar Análisis
-                    </button>
-                    <button class="string-analyzer-button" id="toggleStringButton">
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
-                    <button class="string-analyzer-button" id="closeStringContainerBtn" title="Cerrar Panel">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
+
+          <div class="string-analyzer-header">
+            <h3 class="string-analyzer-title">Análisis de Cadena - Autómata Finito</h3>
+
+            <div class="string-analyzer-controls">
+              <button class="string-analyzer-button" id="stepBackwardButton" title="Paso Anterior">
+                <i class="fas fa-step-backward"></i> Anterior
+              </button>
+              <button class="string-analyzer-button" id="stepForwardButton" title="Siguiente Paso">
+                <i class="fas fa-step-forward"></i> Siguiente
+              </button>
+              <button class="string-analyzer-button" id="resetStringButton">
+                <i class="fas fa-undo"></i> Reiniciar
+              </button>
+              <button class="string-analyzer-button" id="clearStringButton">
+                <i class="fas fa-eraser"></i> Limpiar
+              </button>
+              <button class="string-analyzer-button" id="startAutomata">
+                <i class="fas fa-play"></i> Iniciar Análisis
+              </button>
+              <button class="string-analyzer-button" id="toggleStringButton">
+                <i class="fas fa-chevron-down"></i>
+              </button>
+              <button class="string-analyzer-button" id="closeStringContainerBtn" title="Cerrar Panel">
+                <i class="fas fa-times"></i>
+              </button>
             </div>
-            
-            <div class="string-analyzer-wrapper">
-                <div class="string-analyzer-input-section">
-                    <input type="text" id="stringInput" class="string-input" placeholder="Ingrese la cadena a analizar..." maxlength="50">
-                    <button id="applyStringButton" class="apply-string-button">
-                        <i class="fas fa-check"></i> Aplicar
-                    </button>
-                </div>
-                <div class="string-analyzer-display">
-                    <div class="string-character-container" id="stringCharacterContainer">
-                        <div class="placeholder-text">Ingrese una cadena para comenzar el análisis...</div>
-                    </div>
-                    <div class="string-analyzer-pointer">
-                        <div class="string-analyzer-pointer-indicator"></div>
-                    </div>
-                </div>
+          </div>
+
+          <div class="string-analyzer-wrapper">
+            <div class="string-analyzer-input-section">
+              <input type="text" id="stringInput" class="string-input" placeholder="Ingrese la cadena a analizar..."
+                maxlength="50">
+              <button id="applyStringButton" class="apply-string-button">
+                <i class="fas fa-check"></i> Aplicar
+              </button>
             </div>
+            <div class="string-analyzer-display">
+              <div class="string-character-container" id="stringCharacterContainer">
+                <div class="placeholder-text">Ingrese una cadena para comenzar el análisis...</div>
+              </div>
+              <div class="string-analyzer-pointer">
+                <div class="string-analyzer-pointer-indicator"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -220,7 +222,8 @@
       <h3>Ingresar Cadena para Análisis</h3>
       <div class="string-input-modal-container">
         <label for="modalStringInput">Cadena de entrada:</label>
-        <input type="text" id="modalStringInput" class="modal-input" placeholder="Ingrese la cadena a analizar..." maxlength="50">
+        <input type="text" id="modalStringInput" class="modal-input" placeholder="Ingrese la cadena a analizar..."
+          maxlength="50">
         <div class="string-input-info">
           <small>Máximo 50 caracteres. Solo se permiten letras, números y algunos símbolos básicos.</small>
         </div>
@@ -305,49 +308,50 @@
   </div>
 
   <div id="multipleRunModal" class="modal">
-      <div class="modal-content">
+    <div class="modal-content">
 
-        <div class="modal-header">
-          <h2>Resultados de Múltiples Ejecuciones</h2>
-          <button id="close-button">X</button>
-        </div>
+      <div class="modal-header">
+        <h2>Resultados de Múltiples Ejecuciones</h2>
+        <button id="close-button">X</button>
+      </div>
 
-        <div class="modal-body">
-          <table id="inputTable">
-            <thead>
-              <tr>
-                <th>Input</th>
-                <th>Output</th>
-                <th>Result</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr class="placeholder-row">
-                <td colspan="4">Presiona "Añadir Fila" para ingresar datos...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="modal-body">
+        <table id="inputTable">
+          <thead>
+            <tr>
+              <th>Input</th>
+              <th class="output-column">Output</th>
+              <th>Result</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="placeholder-row">
+              <td colspan="4">Presiona "Añadir Fila" para ingresar datos...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-        <div class="modal-footer">
+      <div class="modal-footer">
         <button id="addRowBtn">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+            <path
+              d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
           </svg>
           Añadir Fila
         </button>
         <button id="runAllBtn">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M6.79 5.093A.5.5 0 0 0 6 5.5v5a.5.5 0 0 0 .79.407l3.5-2.5a.5.5 0 0 0 0-.814l-3.5-2.5z"/>
-            <path d="M12.79 5.093A.5.5 0 0 0 12 5.5v5a.5.5 0 0 0 .79.407l3.5-2.5a.5.5 0 0 0 0-.814l-3.5-2.5z"/>
+            <path d="M6.79 5.093A.5.5 0 0 0 6 5.5v5a.5.5 0 0 0 .79.407l3.5-2.5a.5.5 0 0 0 0-.814l-3.5-2.5z" />
+            <path d="M12.79 5.093A.5.5 0 0 0 12 5.5v5a.5.5 0 0 0 .79.407l3.5-2.5a.5.5 0 0 0 0-.814l-3.5-2.5z" />
           </svg>
           Ejecutar Todos
         </button>
       </div>
 
-      </div>
     </div>
+  </div>
 
 
 

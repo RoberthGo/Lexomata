@@ -5,37 +5,39 @@ function drawEdge(ctx, edge, nodes, edgeDrawCounts, selectedEdgeIds, theme) {
 
     const isSelected = selectedEdgeIds.includes(edge.id);
 
-    const edgeKeyA = `${fromNode.id}-${toNode.id}`;
-    if (!edgeDrawCounts[edgeKeyA]) {
-        edgeDrawCounts[edgeKeyA] = 0;
-    }
-    edgeDrawCounts[edgeKeyA]++;
-    const drawCountA = edgeDrawCounts[edgeKeyA];
-    edge._drawCount = drawCountA;
-
-    // Caso especial 1: Auto-loop (self-edge)
+    // Lógica para auto-loops (sin cambios, se maneja primero)
     if (fromNode.id === toNode.id) {
+        const edgeKeyA = `${fromNode.id}-${toNode.id}`;
+        if (!edgeDrawCounts[edgeKeyA]) { edgeDrawCounts[edgeKeyA] = 0; }
+        edgeDrawCounts[edgeKeyA]++;
         drawSelfLoop(ctx, fromNode, edge, isSelected, theme, edgeDrawCounts[edgeKeyA]);
         return;
     }
 
-    // Verificar si existe una arista en dirección opuesta
-    const oppositeEdgeExists = edges.some(e =>
-        e.from === edge.to && e.to === edge.from && e.id !== edge.id
-    );
+    const oppositeEdgeExists = edges.some(e => e.from === edge.to && e.to === edge.from);
 
-    if (drawCountA <= 1) {
-        if (oppositeEdgeExists) {
-            // Caso especial 2: Aristas bidireccionales - dibujar con curva
-            drawCurvedEdge(ctx, fromNode, toNode, edge, isSelected, theme, true);
-        } else {
-            // Caso normal: línea recta
-            drawStraightEdge(ctx, fromNode, toNode, isSelected, theme);
-        }
+    if (oppositeEdgeExists) {
+        // --- LÓGICA CORREGIDA PARA ARISTAS CURVAS ---
+        const dx = toNode.x - fromNode.x;
+        const dy = toNode.y - fromNode.y;
+
+        // Evita división por cero si los nodos están en el mismo lugar
+        if (dx === 0 && dy === 0) return;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Se calcula el vector perpendicular UNA VEZ aquí.
+        const perpX = -dy / distance;
+        const perpY = dx / distance;
+
+        // Se llama a las funciones de ayuda con los parámetros CORRECTOS.
+        drawCurvedEdge(ctx, fromNode, toNode, isSelected, theme, perpX, perpY);
+        drawEdgeLabel(ctx, fromNode, toNode, edge, isSelected, theme, true, perpX, perpY);
+
+    } else {
+        // --- LÓGICA PARA ARISTAS RECTAS (sin cambios) ---
+        drawStraightEdge(ctx, fromNode, toNode, isSelected, theme);
+        drawEdgeLabel(ctx, fromNode, toNode, edge, isSelected, theme, false, null, null);
     }
-
-    // Dibujar la etiqueta
-    drawEdgeLabel(ctx, fromNode, toNode, edge, isSelected, theme, oppositeEdgeExists);
 }
 
 // Función auxiliar para dibujar la flecha
@@ -88,29 +90,26 @@ function drawStraightEdge(ctx, fromNode, toNode, isSelected, theme) {
 
 
 // Función para dibujar una arista curva (aristas bidireccionales)
-function drawCurvedEdge(ctx, fromNode, toNode, edge, isSelected, theme, isBidirectional) {
+function drawCurvedEdge(ctx, fromNode, toNode, isSelected, theme, perpX, perpY) {
     const color = isSelected ? theme.selectedEdge : theme.edgeLine;
     const lineWidth = isSelected ? 3 : 2;
+    const distance = Math.sqrt(Math.pow(toNode.x - fromNode.x, 2) + Math.pow(toNode.y - fromNode.y, 2));
 
-    // 1. Calcular el punto de control para la curva
-    const dx = toNode.x - fromNode.x;
-    const dy = toNode.y - fromNode.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    const curvature = distance * 0.15;
-
-    const perpX = -dy / distance;
-    const perpY = dx / distance;
+    // --- INICIO DE LA MODIFICACIÓN ---
+    // Se establece una curvatura máxima para evitar que la arista se infle demasiado.
+    // Puedes ajustar este valor si quieres curvas más o menos pronunciadas.
+    const maxCurvature = 40;
+    const curvature = Math.min(maxCurvature, distance * 0.15);
+    // --- FIN DE LA MODIFICACIÓN ---
 
     const controlX = (fromNode.x + toNode.x) / 2 + perpX * curvature;
     const controlY = (fromNode.y + toNode.y) / 2 + perpY * curvature;
 
-    // 2. Calcular el punto final ajustado en el borde del nodo
     const angleToCenter = Math.atan2(toNode.y - controlY, toNode.x - controlX);
     const radius = toNode.radius || 30;
     const adjustedEndX = toNode.x - Math.cos(angleToCenter) * radius;
     const adjustedEndY = toNode.y - Math.sin(angleToCenter) * radius;
 
-    // 3. Dibujar la curva hasta el punto ajustado
     ctx.beginPath();
     ctx.moveTo(fromNode.x, fromNode.y);
     ctx.quadraticCurveTo(controlX, controlY, adjustedEndX, adjustedEndY);
@@ -118,12 +117,8 @@ function drawCurvedEdge(ctx, fromNode, toNode, edge, isSelected, theme, isBidire
     ctx.lineWidth = lineWidth;
     ctx.stroke();
 
-    // 4. Calcular el ángulo TANGENTE REAL en el punto final ajustado
     const finalAngle = Math.atan2(adjustedEndY - controlY, adjustedEndX - controlX);
-
-    // 5. Dibujar la flecha con el ángulo correcto
     drawArrowHead(ctx, adjustedEndX, adjustedEndY, finalAngle, color, lineWidth);
-
 }
 
 // Función para dibujar auto-loop (self-edge)
@@ -140,7 +135,7 @@ function drawCurvedEdge(ctx, fromNode, toNode, edge, isSelected, theme, isBidire
  */
 function drawSelfLoop(ctx, node, edge, isSelected, theme, drawCount) {
     const color = isSelected ? theme.selectedEdge : theme.edgeLine;
-    const labels = edge.labels || [edge.label];
+    const lineWidth = isSelected ? 3 : 2;
 
     // --- 1. Definir la geometría del bucle ---
     // Rotamos toda la estructura para bucles múltiples.
@@ -168,56 +163,89 @@ function drawSelfLoop(ctx, node, edge, isSelected, theme, drawCount) {
     ctx.moveTo(startX, startY);
     ctx.quadraticCurveTo(controlX, controlY, endX, endY);
     ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = lineWidth;
     ctx.stroke();
 
     // --- 4. Dibujar la flecha ---
     // La flecha se dibuja al final de la curva, alineada con la tangente.
     const arrowAngle = Math.atan2(endY - controlY, endX - controlX);
-    drawArrowHead(ctx, endX, endY, arrowAngle, color);
+    drawArrowHead(ctx, endX, endY, arrowAngle, color, lineWidth);
 
     // --- 5. Dibujar la etiqueta ---
-    // La posicionamos cerca del punto más alto de la curva.
-    const labelPos = {
-        x: controlX,
-        y: controlY
-    };
-    drawEdgeLabel(ctx, labelPos, labels, theme.edgeText);
+    // Esta sección ahora maneja el dibujado de la etiqueta directamente,
+    // usando el punto de control como ancla para el texto.
+    const labels = edge.labels || [edge.label];
+    const lineHeight = 15; // Espacio vertical entre cada etiqueta
+
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = isSelected ? theme.selectedEdge : theme.edgeText;
+
+    // Apilamos las etiquetas hacia arriba desde el punto de control de la curva.
+    labels.forEach((label, index) => {
+        // Se dibuja cada etiqueta, con un desplazamiento vertical para apilarlas.
+        // Un pequeño offset adicional (5px) las separa de la línea.
+        ctx.fillText(label, controlX, controlY - (index * lineHeight) + 32);
+    });
 }
 
 // Función para dibujar la etiqueta de la arista
-function drawEdgeLabel(ctx, fromNode, toNode, edge, isSelected, theme, isCurved) {
+function drawEdgeLabel(ctx, fromNode, toNode, edge, isSelected, theme, isCurved, perpX, perpY) {
     if (fromNode.id === toNode.id) return;
 
+    const worldOffset = 12; // Un offset fijo funciona bien ahora que la curva está controlada.
+    const lineHeight = 15;
     let labelX, labelY;
-
-    // Lógica para calcular la posición base de la etiqueta
-    if (isCurved) {
-        const dx = toNode.x - fromNode.x;
-        const dy = toNode.y - fromNode.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        const curvature = distance * 0.15;
-        const perpX = -dy / distance;
-        const perpY = dx / distance;
-        labelX = (fromNode.x + toNode.x) / 2 + perpX * (curvature + 15);
-        labelY = (fromNode.y + toNode.y) / 2 + perpY * (curvature + 15);
-    } else {
-        labelX = (fromNode.x + toNode.x) / 2;
-        labelY = (fromNode.y + toNode.y) / 2 - 15; // Un pequeño offset hacia arriba
-    }
 
     ctx.font = '14px Arial';
     ctx.textAlign = 'center';
 
-    // --- LÓGICA DE APILADO ---
-    const labels = edge.labels || [edge.label]; // Compatible con aristas viejas
-    const lineHeight = 15; // Espacio vertical entre cada etiqueta
+    if (isCurved) {
+        const dx = toNode.x - fromNode.x;
+        const dy = toNode.y - fromNode.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
 
-    labels.forEach((label, index) => {
-        ctx.fillStyle = isSelected ? theme.selectedEdge : theme.edgeText;
-        // Dibuja cada etiqueta, una encima de la otra
-        ctx.fillText(label, labelX, labelY - (index * lineHeight));
-    });
+        // --- INICIO DE LA MODIFICACIÓN ---
+        // Se aplica la MISMA lógica de curvatura máxima que en drawCurvedEdge.
+        const maxCurvature = 40;
+        const curvature = Math.min(maxCurvature, distance * 0.15);
+        // --- FIN DE LA MODIFICACIÓN ---
+
+        const controlX = (fromNode.x + toNode.x) / 2 + perpX * curvature;
+        const controlY = (fromNode.y + toNode.y) / 2 + perpY * curvature;
+        const midCurveX = 0.25 * fromNode.x + 0.5 * controlX + 0.25 * toNode.x;
+        const midCurveY = 0.25 * fromNode.y + 0.5 * controlY + 0.25 * toNode.y;
+
+        labelX = midCurveX + perpX * worldOffset;
+        labelY = midCurveY + perpY * worldOffset;
+
+        // ... (el resto de la función se queda igual) ...
+        if (perpY < 0) {
+            ctx.textBaseline = 'bottom';
+        } else {
+            ctx.textBaseline = 'top';
+        }
+
+        const labels = edge.labels || [edge.label];
+        labels.forEach((label, index) => {
+            ctx.fillStyle = isSelected ? theme.selectedEdge : theme.edgeText;
+            const stackOffsetX = index * lineHeight * perpX;
+            const stackOffsetY = index * lineHeight * perpY;
+            ctx.fillText(label, labelX + stackOffsetX, labelY + stackOffsetY);
+        });
+
+    } else {
+        labelX = (fromNode.x + toNode.x) / 2;
+        labelY = (fromNode.y + toNode.y) / 2 - worldOffset;
+        ctx.textBaseline = 'bottom';
+        const labels = edge.labels || [edge.label];
+        labels.forEach((label, index) => {
+            ctx.fillStyle = isSelected ? theme.selectedEdge : theme.edgeText;
+            ctx.fillText(label, labelX, labelY - (index * lineHeight));
+        });
+    }
+
+    ctx.textBaseline = 'alphabetic'; // Reset
 }
 
 // Función auxiliar para dibujar la flecha en aristas curvas
