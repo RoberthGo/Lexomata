@@ -20,7 +20,7 @@ const colorPalette = {
         edgeText: '#2c2140',          // Índigo oscuro para el texto de la arista
 
         // ---> SELECCIÓN DE ARISTAS Y CUADRO <---
-        selectedEdge: '#f4c8a2',
+        selectedEdge: '#65401fff',
         // Colores de la cinta de Turing
         turingCellFill: '#ffffff',
         turingCellStroke: '#ccc',

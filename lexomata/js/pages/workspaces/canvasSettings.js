@@ -90,7 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     // Si Shift NO está presionado, este se convierte en la ÚNICA selección.
                     selectedNodeIds = [draggingNode.id];
-                    selectedEdgeIds = [];
                 }
                 redrawCanvas();
             }
@@ -121,17 +120,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isSelecting) {
             if (hasDragged) {
                 const nodesInBox = getNodesInSelectionBox(selectionStart, selectionEnd);
+                const edgesInBox = getEdgesInSelectionBox(selectionStart, selectionEnd);
                 const nodeIdsInBox = nodesInBox.map(node => node.id);
+                const edgeIdsInBox = edgesInBox.map(edge => edge.id);
 
                 if (e.shiftKey) {
                     // MODO ADITIVO: Añade los nodos a la selección actual sin duplicados
-                    const currentSelection = new Set(selectedNodeIds);
-                    nodeIdsInBox.forEach(id => currentSelection.add(id));
-                    selectedNodeIds = Array.from(currentSelection);
+                    const currentSelectedNodes = new Set([...selectedNodeIds, ...nodeIdsInBox]);
+                    const currentSelectedEdges = new Set([...selectedEdgeIds, ...edgeIdsInBox]);
+                    selectedNodeIds = Array.from(currentSelectedNodes);
+                    selectedEdgeIds = Array.from(currentSelectedEdges);
                 } else {
                     // MODO REEMPLAZO: La nueva selección son solo los nodos en el cuadro
                     selectedNodeIds = nodeIdsInBox;
-                    selectedEdgeIds = []; // Limpia la selección de aristas
+                    selectedEdgeIds = edgeIdsInBox;
                 }
             }
             isSelecting = false; // Finaliza el modo de selección
@@ -167,7 +169,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             } else {
                                 // Clic en un nodo nuevo o de un grupo -> seleccionar solo este
                                 selectedNodeIds = [clickedNode.id];
-                                selectedEdgeIds = [];
                             }
                         } else {
                             // Clic en el vacío -> deseleccionar todo
@@ -192,7 +193,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             selectedEdgeIds = [];
                         } else {
                             selectedEdgeIds = [edge.id];
-                            selectedNodeIds = [];
                         }
                     }
                 }
