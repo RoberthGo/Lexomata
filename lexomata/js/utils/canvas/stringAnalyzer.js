@@ -60,6 +60,7 @@ function stepForward() {
         const nextState = stringAnalyzerState.executionController.stepForward();
         updateFromExecutionState(nextState);
         updateStepButtons();
+        showAvailableTransitions();
     }
 }
 
@@ -68,6 +69,7 @@ function stepBackward() {
         const prevState = stringAnalyzerState.executionController.stepBackward();
         updateFromExecutionState(prevState);
         updateStepButtons();
+        showAvailableTransitions();
     }
 }
 
@@ -78,8 +80,16 @@ function updateFromExecutionState(executionState) {
     const consumedLength = executionState.consumedInput.length;
     setAnalyzerPosition(consumedLength);
     
-    // Opcionalmente, puedes mostrar información adicional del estado
+    // Destacar la última secuencia consumida si está disponible
+    if (executionState.lastConsumedString) {
+        highlightConsumedSequence(executionState.lastConsumedString, consumedLength);
+    } else if (executionState.lastConsumedLabel) {
+        highlightConsumedSequence(executionState.lastConsumedLabel, consumedLength);
+    }
+    
+    // Mostrar información adicional del estado
     console.log('Estado actual:', executionState.message);
+    updateAnalysisStatus(executionState);
 }
 
 function updateStepButtons() {
@@ -106,6 +116,112 @@ function updateStepButtons() {
     }
 }
 
+function showAvailableTransitions() {
+    if (!stringAnalyzerState.executionController) return;
+    
+    const transitionsInfo = document.getElementById('transitionsInfo');
+    if (!transitionsInfo) return;
+    
+    const availableTransitions = stringAnalyzerState.executionController.getAvailableTransitions();
+    
+    if (availableTransitions.length === 0) {
+        transitionsInfo.innerHTML = '<div class="no-transitions">No hay transiciones disponibles</div>';
+        return;
+    }
+    
+    let html = '<div class="transitions-header">Transiciones disponibles:</div>';
+    html += '<div class="transitions-list">';
+    
+    availableTransitions.forEach(transition => {
+        const targetLabel = transition.targetNode ? transition.targetNode.label : 'Desconocido';
+        
+        transition.allLabelsInfo.forEach(labelInfo => {
+            const matchingInfo = transition.matchingInfo.find(m => m.label === labelInfo.label);
+            const isMatching = !!matchingInfo;
+            const className = isMatching ? 'transition-item matching' : 'transition-item';
+            
+            html += `<div class="${className}">
+                        <div class="transition-main-info">
+                            <span class="transition-label ${labelInfo.isRegex ? 'regex-label' : 'literal-label'}">${labelInfo.label}</span>
+                            <span class="transition-arrow">→</span>
+                            <span class="transition-target">${targetLabel}</span>
+                            ${isMatching ? '<span class="match-indicator">✓</span>' : ''}
+                        </div>
+                        <div class="transition-details">
+                            <div class="label-description">${labelInfo.description}</div>
+                            ${isMatching ? 
+                                `<div class="match-result">Coincide: "<strong>${matchingInfo.match}</strong>"</div>` : 
+                                ''
+                            }
+                            ${labelInfo.isRegex ? 
+                                `<div class="regex-examples">Ejemplos: ${labelInfo.examples.join(', ')}</div>` : 
+                                ''
+                            }
+                        </div>
+                     </div>`;
+        });
+    });
+    
+    html += '</div>';
+    transitionsInfo.innerHTML = html;
+}
+
+function validateAutomataRegexTransitions() {
+    if (typeof edges === 'undefined' || !edges) {
+        return { valid: true, errors: [] };
+    }
+
+    const errors = [];
+    
+    edges.forEach((edge, index) => {
+        edge.labels.forEach((label, labelIndex) => {
+            const validation = RegexHandler.validateRegex(label);
+            if (!validation.valid) {
+                errors.push({
+                    edgeIndex: index,
+                    labelIndex: labelIndex,
+                    label: label,
+                    error: validation.error,
+                    from: edge.from,
+                    to: edge.to
+                });
+            }
+        });
+    });
+
+    return {
+        valid: errors.length === 0,
+        errors: errors
+    };
+}
+
+function showRegexValidationErrors(errors) {
+    if (errors.length === 0) return;
+
+    let message = 'Se encontraron errores en las expresiones regulares:\n\n';
+    errors.forEach(error => {
+        message += `• Transición ${error.from} → ${error.to}: "${error.label}"\n`;
+        message += `  Error: ${error.error}\n\n`;
+    });
+
+    /*// Agregar ayuda sobre caracteres de escape válidos
+    if (errors.some(error => error.error.includes('escape'))) {
+        message += '\n--- Caracteres de Escape Válidos ---\n';
+        message += '\\d - dígitos (0-9)\n';
+        message += '\\w - alfanuméricos (a-z, A-Z, 0-9, _)\n';
+        message += '\\s - espacios en blanco\n';
+        message += '\\n - nueva línea\n';
+        message += '\\t - tabulación\n';
+        message += '\\\\ - barra invertida literal\n';
+        message += '\\. - punto literal\n';
+        message += '\\* - asterisco literal\n';
+        message += '\\+ - signo más literal\n';
+        message += '\\? - interrogación literal\n';
+        message += 'Y muchos más...\n';
+    }*/
+    showMessage(message);
+}
+
 // --- FUNCIONES DE INTEGRACIÓN CON EXECUTION CONTROLLER ---
 
 function startAutomataAnalysis() {
@@ -128,6 +244,13 @@ function startAutomataAnalysis() {
     
     if (!edges || edges.length === 0) {
         showMessage('Error: No hay transiciones definidas en el autómata.');
+        return;
+    }
+
+    // Validar expresiones regulares en las transiciones
+    const regexValidation = validateAutomataRegexTransitions();
+    if (!regexValidation.valid) {
+        showRegexValidationErrors(regexValidation.errors);
         return;
     }
     
@@ -180,6 +303,7 @@ function setExecutionController(controller) {
     if (controller) {
         setAnalyzerString(controller.inputString);
         updateFromExecutionState(controller.getCurrentState());
+        showAvailableTransitions();
     }
     updateStepButtons();
     updateStartButton();
@@ -249,6 +373,79 @@ function isAtEndOfString() {
 
 // --- FUNCIONES DE VISUALIZACIÓN ---
 
+function highlightConsumedSequence(consumedLabel, endPosition) {
+    // Destacar la secuencia que se acaba de consumir
+    const container = document.getElementById('stringCharacterContainer');
+    if (!container) return;
+    
+    const startPosition = endPosition - consumedLabel.length;
+    const wrappers = container.querySelectorAll('.character-wrapper');
+    
+    // Limpiar destacados anteriores
+    wrappers.forEach(wrapper => {
+        const char = wrapper.querySelector('.string-character');
+        if (char) {
+            char.classList.remove('just-consumed');
+        }
+    });
+    
+    // Destacar la nueva secuencia consumida
+    setTimeout(() => {
+        for (let i = 0; i < wrappers.length; i++) {
+            const wrapper = wrappers[i];
+            const indexElement = wrapper.querySelector('.character-index');
+            if (indexElement) {
+                const charIndex = parseInt(indexElement.textContent);
+                if (charIndex >= startPosition && charIndex < endPosition) {
+                    const char = wrapper.querySelector('.string-character');
+                    if (char) {
+                        char.classList.add('just-consumed');
+                    }
+                }
+            }
+        }
+        
+        // Remover el destacado después de un tiempo
+        setTimeout(() => {
+            wrappers.forEach(wrapper => {
+                const char = wrapper.querySelector('.string-character');
+                if (char) {
+                    char.classList.remove('just-consumed');
+                }
+            });
+        }, 1500);
+    }, 100);
+}
+
+function updateAnalysisStatus(executionState) {
+    const statusElement = document.getElementById('analysisStatus');
+    if (!statusElement) return;
+    
+    let statusText = '';
+    let statusClass = '';
+    
+    switch (executionState.status) {
+        case 'RUNNING':
+            statusText = 'Analizando...';
+            statusClass = 'status-running';
+            break;
+        case 'ACCEPTED':
+            statusText = 'Cadena Aceptada ✓';
+            statusClass = 'status-accepted';
+            break;
+        case 'REJECTED':
+            statusText = 'Cadena Rechazada ✗';
+            statusClass = 'status-rejected';
+            break;
+        default:
+            statusText = 'Preparado';
+            statusClass = 'status-ready';
+    }
+    
+    statusElement.textContent = statusText;
+    statusElement.className = `analysis-status ${statusClass}`;
+}
+
 function updateStringDisplay() {
     const container = document.getElementById('stringCharacterContainer');
     if (!container) return;
@@ -282,7 +479,7 @@ function updateStringDisplay() {
         charElement.className = 'string-character';
         charElement.textContent = characters[i];
         
-        // Marcar carácter actual
+        // Marcar carácter actual (siguiente a procesar)
         if (i === currentPos) {
             charElement.classList.add('current');
         }
@@ -568,7 +765,12 @@ window.stringAnalyzer = {
     stepBackward: stepBackward,
     updateStepButtons: updateStepButtons,
     startAutomataAnalysis: startAutomataAnalysis,
-    updateStartButton: updateStartButton
+    updateStartButton: updateStartButton,
+    showAvailableTransitions: showAvailableTransitions,
+    highlightConsumedSequence: highlightConsumedSequence,
+    updateAnalysisStatus: updateAnalysisStatus,
+    validateAutomataRegexTransitions: validateAutomataRegexTransitions,
+    showRegexValidationErrors: showRegexValidationErrors
 };
 
 // Exponer funciones del modal globalmente

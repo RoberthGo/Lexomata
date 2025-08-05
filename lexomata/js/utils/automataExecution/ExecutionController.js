@@ -16,6 +16,40 @@ class ExecutionController {
     }
 
     /**
+     * Busca una transición que coincida con el inicio de la cadena de entrada.
+     * Prioriza las transiciones más largas (greedy matching).
+     * Ahora soporta expresiones regulares.
+     * @param {string} currentNodeId - ID del nodo actual
+     * @param {string} remainingInput - Cadena restante por procesar
+     * @returns {object|null} La transición encontrada con la etiqueta que coincidió, o null
+     */
+    findMatchingTransition(currentNodeId, remainingInput) {
+        const possibleTransitions = this.edges.filter(edge => edge.from === currentNodeId);
+        
+        let bestMatch = null;
+        let longestMatch = 0;
+
+        for (const transition of possibleTransitions) {
+            // Usar RegexHandler para encontrar todas las coincidencias
+            const matches = RegexHandler.findAllMatches(transition.labels, remainingInput);
+            
+            // Tomar la coincidencia más larga
+            for (const matchInfo of matches) {
+                if (matchInfo.length > longestMatch) {
+                    bestMatch = {
+                        ...transition,
+                        matchedLabel: matchInfo.label,
+                        matchedString: matchInfo.match
+                    };
+                    longestMatch = matchInfo.length;
+                }
+            }
+        }
+
+        return bestMatch;
+    }
+
+    /**
      * Configura el estado inicial y ejecuta la simulación para generar el historial.
      */
     initialize() {
@@ -60,36 +94,38 @@ class ExecutionController {
 
     /**
      * Simula la ejecución completa y llena el arreglo 'history'.
-     * Esta versión es para un Autómata Finito Determinista (DFA).
+     * Esta versión soporta transiciones de múltiples caracteres.
      */
     run() {
         let currentState = this.history[0];
 
         while (currentState.remainingInput.length > 0 && currentState.status === 'RUNNING') {
-            const currentChar = currentState.remainingInput[0];
             const currentNodeId = currentState.currentNodeId;
+            const remainingInput = currentState.remainingInput;
 
-            // Busca una transición que coincida con el carácter actual
-            const transition = this.edges.find(edge =>
-                edge.from === currentNodeId && edge.labels.includes(currentChar)
-            );
+            // Busca una transición que coincida con el inicio de la cadena restante
+            const transition = this.findMatchingTransition(currentNodeId, remainingInput);
 
             if (transition) {
                 // Se encontró una transición, avanza al siguiente estado
                 const nextNode = this.nodes.find(n => n.id === transition.to);
+                const consumedString = transition.matchedString || transition.matchedLabel;
                 const newState = {
                     currentNodeId: nextNode.id,
-                    consumedInput: currentState.consumedInput + currentChar,
-                    remainingInput: currentState.remainingInput.substring(1),
+                    consumedInput: currentState.consumedInput + consumedString,
+                    remainingInput: currentState.remainingInput.substring(consumedString.length),
                     status: 'RUNNING',
-                    message: `Leyó '${currentChar}' y pasó del estado ${this.nodes.find(n => n.id === currentNodeId).label} a ${nextNode.label}.`
+                    message: `Leyó '${consumedString}' (patrón: ${transition.matchedLabel}) y pasó del estado ${this.nodes.find(n => n.id === currentNodeId).label} a ${nextNode.label}.`,
+                    lastConsumedLabel: transition.matchedLabel,
+                    lastConsumedString: consumedString
                 };
                 this.history.push(newState);
                 currentState = newState;
             } else {
                 // No se encontró transición, la cadena es rechazada
+                const currentChar = remainingInput[0];
                 currentState.status = 'REJECTED';
-                currentState.message = `Cadena rechazada. No hay transición desde ${this.nodes.find(n => n.id === currentNodeId).label} con el carácter '${currentChar}'.`;
+                currentState.message = `Cadena rechazada. No hay transición desde ${this.nodes.find(n => n.id === currentNodeId).label} que coincida con '${currentChar}' o cualquier secuencia que comience con este carácter.`;
                 break;
             }
         }
@@ -144,5 +180,61 @@ class ExecutionController {
      */
     getHistory() {
         return this.history;
+    }
+
+    /**
+     * Obtiene las transiciones disponibles desde el estado actual.
+     * @returns {Array} Array de transiciones con información de coincidencia
+     */
+    getAvailableTransitions() {
+        const currentState = this.getCurrentState();
+        if (!currentState || currentState.status !== 'RUNNING') {
+            return [];
+        }
+
+        const currentNodeId = currentState.currentNodeId;
+        const remainingInput = currentState.remainingInput;
+        
+        const availableTransitions = this.edges.filter(edge => edge.from === currentNodeId);
+        
+        return availableTransitions.map(transition => {
+            const targetNode = this.nodes.find(n => n.id === transition.to);
+            const matchingInfo = [];
+            
+            // Verificar cada etiqueta para coincidencias
+            for (const label of transition.labels) {
+                const match = RegexHandler.findMatch(label, remainingInput);
+                if (match) {
+                    matchingInfo.push({
+                        label: label,
+                        match: match,
+                        isRegex: RegexHandler.isRegexPattern(label),
+                        description: RegexHandler.getDescription(label)
+                    });
+                }
+            }
+            
+            return {
+                ...transition,
+                targetNode: targetNode,
+                matchingInfo: matchingInfo,
+                canTransition: matchingInfo.length > 0,
+                allLabelsInfo: transition.labels.map(label => ({
+                    label: label,
+                    isRegex: RegexHandler.isRegexPattern(label),
+                    description: RegexHandler.getDescription(label),
+                    examples: RegexHandler.generateExamples(label, 3)
+                }))
+            };
+        });
+    }
+
+    /**
+     * Verifica si hay alguna transición posible desde el estado actual.
+     * @returns {boolean}
+     */
+    hasAvailableTransitions() {
+        const transitions = this.getAvailableTransitions();
+        return transitions.some(t => t.canTransition);
     }
 }

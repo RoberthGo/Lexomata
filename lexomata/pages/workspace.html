@@ -183,7 +183,6 @@
               </button>
             </div>
           </div>
-
           <div class="string-analyzer-wrapper">
             <div class="string-analyzer-input-section">
               <input type="text" id="stringInput" class="string-input" placeholder="Ingrese la cadena a analizar..."
@@ -199,6 +198,16 @@
               <div class="string-analyzer-pointer">
                 <div class="string-analyzer-pointer-indicator"></div>
               </div>
+            </div>
+            
+            <!-- Estado del análisis -->
+            <div class="analysis-status status-ready" id="analysisStatus">
+              Preparado
+            </div>
+            
+            <!-- Información de transiciones disponibles -->
+            <div class="transitions-info" id="transitionsInfo">
+              <div class="no-transitions">No hay análisis en curso</div>
             </div>
           </div>
         </div>
@@ -372,7 +381,7 @@
   <script src="../js/utils/canvas/turingTape.js"></script>
   <script src="../js/utils/canvas/stringAnalyzer.js"></script>
   <script src="../js/utils/canvas/multipleRun.js"></script>
-
+  <script src="../js/utils/regexHandler.js"></script>
 </body>
 
 </html>

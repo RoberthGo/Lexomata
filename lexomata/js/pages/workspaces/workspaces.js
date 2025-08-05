@@ -639,14 +639,26 @@ function addEdgeInput(container) {
 function saveEdgeLabels(fromNode, toNode) {
     const inputs = document.querySelectorAll('.edge-input');
     const newLabels = [];
-    const regEx = /^[a-zA-Z0-9,]+$/; // Permitimos comas para múltiples valores
+    const validationErrors = [];
 
-    inputs.forEach(input => {
+    inputs.forEach((input, index) => {
         const value = input.value.trim();
-        if (value && regEx.exec(value)) {
+        if (!value) return; // Ignorar campos vacíos
+        
+        const validation = validateTransitionLabel(value);
+        if (validation.isValid) {
             newLabels.push(value);
+        } else {
+            validationErrors.push(`Campo ${index + 1}: ${validation.error}`);
         }
     });
+
+    if (validationErrors.length > 0) {
+        const errorMessage = "Error al procesar la transicion, verifica que tenga caracteres validos"+
+        "\no no uses un caracter de escape invalido (\\) \n";
+        showMessage(errorMessage);
+        return;
+    }
 
     if (newLabels.length === 0) {
         closeMessage('customEdgeModal');
@@ -751,6 +763,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (confirmExportButton) {
         confirmExportButton.addEventListener('click', exportImage);
     }
+
+    // Actualizar la visibilidad del menú Ver según el modo actual
+    updateViewMenuVisibility();
 });
 
 // Undo/Redo 
@@ -1085,6 +1100,112 @@ function centerCanvasContent() {
     panY = (canvasHeight / 2) - (contentCenterY * scale);
 
     redrawCanvas();
+}
+
+function getCurrentMode() {
+    const params = new URLSearchParams(location.search);
+    return params.get('mode');
+}
+
+function updateViewMenuVisibility() {
+    const currentMode = getCurrentMode();
+    const turingTapeMenuItem = document.querySelector('#menuVer .submenu span[onclick="showTuringTape()"]');
+    const stringAnalyzerMenuItem = document.querySelector('#menuVer .submenu span[onclick="showStringAnalyzer()"]');
+
+    if (turingTapeMenuItem && stringAnalyzerMenuItem) {
+        if (currentMode === 'turing') {
+            // En modo Turing, mostrar solo la opción de cinta
+            turingTapeMenuItem.style.display = 'block';
+            stringAnalyzerMenuItem.style.display = 'none';
+        } else if (currentMode === 'automata') {
+            // En modo autómata, mostrar solo el analizador de cadenas
+            turingTapeMenuItem.style.display = 'none';
+            stringAnalyzerMenuItem.style.display = 'block';
+        } else {
+            // Si no hay modo definido o es otro, mostrar ambos
+            turingTapeMenuItem.style.display = 'block';
+            stringAnalyzerMenuItem.style.display = 'block';
+        }
+    }
+}
+
+/**
+ * Valida una etiqueta de transición para asegurar que no contenga caracteres de escape inválidos
+ * @param {string} label - La etiqueta a validar
+ * @returns {object} - Objeto con isValid (boolean) y error (string)
+ */
+function validateTransitionLabel(label) {
+    if (!label || typeof label !== 'string') {
+        return { isValid: false, error: 'La etiqueta no puede estar vacía' };
+    }
+
+    // Casos específicos de errores comunes con caracteres de escape
+    const commonInvalidEscapes = [
+        { pattern: /\\test/g, description: '\\test (use \\t para tabulación o "test" para literal)' },
+        { pattern: /\\hello/g, description: '\\hello (use "hello" para literal)' },
+        { pattern: /\\word/g, description: '\\word (use \\w para alfanuméricos o "word" para literal)' },
+        { pattern: /\\space/g, description: '\\space (use \\s para espacios o "space" para literal)' },
+        { pattern: /\\digit/g, description: '\\digit (use \\d para dígitos o "digit" para literal)' },
+        { pattern: /\\num/g, description: '\\num (use \\d para dígitos o "num" para literal)' },
+        { pattern: /\\char/g, description: '\\char (use \\w para alfanuméricos o "char" para literal)' },
+        { pattern: /\\letter/g, description: '\\letter (use [a-zA-Z] para letras o "letter" para literal)' }
+    ];
+
+    // Verificar casos específicos comunes
+    for (const invalid of commonInvalidEscapes) {
+        if (invalid.pattern.test(label)) {
+            return { 
+                isValid: false, 
+                error: `Secuencia de escape inválida encontrada: ${invalid.description}` 
+            };
+        }
+    }
+
+    // Verificar caracteres de escape inválidos en general
+    const invalidEscapePattern = /\\([^dnwsrntfvbDSWRNTFVB0-9\[\](){}.*+?^$|\\\/])/g;
+    const invalidEscapes = label.match(invalidEscapePattern);
+    
+    if (invalidEscapes) {
+        const uniqueInvalidEscapes = [...new Set(invalidEscapes)];
+        return { 
+            isValid: false, 
+            error: `Secuencias de escape inválidas: ${uniqueInvalidEscapes.join(', ')}. 
+
+Caracteres de escape válidos:
+• \\d - dígitos (0-9)
+• \\w - alfanuméricos (a-z, A-Z, 0-9, _)  
+• \\s - espacios en blanco
+• \\n - nueva línea
+• \\t - tabulación
+• \\\\ - barra invertida literal
+• \\. \\* \\+ \\? \\^ \\$ \\| - símbolos literales
+
+Para texto literal, no uses \\ al inicio (ej: use "test" en lugar de "\\test")` 
+        };
+    }
+
+    // Verificar si es una expresión regular válida (si parece ser regex)
+    if (typeof RegexHandler !== 'undefined') {
+        const regexValidation = RegexHandler.validateRegex(label);
+        if (!regexValidation.valid) {
+            return { 
+                isValid: false, 
+                error: `Expresión regular inválida: ${regexValidation.error}` 
+            };
+        }
+    } else {
+        // Fallback si RegexHandler no está disponible
+        // Verificar caracteres básicos permitidos
+        const basicValidPattern = /^[a-zA-Z0-9_|().,\[\]\-\\^$*+?{}\/\s]+$/;
+        if (!basicValidPattern.test(label)) {
+            return { 
+                isValid: false, 
+                error: 'La etiqueta contiene caracteres no permitidos' 
+            };
+        }
+    }
+
+    return { isValid: true, error: null };
 }
 
 
