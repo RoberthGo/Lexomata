@@ -38,6 +38,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (objectClickedOnMouseDown && objectClickedOnMouseDown.type === 'node') {
                 draggingNode = objectClickedOnMouseDown.object;
+            } else {
+                isSelecting = true;
+                selectionStart = worldCoords;
+                selectionEnd = worldCoords;
             }
         }
     });
@@ -48,6 +52,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     window.addEventListener('mousemove', (e) => {
+
+        if (isSelecting) {
+            e.preventDefault();
+            hasDragged = true;
+            const worldCoords = getCanvasPoint(e.clientX, e.clientY);
+            selectionEnd = worldCoords;
+            redrawCanvas();
+            return;
+        }
 
         // Si no hay acción pendiente, no hacer nada
         if (!isPanning && !draggingNode) return;
@@ -102,6 +115,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (contextMenu && contextMenu.contains(e.target)) {
             return;
+        }
+
+        // Si estábamos creando un cuadro de selección
+        if (isSelecting) {
+            if (hasDragged) {
+                const nodesInBox = getNodesInSelectionBox(selectionStart, selectionEnd);
+                const nodeIdsInBox = nodesInBox.map(node => node.id);
+
+                if (e.shiftKey) {
+                    // MODO ADITIVO: Añade los nodos a la selección actual sin duplicados
+                    const currentSelection = new Set(selectedNodeIds);
+                    nodeIdsInBox.forEach(id => currentSelection.add(id));
+                    selectedNodeIds = Array.from(currentSelection);
+                } else {
+                    // MODO REEMPLAZO: La nueva selección son solo los nodos en el cuadro
+                    selectedNodeIds = nodeIdsInBox;
+                    selectedEdgeIds = []; // Limpia la selección de aristas
+                }
+            }
+            isSelecting = false; // Finaliza el modo de selección
+            redrawCanvas();
         }
 
         if (!hasDragged) {

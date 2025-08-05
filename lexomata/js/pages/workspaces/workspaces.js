@@ -5,21 +5,31 @@
 const colorPalette = {
     light: {
         background: '#FFFFFF',
-        nodeFill: '#add8e6',
-        nodeStroke: '#000000',
-        nodeText: '#000000',
-        selectedNodeText: '#000000',
-        selectedNodeFill: '#FFD700',
-        selectedNodeStroke: '#FFA500',
-        edgeLine: '#000000',
-        edgeText: '#000000',
-        selectedEdge: '#D62828',
+        nodeFill: '#f5f0d9',          // Color Crema de la imagen
+        nodeStroke: '#2c2140',        // Color Índigo oscuro para el borde
+        nodeText: '#2c2140',          // Color Índigo oscuro para el texto
+        // Un verde muy oscuro para el texto, como en la imagen
+
+        // ---> ESTADO SELECCIONADO: LA VIBRA DE TU IMAGEN <---
+        selectedNodeText: '#2c2140',  // Índigo oscuro, se lee bien sobre el Durazno
+        selectedNodeFill: '#f4c8a2',  // Color Durazno de la imagen
+        selectedNodeStroke: '#2c2140',// Mantenemos el borde oscuro para unificar el estilo   borde menta brillante de la imagen
+
+        // ---> ARISTAS A JUEGO <---
+        edgeLine: '#6a9a9a',          // Color Verde Azulado (Teal) para la línea
+        edgeText: '#2c2140',          // Índigo oscuro para el texto de la arista
+
+        // ---> SELECCIÓN DE ARISTAS Y CUADRO <---
+        selectedEdge: '#f4c8a2',
         // Colores de la cinta de Turing
         turingCellFill: '#ffffff',
         turingCellStroke: '#ccc',
         turingCellText: '#333',
         turingIndexText: '#666',
-        turingHeadStroke: '#20c997'
+        turingHeadStroke: '#20c997',
+        // CUADRO DE SELECCION
+        selectionBoxFill: 'rgba(32, 201, 151, 0.2)',  // Relleno del cuadro de selección
+        selectionBoxStroke: 'rgba(32, 201, 151, 1)'
     },
     dark: {
         background: '#2d3748',
@@ -37,7 +47,10 @@ const colorPalette = {
         turingCellStroke: '#3a3a50',
         turingCellText: '#e0e0e0',
         turingIndexText: '#a0a0a0',
-        turingHeadStroke: '#20c997'
+        turingHeadStroke: '#20c997',
+        // CUADRO DE SELECCION
+        selectionBoxFill: 'rgba(135, 206, 250, 0.2)', // Relleno celeste semi-transparente
+        selectionBoxStroke: 'rgba(135, 206, 250, 1)'
     }
 };
 
@@ -109,6 +122,10 @@ let edgeReassignmentState = {
     mouseY: 0,
     mode: 'destination' // 'destination' o 'origin'
 };
+let isSelecting = false;
+let selectionStart = { x: 0, y: 0 };
+let selectionEnd = { x: 0, y: 0 };
+
 const undoButton = document.getElementById('undoButton');
 const redoButton = document.getElementById('redoButton');
 const undoMenuItem = document.getElementById('undoMenuItem');
@@ -140,10 +157,44 @@ function redrawCanvas() {
         drawNode(ctx, node, selectedNodeIds, currentTheme);
     });
 
+    drawSelectionBox(ctx);
+
     // Dibujar líneas de reasignación si está activo el modo
     if (edgeReassignmentState.isActive) {
         drawReassignmentLines(ctx, currentTheme);
     }
+
+    ctx.restore();
+}
+
+/**
+ * Dibuja el rectángulo de selección en el canvas cuando el usuario arrastra el mouse.
+ * @param {CanvasRenderingContext2D} ctx - El contexto del canvas.
+ */
+function drawSelectionBox(ctx) {
+    if (!isSelecting) return;
+
+    const isDarkMode = document.body.classList.contains('dark');
+    const theme = isDarkMode ? colorPalette.dark : colorPalette.light;
+
+    const startX = selectionStart.x;
+    const startY = selectionStart.y;
+    const width = selectionEnd.x - startX;
+    const height = selectionEnd.y - startY;
+
+    ctx.save();
+
+    // Relleno semi-transparente
+    ctx.fillStyle = theme.selectionBoxFill;
+    ctx.strokeStyle = theme.selectionBoxStroke;
+    ctx.globalAlpha = 0.2;
+
+    // Borde sólido
+    ctx.lineWidth = 1 / scale; // Mantiene el grosor del borde consistente con el zoom
+    ctx.globalAlpha = 1.0;
+    ctx.fillRect(startX, startY, width, height);
+
+    ctx.strokeRect(startX, startY, width, height);
 
     ctx.restore();
 }
@@ -644,7 +695,7 @@ function saveEdgeLabels(fromNode, toNode) {
     inputs.forEach((input, index) => {
         const value = input.value.trim();
         if (!value) return; // Ignorar campos vacíos
-        
+
         const validation = validateTransitionLabel(value);
         if (validation.isValid) {
             newLabels.push(value);
@@ -654,8 +705,8 @@ function saveEdgeLabels(fromNode, toNode) {
     });
 
     if (validationErrors.length > 0) {
-        const errorMessage = "Error al procesar la transicion, verifica que tenga caracteres validos"+
-        "\no no uses un caracter de escape invalido (\\) \n";
+        const errorMessage = "Error al procesar la transicion, verifica que tenga caracteres validos" +
+            "\no no uses un caracter de escape invalido (\\) \n";
         showMessage(errorMessage);
         return;
     }
@@ -1154,9 +1205,9 @@ function validateTransitionLabel(label) {
     // Verificar casos específicos comunes
     for (const invalid of commonInvalidEscapes) {
         if (invalid.pattern.test(label)) {
-            return { 
-                isValid: false, 
-                error: `Secuencia de escape inválida encontrada: ${invalid.description}` 
+            return {
+                isValid: false,
+                error: `Secuencia de escape inválida encontrada: ${invalid.description}`
             };
         }
     }
@@ -1164,11 +1215,11 @@ function validateTransitionLabel(label) {
     // Verificar caracteres de escape inválidos en general
     const invalidEscapePattern = /\\([^dnwsrntfvbDSWRNTFVB0-9\[\](){}.*+?^$|\\\/])/g;
     const invalidEscapes = label.match(invalidEscapePattern);
-    
+
     if (invalidEscapes) {
         const uniqueInvalidEscapes = [...new Set(invalidEscapes)];
-        return { 
-            isValid: false, 
+        return {
+            isValid: false,
             error: `Secuencias de escape inválidas: ${uniqueInvalidEscapes.join(', ')}. 
 
 Caracteres de escape válidos:
@@ -1180,7 +1231,7 @@ Caracteres de escape válidos:
 • \\\\ - barra invertida literal
 • \\. \\* \\+ \\? \\^ \\$ \\| - símbolos literales
 
-Para texto literal, no uses \\ al inicio (ej: use "test" en lugar de "\\test")` 
+Para texto literal, no uses \\ al inicio (ej: use "test" en lugar de "\\test")`
         };
     }
 
@@ -1188,9 +1239,9 @@ Para texto literal, no uses \\ al inicio (ej: use "test" en lugar de "\\test")`
     if (typeof RegexHandler !== 'undefined') {
         const regexValidation = RegexHandler.validateRegex(label);
         if (!regexValidation.valid) {
-            return { 
-                isValid: false, 
-                error: `Expresión regular inválida: ${regexValidation.error}` 
+            return {
+                isValid: false,
+                error: `Expresión regular inválida: ${regexValidation.error}`
             };
         }
     } else {
@@ -1198,9 +1249,9 @@ Para texto literal, no uses \\ al inicio (ej: use "test" en lugar de "\\test")`
         // Verificar caracteres básicos permitidos
         const basicValidPattern = /^[a-zA-Z0-9_|().,\[\]\-\\^$*+?{}\/\s]+$/;
         if (!basicValidPattern.test(label)) {
-            return { 
-                isValid: false, 
-                error: 'La etiqueta contiene caracteres no permitidos' 
+            return {
+                isValid: false,
+                error: 'La etiqueta contiene caracteres no permitidos'
             };
         }
     }

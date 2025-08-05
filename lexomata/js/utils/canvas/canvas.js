@@ -85,9 +85,27 @@ function distanceToLine(px, py, x1, y1, x2, y2) {
     return Math.sqrt(dx * dx + dy * dy);
 }
 
-function handleMode(){
+function handleMode() {
     let params = new URLSearchParams(location.search);
     var mode = params.get('mode');
-    if(mode=="turing")showTuringTape();
-    else if(mode=="automata") showStringAnalyzer();
+    if (mode == "turing") showTuringTape();
+    else if (mode == "automata") showStringAnalyzer();
+}
+
+/**
+ * Devuelve todos los nodos que se encuentran dentro de un rectángulo de selección.
+ * @param {object} start - Coordenadas {x, y} del inicio del cuadro.
+ * @param {object} end - Coordenadas {x, y} del final del cuadro.
+ * @returns {Array<State>} - Una lista de los nodos que están dentro del cuadro.
+ */
+function getNodesInSelectionBox(start, end) {
+    // Asegura que las coordenadas sean correctas sin importar la dirección del arrastre
+    const minX = Math.min(start.x, end.x);
+    const maxX = Math.max(start.x, end.x);
+    const minY = Math.min(start.y, end.y);
+    const maxY = Math.max(start.y, end.y);
+
+    return nodes.filter(node => {
+        return node.x >= minX && node.x <= maxX && node.y >= minY && node.y <= maxY;
+    });
 }
