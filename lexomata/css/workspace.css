@@ -1938,8 +1938,7 @@ body.dark .string-input-info small {
     background-color: #fefefe;
     padding: 20px;
     border: 1px solid #888;
-    width: 70%;
-    max-width: 900px;
+    width: 80%;
     border-radius: 8px;
     box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
 }
@@ -1982,6 +1981,7 @@ body.dark .string-input-info small {
     margin-top: 20px;
     table-layout: fixed;
 }
+
 #inputTable th,
 #inputTable td {
     border: 1px solid #ddd;
@@ -2128,9 +2128,8 @@ body.dark #runAllBtn:hover {
 }
 
 .modal-body {
-    /* Límite: nunca será más alto que el 60% de la altura de la pantalla. */
-    max-height: 60vh; 
-    
+    /* Establece una altura fija al 60% de la altura de la pantalla. */
+    height: 75vh; 
     /* Muestra una barra de scroll vertical automáticamente SI es necesario. */
     overflow-y: auto; 
 }
