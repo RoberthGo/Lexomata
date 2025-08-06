@@ -174,7 +174,9 @@ function drawSelfLoop(ctx, node, edge, isSelected, theme, drawCount) {
     // --- 5. Dibujar la etiqueta ---
     // Esta sección ahora maneja el dibujado de la etiqueta directamente,
     // usando el punto de control como ancla para el texto.
-    const labels = edge.labels || [edge.label];
+    const rawLabels = edge.labels || [edge.label];
+    // Asegurar que cada label sea un objeto con propiedad text
+    const labels = rawLabels.map(label => (typeof label === 'object' ? label : { text: label }));
     const lineHeight = 15; // Espacio vertical entre cada etiqueta
 
     ctx.font = '14px Arial';
@@ -182,10 +184,10 @@ function drawSelfLoop(ctx, node, edge, isSelected, theme, drawCount) {
     ctx.fillStyle = isSelected ? theme.selectedEdge : theme.edgeText;
 
     // Apilamos las etiquetas hacia arriba desde el punto de control de la curva.
-    labels.forEach((label, index) => {
+    labels.forEach((labelObj, index) => {
         // Se dibuja cada etiqueta, con un desplazamiento vertical para apilarlas.
         // Un pequeño offset adicional (5px) las separa de la línea.
-        ctx.fillText(label, controlX, controlY - (index * lineHeight) + 32);
+        ctx.fillText(labelObj.text, controlX, controlY - (index * lineHeight) + 32);
     });
 }
 
