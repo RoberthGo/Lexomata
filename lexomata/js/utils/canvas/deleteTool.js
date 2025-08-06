@@ -1,5 +1,4 @@
 function isClickOnLabel(x, y, edge, nodes) {
-    // Supón que cada label tiene {text, x, y, width, height}
     if (!edge.labels) return null;
     for (let i = 0; i < edge.labels.length; i++) {
         const label = edge.labels[i];
@@ -15,7 +14,7 @@ function isClickOnLabel(x, y, edge, nodes) {
     return null;
 }
 
-function handleDeleteClick(clickedObject, x, y, nodes, edges, redrawCanvasCallback, isClickOnEdgeCallback) {
+function handleDeleteClick(clickedObject, x, y, nodes, edges, redrawCanvas, isClickOnEdge) {
     let somethingWasDeleted = false;
     
     if (clickedObject) {
@@ -65,7 +64,7 @@ function handleDeleteClick(clickedObject, x, y, nodes, edges, redrawCanvasCallba
         // Si no se borró ningún label, intenta borrar la arista completa
         if (!somethingWasDeleted) {
             for (let i = edges.length - 1; i >= 0; i--) {
-                if (isClickOnEdgeCallback(x, y, edges[i], nodes)) {
+                if (isClickOnEdge(x, y, edges[i], nodes)) {
                     edges.splice(i, 1);
                     somethingWasDeleted = true;
                     break;
@@ -95,7 +94,7 @@ function handleDeleteClick(clickedObject, x, y, nodes, edges, redrawCanvasCallba
     }
     
     if (somethingWasDeleted) {
-        redrawCanvasCallback();
+        redrawCanvas();
         saveState();
     }
 }
