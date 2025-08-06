@@ -106,6 +106,10 @@ const transparentOption = document.getElementById('transparentOption');
 const exportThemeSelect = document.getElementById('exportTheme');
 let projectName = 'nuevo-automata';
 
+// --- OBTENCIÓN DEL MODO DE TRABAJO ---
+const urlParams = new URLSearchParams(window.location.search);
+const currentMode = urlParams.get('mode') || 'automata';
+
 
 let nodes = [];
 let edges = [];
@@ -201,9 +205,9 @@ function drawSelectionBox(ctx) {
 }
 
 function drawReassignmentLines(ctx, theme) {
-    if (!edgeReassignmentState.isActive || 
-        (edgeReassignmentState.selectedEdgeIds.length === 0 && 
-         edgeReassignmentState.selectedLabels.length === 0)) return;
+    if (!edgeReassignmentState.isActive ||
+        (edgeReassignmentState.selectedEdgeIds.length === 0 &&
+            edgeReassignmentState.selectedLabels.length === 0)) return;
 
     ctx.save();
 
@@ -241,7 +245,7 @@ function drawReassignmentLines(ctx, theme) {
     if (edgeReassignmentState.selectedLabels.length > 0) {
         // Obtener aristas únicas de las etiquetas seleccionadas
         const uniqueEdgeIds = [...new Set(edgeReassignmentState.selectedLabels.map(label => label.edgeId))];
-        
+
         uniqueEdgeIds.forEach(edgeId => {
             const edge = edges.find(e => e.id == edgeId); // Usar == para comparación flexible
             if (!edge) return;
@@ -474,7 +478,7 @@ function reverseMultipleLabels(selectedLabels) {
         if (!edge) return;
 
         const labelsToReverse = labelsByEdge[edgeId];
-        
+
         // Si se van a invertir todas las etiquetas de la arista
         if (labelsToReverse.length === edge.labels.length) {
             // Invertir toda la arista
@@ -537,7 +541,7 @@ function reverseMultipleLabels(selectedLabels) {
 function createOrMergeEdge(fromId, toId, labelsToAdd) {
     // Buscar si ya existe una arista entre estos nodos
     const existingEdge = edges.find(e => e.from === fromId && e.to === toId);
-    
+
     if (existingEdge) {
         // Fusionar etiquetas con la arista existente
         labelsToAdd.forEach(label => {
@@ -647,7 +651,7 @@ function reassignLabelDestinations(selectedLabels, newDestinationNodeId) {
         if (!edge) return;
 
         const labelsToMove = labelsByEdge[edgeId];
-        
+
         if (labelsToMove.length === edge.labels.length) {
             // Mover toda la arista
             mergeOrUpdateEdge(edge, edge.from, newDestinationNodeId, edgesToDelete, [edgeId]);
@@ -713,7 +717,7 @@ function reassignLabelOrigins(selectedLabels, newOriginNodeId) {
         if (!edge) return;
 
         const labelsToMove = labelsByEdge[edgeId];
-        
+
         if (labelsToMove.length === edge.labels.length) {
             // Mover toda la arista
             mergeOrUpdateEdge(edge, newOriginNodeId, edge.to, edgesToDelete, [edgeId]);
@@ -896,7 +900,7 @@ function cancelEdgeReassignment() {
  */
 function handleEdgeAction(action, edgeIds) {
     if (!edgeIds || edgeIds.length === 0) return;
-    
+
     // Contar el total de etiquetas en todas las aristas seleccionadas
     let totalLabels = 0;
     let totalEdges = 0;
@@ -907,7 +911,7 @@ function handleEdgeAction(action, edgeIds) {
             totalEdges++;
         }
     });
-    
+
     // Si solo hay una arista con una etiqueta, ejecutar directamente sobre la etiqueta
     if (totalEdges === 1 && totalLabels === 1) {
         const selectedLabels = [];
@@ -926,19 +930,19 @@ function handleEdgeAction(action, edgeIds) {
         executeEdgeAction(action, selectedLabels);
         return;
     }
-    
+
     // Si todas las aristas tienen exactamente una etiqueta cada una, actuar sobre aristas completas
     const allEdgesHaveOneLabel = edgeIds.every(edgeId => {
         const edge = edges.find(e => e.id == edgeId); // Usar == para comparación flexible
         return edge && edge.labels && edge.labels.length === 1;
     });
-    
+
     if (allEdgesHaveOneLabel) {
         // Ejecutar acción directamente sobre las aristas completas
         executeDirectEdgeAction(action, edgeIds);
         return;
     }
-    
+
     // Si hay múltiples etiquetas o aristas mixtas, mostrar el modal de selección
     showEdgeSelectionModal(action, edgeIds);
 }
@@ -991,7 +995,7 @@ function showEdgeSelectionModal(action, edgeIds) {
     const title = document.getElementById('edgeSelectionTitle');
     const content = document.getElementById('edgeSelectionContent');
     const executeButton = document.getElementById('executeActionButton');
-    
+
     // Configurar el título según la acción
     const actionTitles = {
         'invert': 'Seleccionar etiquetas individuales a invertir',
@@ -999,14 +1003,14 @@ function showEdgeSelectionModal(action, edgeIds) {
         'change-origin': 'Seleccionar etiquetas individuales para cambiar origen'
     };
     title.textContent = actionTitles[action] || 'Seleccionar etiquetas';
-    
+
     // Agrupar etiquetas por pares de nodos (origen -> destino)
     // Cada etiqueta es tratada como una entidad individual
     const edgeGroups = groupEdgesByNodePair(edgeIds);
-    
+
     // Generar el contenido del modal
     content.innerHTML = generateEdgeSelectionHTML(edgeGroups);
-    
+
     // Configurar el botón de ejecutar
     executeButton.onclick = () => {
         const selectedLabels = getSelectedEdgesFromModal();
@@ -1017,10 +1021,10 @@ function showEdgeSelectionModal(action, edgeIds) {
             alert('Por favor selecciona al menos una etiqueta para proceder.');
         }
     };
-    
+
     // Mostrar el modal
     modal.style.display = 'flex';
-    
+
     // Añadir listeners para los checkboxes
     setupEdgeSelectionListeners();
 }
@@ -1033,18 +1037,18 @@ function showEdgeSelectionModal(action, edgeIds) {
  */
 function groupEdgesByNodePair(edgeIds) {
     const groups = {};
-    
+
     edgeIds.forEach(edgeId => {
         const edge = edges.find(e => e.id == edgeId); // Usar == para comparación flexible
         if (!edge) return;
-        
+
         const fromNode = nodes.find(n => n.id === edge.from);
         const toNode = nodes.find(n => n.id === edge.to);
-        
+
         if (!fromNode || !toNode) return;
-        
+
         const pairKey = `${fromNode.label}->${toNode.label}`;
-        
+
         if (!groups[pairKey]) {
             groups[pairKey] = {
                 fromLabel: fromNode.label,
@@ -1052,7 +1056,7 @@ function groupEdgesByNodePair(edgeIds) {
                 labels: [] // Cambiado de 'edges' a 'labels' para reflejar que trabajamos con etiquetas individuales
             };
         }
-        
+
         // Procesar cada etiqueta como una entidad individual
         let edgeLabels;
         if (edge.labels && Array.isArray(edge.labels)) {
@@ -1070,7 +1074,7 @@ function groupEdgesByNodePair(edgeIds) {
         } else {
             edgeLabels = ['ε'];
         }
-        
+
         // Crear una entrada individual para cada etiqueta
         // Cada etiqueta es tratada como una entidad separada e independiente
         edgeLabels.forEach((labelText, labelIndex) => {
@@ -1084,7 +1088,7 @@ function groupEdgesByNodePair(edgeIds) {
             });
         });
     });
-    
+
     return groups;
 }
 
@@ -1098,18 +1102,18 @@ function generateEdgeSelectionHTML(edgeGroups) {
     html += '<input type="checkbox" id="selectAllEdges" class="select-all-checkbox" checked>';
     html += '<label for="selectAllEdges">Seleccionar todas las etiquetas</label>';
     html += '</div>';
-    
+
     Object.keys(edgeGroups).forEach(pairKey => {
         const group = edgeGroups[pairKey];
         const groupId = `group-${pairKey.replace(/[^a-zA-Z0-9]/g, '-')}`;
-        
+
         html += `<div class="node-pair-group">`;
         html += `<div class="node-pair-header" data-group="${groupId}">`;
         html += `<span class="group-label">${group.fromLabel} → ${group.toLabel} (${group.labels.length} etiqueta${group.labels.length !== 1 ? 's' : ''})</span>`;
         html += `<span class="expand-icon">▼</span>`;
         html += `</div>`;
         html += `<div class="node-pair-labels expanded" id="${groupId}">`;
-        
+
         group.labels.forEach((labelInfo, index) => {
             html += `<div class="edge-item">`;
             html += `<input type="checkbox" class="edge-checkbox" value="${labelInfo.uniqueId}" checked>`;
@@ -1119,11 +1123,11 @@ function generateEdgeSelectionHTML(edgeGroups) {
             html += `</div>`;
             html += `</div>`;
         });
-        
+
         html += `</div>`;
         html += `</div>`;
     });
-    
+
     return html;
 }
 
@@ -1134,34 +1138,34 @@ function setupEdgeSelectionListeners() {
     const selectAllCheckbox = document.getElementById('selectAllEdges');
     const edgeCheckboxes = document.querySelectorAll('.edge-checkbox');
     const groupHeaders = document.querySelectorAll('.node-pair-header');
-    
+
     // Listener para seleccionar/deseleccionar todo
     if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', function() {
+        selectAllCheckbox.addEventListener('change', function () {
             edgeCheckboxes.forEach(checkbox => {
                 checkbox.checked = this.checked;
             });
         });
     }
-    
+
     // Listeners para checkboxes individuales
     edgeCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
+        checkbox.addEventListener('change', function () {
             // Actualizar el estado del checkbox "seleccionar todo"
             updateSelectAllCheckbox();
         });
     });
-    
+
     // Listeners para colapsar/expandir grupos
     groupHeaders.forEach(header => {
-        header.addEventListener('click', function(e) {
+        header.addEventListener('click', function (e) {
             // Solo expandir/colapsar si no se hizo clic en un checkbox
             if (e.target.type === 'checkbox') return;
-            
+
             const groupId = this.getAttribute('data-group');
             const labelsDiv = document.getElementById(groupId);
             const icon = this.querySelector('.expand-icon');
-            
+
             if (labelsDiv && icon) {
                 if (labelsDiv.classList.contains('expanded')) {
                     labelsDiv.classList.remove('expanded');
@@ -1175,14 +1179,14 @@ function setupEdgeSelectionListeners() {
             }
         });
     });
-    
+
     // Función auxiliar para actualizar el estado del checkbox "seleccionar todo"
     function updateSelectAllCheckbox() {
         if (!selectAllCheckbox) return;
-        
+
         const checkedCount = Array.from(edgeCheckboxes).filter(cb => cb.checked).length;
         const totalCount = edgeCheckboxes.length;
-        
+
         if (checkedCount === 0) {
             selectAllCheckbox.checked = false;
             selectAllCheckbox.indeterminate = false;
@@ -1443,17 +1447,17 @@ document.addEventListener('DOMContentLoaded', () => {
         e.stopPropagation();
         if (e.target.matches('.simple-context-menu-item') && !e.target.classList.contains('disabled')) {
             const action = e.target.dataset.action;
-            
+
             // Filtrar solo las aristas seleccionadas (ignorar nodos seleccionados)
             const onlyEdgeIds = selectedEdgeIds.filter(id => {
                 return edges.some(edge => edge.id === id);
             });
-            
+
             if (onlyEdgeIds.length === 0) {
                 hideCanvasContextMenu();
                 return;
             }
-            
+
             switch (action) {
                 case 'invert':
                     handleEdgeAction('invert', onlyEdgeIds);
@@ -1492,7 +1496,8 @@ document.addEventListener('DOMContentLoaded', () => {
         saveState();
     }
 
-    if (localStorage.getItem('lexomata_autosave')) {
+    const storageKey = `lexomata_autosave_${currentMode}`;
+    if (localStorage.getItem(storageKey)) {
         if (confirm("Se encontró una sesión guardada. ¿Deseas restaurarla?")) {
             loadFromLocalStorage();
         }
@@ -1728,6 +1733,7 @@ function exportImage() {
 
 
 function autoSaveToLocalStorage() {
+    const storageKey = `lexomata_autosave_${currentMode}`;
     // Se prepara el objeto con todo lo necesario para guardar
     const stateToSave = {
         nodes: nodes,
@@ -1738,11 +1744,13 @@ function autoSaveToLocalStorage() {
     };
 
     // Convierte el objeto a texto JSON y lo guarda en localStorage.
-    localStorage.setItem('lexomata_autosave', JSON.stringify(stateToSave));
+    localStorage.setItem(storageKey, JSON.stringify(stateToSave));
 }
 
 function loadFromLocalStorage() {
-    const savedStateJSON = localStorage.getItem('lexomata_autosave');
+    const storageKey = `lexomata_autosave_${currentMode}`;
+
+    const savedStateJSON = localStorage.getItem(storageKey);
     if (!savedStateJSON) return; // No hay nada guardado
 
     const savedState = JSON.parse(savedStateJSON);

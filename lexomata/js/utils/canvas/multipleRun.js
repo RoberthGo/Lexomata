@@ -9,10 +9,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const inputTable = document.getElementById('inputTable');
     const inputTableBody = inputTable.querySelector('tbody');
 
-    // --- 2. OBTENCIÓN DEL MODO DE TRABAJO ---
-    const urlParams = new URLSearchParams(window.location.search);
-    const currentMode = urlParams.get('mode') || 'automata';
-
     // --- ICONOS SVG ---
     const runIconSVG = `<svg class="run-icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16"><path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/></svg>`;
     const deleteIconSVG = `<svg class="delete-icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16"><path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/></svg>`;
