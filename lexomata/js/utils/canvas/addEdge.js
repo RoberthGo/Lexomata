@@ -22,8 +22,15 @@ function handleEdgeCreationClick(x, y, nodes, redrawCanvasCallback, state) {
         const fromNode = state.firstNode;
         const toNode = clickedNode;
 
-        // Llama a la función del modal para pedir la etiqueta
-        showEdgeLabelModal(fromNode, toNode);
+        let params = new URLSearchParams(location.search);
+        var mode = params.get('mode');
+
+        if(mode == "automata") {
+            // Llama a la función del modal para pedir la etiqueta
+            showEdgeLabelModal(fromNode, toNode);
+        } else {
+            showTuringEdgeModal(fromNode, toNode);
+        }
 
         // Limpia el estado, listo para la próxima arista
         state.firstNode = null;
