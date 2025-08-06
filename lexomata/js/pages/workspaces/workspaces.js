@@ -436,15 +436,57 @@ function distancePointToLine(px, py, x1, y1, x2, y2) {
 
 function reverseMultipleEdges(edgeIds) {
     if (!edgeIds || edgeIds.length === 0) return;
+    
+    // Crear una copia de las aristas a procesar para evitar modificar el array original durante la iteración
+    const edgesToProcess = edgeIds.map(edgeId => {
+        const edge = edges.find(e => e.id == edgeId);
+        if (!edge) return null;
+        return {
+            id: edge.id,
+            originalFrom: edge.from,
+            originalTo: edge.to,
+            labels: [...edge.labels] // Copia de las etiquetas
+        };
+    }).filter(edge => edge !== null);
+
+    // Primero, crear todas las aristas invertidas como nuevas aristas temporales
+    const newEdges = [];
     const edgesToDelete = new Set();
 
-    // Invertir todas las aristas seleccionadas
-    edgeIds.forEach(edgeId => {
-        const edge = edges.find(e => e.id == edgeId); // Usar == para comparación flexible
-        mergeOrUpdateEdge(edge, edge.to, edge.from, edgesToDelete, edgeIds);
+    edgesToProcess.forEach(edgeInfo => {
+        const originalEdge = edges.find(e => e.id == edgeInfo.id);
+        if (!originalEdge) return;
+
+        // Buscar si ya existe una arista en la dirección inversa que NO esté en la selección actual
+        const existingOppositeEdge = edges.find(e => 
+            e.from === edgeInfo.originalTo && 
+            e.to === edgeInfo.originalFrom && 
+            !edgeIds.includes(e.id) // No debe estar en la selección actual
+        );
+
+        if (existingOppositeEdge) {
+            // Si existe una arista opuesta que no está siendo invertida, fusionar con ella
+            edgeInfo.labels.forEach(label => {
+                const labelText = typeof label === 'object' ? label.text : label;
+                const labelExists = existingOppositeEdge.labels.some(existingLabel => {
+                    const existingLabelText = typeof existingLabel === 'object' ? existingLabel.text : existingLabel;
+                    return existingLabelText === labelText;
+                });
+                
+                if (!labelExists) {
+                    existingOppositeEdge.labels.push(label);
+                }
+            });
+            edgesToDelete.add(originalEdge.id);
+        } else {
+            // Si no existe arista opuesta, o la arista opuesta también está siendo invertida,
+            // simplemente invertir la dirección de la arista actual
+            originalEdge.from = edgeInfo.originalTo;
+            originalEdge.to = edgeInfo.originalFrom;
+        }
     });
 
-
+    // Eliminar las aristas marcadas para eliminación
     if (edgesToDelete.size > 0) {
         edges = edges.filter(edge => !edgesToDelete.has(edge.id));
     }
@@ -481,8 +523,35 @@ function reverseMultipleLabels(selectedLabels) {
 
         // Si se van a invertir todas las etiquetas de la arista
         if (labelsToReverse.length === edge.labels.length) {
-            // Invertir toda la arista
-            mergeOrUpdateEdge(edge, edge.to, edge.from, edgesToDelete, [edgeId]);
+            // Usar la misma lógica que reverseMultipleEdges para evitar problemas con aristas bidireccionales
+            // Buscar si ya existe una arista en la dirección inversa que NO esté siendo procesada
+            const existingOppositeEdge = edges.find(e => 
+                e.from === edge.to && 
+                e.to === edge.from && 
+                !selectedLabels.some(labelInfo => labelInfo.edgeId == e.id) // No debe estar en la selección actual
+            );
+
+            if (existingOppositeEdge) {
+                // Si existe una arista opuesta que no está siendo invertida, fusionar con ella
+                edge.labels.forEach(label => {
+                    const labelText = typeof label === 'object' ? label.text : label;
+                    const labelExists = existingOppositeEdge.labels.some(existingLabel => {
+                        const existingLabelText = typeof existingLabel === 'object' ? existingLabel.text : existingLabel;
+                        return existingLabelText === labelText;
+                    });
+                    
+                    if (!labelExists) {
+                        existingOppositeEdge.labels.push(label);
+                    }
+                });
+                edgesToDelete.add(edge.id);
+            } else {
+                // Si no existe arista opuesta, o la arista opuesta también está siendo invertida,
+                // simplemente invertir la dirección de la arista actual
+                const tempFrom = edge.from;
+                edge.from = edge.to;
+                edge.to = tempFrom;
+            }
         } else {
             // Solo invertir etiquetas específicas
             const labelsToKeep = [];
@@ -545,7 +614,14 @@ function createOrMergeEdge(fromId, toId, labelsToAdd) {
     if (existingEdge) {
         // Fusionar etiquetas con la arista existente
         labelsToAdd.forEach(label => {
-            if (!existingEdge.labels.includes(label)) {
+            // Normalizar la etiqueta para comparación
+            const labelText = typeof label === 'object' ? label.text : label;
+            const labelExists = existingEdge.labels.some(existingLabel => {
+                const existingLabelText = typeof existingLabel === 'object' ? existingLabel.text : existingLabel;
+                return existingLabelText === labelText;
+            });
+            
+            if (!labelExists) {
                 existingEdge.labels.push(label);
             }
         });
@@ -1118,7 +1194,6 @@ function generateEdgeSelectionHTML(edgeGroups) {
             html += `<div class="edge-item">`;
             html += `<input type="checkbox" class="edge-checkbox" value="${labelInfo.uniqueId}" checked>`;
             html += `<div class="edge-labels">`;
-            html += `<span class="edge-identifier">Etiqueta de Arista ${labelInfo.edgeId}:</span>`;
             html += `<span class="edge-label-tag">${labelInfo.labelText}</span>`;
             html += `</div>`;
             html += `</div>`;
@@ -1408,7 +1483,13 @@ function saveEdgeLabels(fromNode, toNode) {
 
         // Añade solo las etiquetas que no estén ya incluidas para evitar duplicados.
         newLabels.forEach(label => {
-            if (!existingEdge.labels.includes(label)) {
+            const labelExists = existingEdge.labels.some(existingLabel => {
+                const existingLabelText = typeof existingLabel === 'object' ? existingLabel.text : existingLabel;
+                const newLabelText = typeof label === 'object' ? label.text : label;
+                return existingLabelText === newLabelText;
+            });
+            
+            if (!labelExists) {
                 existingEdge.labels.push(label);
             }
         });
@@ -1963,7 +2044,13 @@ function mergeOrUpdateEdge(edgeToModify, newFromId, newToId, edgesToDelete, sele
     if (existingEdge) {
         // Si se encuentra una arista, fusiona las etiquetas.
         edgeToModify.labels.forEach(label => {
-            if (!existingEdge.labels.includes(label)) {
+            const labelText = typeof label === 'object' ? label.text : label;
+            const labelExists = existingEdge.labels.some(existingLabel => {
+                const existingLabelText = typeof existingLabel === 'object' ? existingLabel.text : existingLabel;
+                return existingLabelText === labelText;
+            });
+            
+            if (!labelExists) {
                 existingEdge.labels.push(label);
             }
         });
