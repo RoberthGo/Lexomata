@@ -316,6 +316,21 @@
     </div>
   </div>
 
+  <!-- Modal para selección de aristas específicas -->
+  <div id="edgeSelectionModal" class="custom-modal">
+    <div class="custom-modal-content">
+      <span class="close-button" onclick="closeEdgeSelectionModal()">&times;</span>
+      <h3 id="edgeSelectionTitle">Seleccionar aristas</h3>
+      <div id="edgeSelectionContent" class="edge-selection-content">
+        <!-- El contenido se generará dinámicamente -->
+      </div>
+      <div class="modal-actions">
+        <button id="executeActionButton" class="modal-button">Ejecutar</button>
+        <button onclick="closeEdgeSelectionModal()" class="modal-button secondary">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
   <div id="multipleRunModal" class="modal">
     <div class="modal-content">
 

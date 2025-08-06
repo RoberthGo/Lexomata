@@ -118,6 +118,7 @@ let edgeCreationState = { firstNode: null };
 let edgeReassignmentState = {
     isActive: false,
     selectedEdgeIds: [],
+    selectedLabels: [], // Agregar array para información de etiquetas seleccionadas
     mouseX: 0,
     mouseY: 0,
     mode: 'destination' // 'destination' o 'origin'
@@ -200,7 +201,9 @@ function drawSelectionBox(ctx) {
 }
 
 function drawReassignmentLines(ctx, theme) {
-    if (!edgeReassignmentState.isActive || edgeReassignmentState.selectedEdgeIds.length === 0) return;
+    if (!edgeReassignmentState.isActive || 
+        (edgeReassignmentState.selectedEdgeIds.length === 0 && 
+         edgeReassignmentState.selectedLabels.length === 0)) return;
 
     ctx.save();
 
@@ -210,27 +213,54 @@ function drawReassignmentLines(ctx, theme) {
     ctx.setLineDash([5, 5]); // Línea punteada
     ctx.globalAlpha = 0.8;
 
-    // Dibujar líneas según el modo activo
-    edgeReassignmentState.selectedEdgeIds.forEach(edgeId => {
-        const edge = edges.find(e => e.id === edgeId);
-        if (!edge) return;
+    // Manejar aristas completas seleccionadas
+    if (edgeReassignmentState.selectedEdgeIds.length > 0) {
+        edgeReassignmentState.selectedEdgeIds.forEach(edgeId => {
+            const edge = edges.find(e => e.id == edgeId); // Usar == para comparación flexible
+            if (!edge) return;
 
-        let nodeToConnect;
-        if (edgeReassignmentState.mode === 'destination') {
-            // Línea desde el nodo origen hasta el mouse
-            nodeToConnect = nodes.find(n => n.id === edge.from);
-        } else if (edgeReassignmentState.mode === 'origin') {
-            // Línea desde el nodo destino hasta el mouse
-            nodeToConnect = nodes.find(n => n.id === edge.to);
-        }
+            let nodeToConnect;
+            if (edgeReassignmentState.mode === 'destination') {
+                // Línea desde el nodo origen hasta el mouse
+                nodeToConnect = nodes.find(n => n.id === edge.from);
+            } else if (edgeReassignmentState.mode === 'origin') {
+                // Línea desde el nodo destino hasta el mouse
+                nodeToConnect = nodes.find(n => n.id === edge.to);
+            }
 
-        if (!nodeToConnect) return;
+            if (!nodeToConnect) return;
 
-        ctx.beginPath();
-        ctx.moveTo(nodeToConnect.x, nodeToConnect.y);
-        ctx.lineTo(edgeReassignmentState.mouseX, edgeReassignmentState.mouseY);
-        ctx.stroke();
-    });
+            ctx.beginPath();
+            ctx.moveTo(nodeToConnect.x, nodeToConnect.y);
+            ctx.lineTo(edgeReassignmentState.mouseX, edgeReassignmentState.mouseY);
+            ctx.stroke();
+        });
+    }
+
+    // Manejar etiquetas específicas seleccionadas
+    if (edgeReassignmentState.selectedLabels.length > 0) {
+        // Obtener aristas únicas de las etiquetas seleccionadas
+        const uniqueEdgeIds = [...new Set(edgeReassignmentState.selectedLabels.map(label => label.edgeId))];
+        
+        uniqueEdgeIds.forEach(edgeId => {
+            const edge = edges.find(e => e.id == edgeId); // Usar == para comparación flexible
+            if (!edge) return;
+
+            let nodeToConnect;
+            if (edgeReassignmentState.mode === 'destination') {
+                nodeToConnect = nodes.find(n => n.id === edge.from);
+            } else if (edgeReassignmentState.mode === 'origin') {
+                nodeToConnect = nodes.find(n => n.id === edge.to);
+            }
+
+            if (!nodeToConnect) return;
+
+            ctx.beginPath();
+            ctx.moveTo(nodeToConnect.x, nodeToConnect.y);
+            ctx.lineTo(edgeReassignmentState.mouseX, edgeReassignmentState.mouseY);
+            ctx.stroke();
+        });
+    }
 
     // Dibujar círculo en la posición del mouse con indicador del modo
     ctx.beginPath();
@@ -406,7 +436,7 @@ function reverseMultipleEdges(edgeIds) {
 
     // Invertir todas las aristas seleccionadas
     edgeIds.forEach(edgeId => {
-        const edge = edges.find(e => e.id === edgeId);
+        const edge = edges.find(e => e.id == edgeId); // Usar == para comparación flexible
         mergeOrUpdateEdge(edge, edge.to, edge.from, edgesToDelete, edgeIds);
     });
 
@@ -420,12 +450,318 @@ function reverseMultipleEdges(edgeIds) {
     redrawCanvas();
 }
 
-function startEdgeReassignment(edgeIds) {
+/**
+ * Invierte etiquetas específicas de las aristas
+ * @param {Array} selectedLabels - Array de información de etiquetas seleccionadas
+ */
+function reverseMultipleLabels(selectedLabels) {
+    if (!selectedLabels || selectedLabels.length === 0) return;
+
+    // Agrupar etiquetas por arista para procesamiento eficiente
+    const labelsByEdge = {};
+    selectedLabels.forEach(labelInfo => {
+        if (!labelsByEdge[labelInfo.edgeId]) {
+            labelsByEdge[labelInfo.edgeId] = [];
+        }
+        labelsByEdge[labelInfo.edgeId].push(labelInfo);
+    });
+
+    const edgesToDelete = new Set();
+    const newEdgesCreated = [];
+
+    Object.keys(labelsByEdge).forEach(edgeId => {
+        const edge = edges.find(e => e.id == edgeId); // Usar == para comparación flexible
+        if (!edge) return;
+
+        const labelsToReverse = labelsByEdge[edgeId];
+        
+        // Si se van a invertir todas las etiquetas de la arista
+        if (labelsToReverse.length === edge.labels.length) {
+            // Invertir toda la arista
+            mergeOrUpdateEdge(edge, edge.to, edge.from, edgesToDelete, [edgeId]);
+        } else {
+            // Solo invertir etiquetas específicas
+            const labelsToKeep = [];
+            const labelsToInvert = [];
+
+            edge.labels.forEach((label, index) => {
+                const shouldReverse = labelsToReverse.some(labelInfo => labelInfo.labelIndex === index);
+                if (shouldReverse) {
+                    labelsToInvert.push(label);
+                } else {
+                    labelsToKeep.push(label);
+                }
+            });
+
+            // Actualizar la arista original con las etiquetas que se mantienen
+            if (labelsToKeep.length > 0) {
+                edge.labels = labelsToKeep;
+            } else {
+                // Si no quedan etiquetas, marcar para eliminar
+                edgesToDelete.add(edge.id);
+            }
+
+            // Crear nueva arista invertida con las etiquetas seleccionadas
+            if (labelsToInvert.length > 0) {
+                const invertedEdge = createOrMergeEdge(edge.to, edge.from, labelsToInvert);
+                if (invertedEdge) {
+                    newEdgesCreated.push(invertedEdge);
+                }
+            }
+        }
+    });
+
+    // Eliminar aristas marcadas para eliminación
+    if (edgesToDelete.size > 0) {
+        edges = edges.filter(edge => !edgesToDelete.has(edge.id));
+    }
+
+    // Agregar nuevas aristas creadas
+    newEdgesCreated.forEach(newEdge => {
+        if (!edges.find(e => e.id === newEdge.id)) {
+            edges.push(newEdge);
+        }
+    });
+
+    saveState();
+    redrawCanvas();
+}
+
+/**
+ * Crea una nueva arista o fusiona con una existente
+ * @param {string} fromId - ID del nodo origen
+ * @param {string} toId - ID del nodo destino  
+ * @param {Array} labelsToAdd - Etiquetas a agregar
+ * @returns {Object|null} La arista creada o null si se fusionó con una existente
+ */
+function createOrMergeEdge(fromId, toId, labelsToAdd) {
+    // Buscar si ya existe una arista entre estos nodos
+    const existingEdge = edges.find(e => e.from === fromId && e.to === toId);
+    
+    if (existingEdge) {
+        // Fusionar etiquetas con la arista existente
+        labelsToAdd.forEach(label => {
+            if (!existingEdge.labels.includes(label)) {
+                existingEdge.labels.push(label);
+            }
+        });
+        return null; // No se creó una nueva arista
+    } else {
+        // Crear nueva arista
+        const newEdge = new EdgeAutomata(fromId, toId, labelsToAdd);
+        return newEdge;
+    }
+}
+
+/**
+ * Inicia el modo de reasignación para etiquetas específicas
+ * @param {Array} selectedLabels - Array de información de etiquetas seleccionadas
+ */
+function startLabelReassignment(selectedLabels) {
+    if (!selectedLabels || selectedLabels.length === 0) return;
+
+    edgeReassignmentState.isActive = true;
+    edgeReassignmentState.selectedLabels = [...selectedLabels]; // Guardar info de etiquetas
+    edgeReassignmentState.mode = 'destination';
+
+    canvas.style.cursor = 'crosshair';
+    canvas.addEventListener('mousemove', handleReassignmentMouseMove);
+    canvas.addEventListener('click', handleLabelReassignmentClick);
+    canvas.addEventListener('contextmenu', cancelEdgeReassignment);
+
+    redrawCanvas();
+}
+
+/**
+ * Inicia el modo de reasignación de origen para etiquetas específicas
+ * @param {Array} selectedLabels - Array de información de etiquetas seleccionadas
+ */
+function startLabelOriginReassignment(selectedLabels) {
+    if (!selectedLabels || selectedLabels.length === 0) return;
+
+    edgeReassignmentState.isActive = true;
+    edgeReassignmentState.selectedLabels = [...selectedLabels];
+    edgeReassignmentState.mode = 'origin';
+
+    canvas.style.cursor = 'crosshair';
+    canvas.addEventListener('mousemove', handleReassignmentMouseMove);
+    canvas.addEventListener('click', handleLabelReassignmentClick);
+    canvas.addEventListener('contextmenu', cancelEdgeReassignment);
+
+    redrawCanvas();
+}
+
+/**
+ * Maneja el clic para reasignar etiquetas específicas
+ * @param {Event} event - Evento del clic
+ */
+function handleLabelReassignmentClick(event) {
+    if (!edgeReassignmentState.isActive) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const rect = canvas.getBoundingClientRect();
+    const clickX = (event.clientX - rect.left - panX) / scale;
+    const clickY = (event.clientY - rect.top - panY) / scale;
+
+    const clickedNode = nodes.find(node => {
+        const distance = Math.sqrt(
+            Math.pow(clickX - node.x, 2) +
+            Math.pow(clickY - node.y, 2)
+        );
+        return distance <= node.radius;
+    });
+
+    if (clickedNode) {
+        if (edgeReassignmentState.mode === 'destination') {
+            reassignLabelDestinations(edgeReassignmentState.selectedLabels, clickedNode.id);
+        } else if (edgeReassignmentState.mode === 'origin') {
+            reassignLabelOrigins(edgeReassignmentState.selectedLabels, clickedNode.id);
+        }
+    }
+
+    cancelEdgeReassignment();
+}
+
+/**
+ * Reasigna el destino de etiquetas específicas
+ * @param {Array} selectedLabels - Array de información de etiquetas
+ * @param {string} newDestinationNodeId - ID del nuevo nodo destino
+ */
+function reassignLabelDestinations(selectedLabels, newDestinationNodeId) {
+    if (!selectedLabels || selectedLabels.length === 0) return;
+
+    const labelsByEdge = {};
+    selectedLabels.forEach(labelInfo => {
+        if (!labelsByEdge[labelInfo.edgeId]) {
+            labelsByEdge[labelInfo.edgeId] = [];
+        }
+        labelsByEdge[labelInfo.edgeId].push(labelInfo);
+    });
+
+    const edgesToDelete = new Set();
+
+    Object.keys(labelsByEdge).forEach(edgeId => {
+        const edge = edges.find(e => e.id == edgeId); // Usar == para comparación flexible
+        if (!edge) return;
+
+        const labelsToMove = labelsByEdge[edgeId];
+        
+        if (labelsToMove.length === edge.labels.length) {
+            // Mover toda la arista
+            mergeOrUpdateEdge(edge, edge.from, newDestinationNodeId, edgesToDelete, [edgeId]);
+        } else {
+            // Mover solo etiquetas específicas
+            const labelsToKeep = [];
+            const labelsToMove_text = [];
+
+            edge.labels.forEach((label, index) => {
+                const shouldMove = labelsToMove.some(labelInfo => labelInfo.labelIndex === index);
+                if (shouldMove) {
+                    labelsToMove_text.push(label);
+                } else {
+                    labelsToKeep.push(label);
+                }
+            });
+
+            // Actualizar arista original
+            if (labelsToKeep.length > 0) {
+                edge.labels = labelsToKeep;
+            } else {
+                edgesToDelete.add(edge.id);
+            }
+
+            // Crear nueva arista con nuevo destino
+            if (labelsToMove_text.length > 0) {
+                const newEdge = createOrMergeEdge(edge.from, newDestinationNodeId, labelsToMove_text);
+                if (newEdge) {
+                    edges.push(newEdge);
+                }
+            }
+        }
+    });
+
+    if (edgesToDelete.size > 0) {
+        edges = edges.filter(edge => !edgesToDelete.has(edge.id));
+    }
+
+    saveState();
+    redrawCanvas();
+}
+
+/**
+ * Reasigna el origen de etiquetas específicas
+ * @param {Array} selectedLabels - Array de información de etiquetas
+ * @param {string} newOriginNodeId - ID del nuevo nodo origen
+ */
+function reassignLabelOrigins(selectedLabels, newOriginNodeId) {
+    if (!selectedLabels || selectedLabels.length === 0) return;
+
+    const labelsByEdge = {};
+    selectedLabels.forEach(labelInfo => {
+        if (!labelsByEdge[labelInfo.edgeId]) {
+            labelsByEdge[labelInfo.edgeId] = [];
+        }
+        labelsByEdge[labelInfo.edgeId].push(labelInfo);
+    });
+
+    const edgesToDelete = new Set();
+
+    Object.keys(labelsByEdge).forEach(edgeId => {
+        const edge = edges.find(e => e.id == edgeId); // Usar == para comparación flexible
+        if (!edge) return;
+
+        const labelsToMove = labelsByEdge[edgeId];
+        
+        if (labelsToMove.length === edge.labels.length) {
+            // Mover toda la arista
+            mergeOrUpdateEdge(edge, newOriginNodeId, edge.to, edgesToDelete, [edgeId]);
+        } else {
+            // Mover solo etiquetas específicas
+            const labelsToKeep = [];
+            const labelsToMove_text = [];
+
+            edge.labels.forEach((label, index) => {
+                const shouldMove = labelsToMove.some(labelInfo => labelInfo.labelIndex === index);
+                if (shouldMove) {
+                    labelsToMove_text.push(label);
+                } else {
+                    labelsToKeep.push(label);
+                }
+            });
+
+            // Actualizar arista original
+            if (labelsToKeep.length > 0) {
+                edge.labels = labelsToKeep;
+            } else {
+                edgesToDelete.add(edge.id);
+            }
+
+            // Crear nueva arista con nuevo origen
+            if (labelsToMove_text.length > 0) {
+                const newEdge = createOrMergeEdge(newOriginNodeId, edge.to, labelsToMove_text);
+                if (newEdge) {
+                    edges.push(newEdge);
+                }
+            }
+        }
+    });
+
+    if (edgesToDelete.size > 0) {
+        edges = edges.filter(edge => !edgesToDelete.has(edge.id));
+    }
+
+    saveState();
+    redrawCanvas();
+}
+
+function startEdgeDestinationReassignment(edgeIds) {
     if (!edgeIds || edgeIds.length === 0) return;
 
     edgeReassignmentState.isActive = true;
     edgeReassignmentState.selectedEdgeIds = [...edgeIds];
-    edgeReassignmentState.mode = 'destination'; // Modo por defecto
+    edgeReassignmentState.mode = 'destination'; // Modo para cambiar destino
 
     // Cambiar cursor para indicar modo de reasignación
     canvas.style.cursor = 'crosshair';
@@ -502,7 +838,7 @@ function reassignEdgeDestinations(edgeIds, newDestinationNodeId) {
     const edgesToDelete = new Set();
 
     edgeIds.forEach(edgeId => {
-        const edge = edges.find(e => e.id === edgeId);
+        const edge = edges.find(e => e.id == edgeId); // Usar == para comparación flexible
         mergeOrUpdateEdge(edge, edge.from, newDestinationNodeId, edgesToDelete, edgeIds);
     });
 
@@ -520,7 +856,7 @@ function reassignEdgeOrigins(edgeIds, newOriginNodeId) {
     const edgesToDelete = new Set();
 
     edgeIds.forEach(edgeId => {
-        const edge = edges.find(e => e.id === edgeId);
+        const edge = edges.find(e => e.id == edgeId); // Usar == para comparación flexible
         mergeOrUpdateEdge(edge, newOriginNodeId, edge.to, edgesToDelete, edgeIds);
     });
 
@@ -535,6 +871,7 @@ function reassignEdgeOrigins(edgeIds, newOriginNodeId) {
 function cancelEdgeReassignment() {
     edgeReassignmentState.isActive = false;
     edgeReassignmentState.selectedEdgeIds = [];
+    edgeReassignmentState.selectedLabels = []; // Limpiar etiquetas seleccionadas
 
     // Restaurar cursor normal
     canvas.style.cursor = 'default';
@@ -542,9 +879,349 @@ function cancelEdgeReassignment() {
     // Remover event listeners temporales
     canvas.removeEventListener('mousemove', handleReassignmentMouseMove);
     canvas.removeEventListener('click', handleReassignmentClick);
+    canvas.removeEventListener('click', handleLabelReassignmentClick); // Remover listener de etiquetas
     canvas.removeEventListener('contextmenu', cancelEdgeReassignment);
 
     redrawCanvas();
+}
+
+// ---------------------------------------------------------------------------------
+// SECTION: Edge Action Handler and Selection Modal
+// ---------------------------------------------------------------------------------
+
+/**
+ * Maneja las acciones sobre aristas con selección múltiple
+ * @param {string} action - La acción a realizar ('invert', 'change-destination', 'change-origin')
+ * @param {Array} edgeIds - Array de IDs de aristas seleccionadas
+ */
+function handleEdgeAction(action, edgeIds) {
+    if (!edgeIds || edgeIds.length === 0) return;
+    
+    // Contar el total de etiquetas en todas las aristas seleccionadas
+    let totalLabels = 0;
+    let totalEdges = 0;
+    edgeIds.forEach(edgeId => {
+        const edge = edges.find(e => e.id == edgeId); // Usar == para comparación flexible
+        if (edge && edge.labels) {
+            totalLabels += edge.labels.length;
+            totalEdges++;
+        }
+    });
+    
+    // Si solo hay una arista con una etiqueta, ejecutar directamente sobre la etiqueta
+    if (totalEdges === 1 && totalLabels === 1) {
+        const selectedLabels = [];
+        edgeIds.forEach(edgeId => {
+            const edge = edges.find(e => e.id == edgeId); // Usar == para comparación flexible
+            if (edge && edge.labels) {
+                edge.labels.forEach((label, index) => {
+                    selectedLabels.push({
+                        uniqueId: `${edgeId}-${index}`,
+                        edgeId: edgeId,
+                        labelIndex: index
+                    });
+                });
+            }
+        });
+        executeEdgeAction(action, selectedLabels);
+        return;
+    }
+    
+    // Si todas las aristas tienen exactamente una etiqueta cada una, actuar sobre aristas completas
+    const allEdgesHaveOneLabel = edgeIds.every(edgeId => {
+        const edge = edges.find(e => e.id == edgeId); // Usar == para comparación flexible
+        return edge && edge.labels && edge.labels.length === 1;
+    });
+    
+    if (allEdgesHaveOneLabel) {
+        // Ejecutar acción directamente sobre las aristas completas
+        executeDirectEdgeAction(action, edgeIds);
+        return;
+    }
+    
+    // Si hay múltiples etiquetas o aristas mixtas, mostrar el modal de selección
+    showEdgeSelectionModal(action, edgeIds);
+}
+
+/**
+ * Ejecuta la acción directamente sobre aristas completas
+ * @param {string} action - La acción a realizar
+ * @param {Array} edgeIds - Array de IDs de aristas
+ */
+function executeDirectEdgeAction(action, edgeIds) {
+    switch (action) {
+        case 'invert':
+            reverseMultipleEdges(edgeIds);
+            break;
+        case 'change-destination':
+            startEdgeDestinationReassignment(edgeIds);
+            break;
+        case 'change-origin':
+            startEdgeOriginReassignment(edgeIds);
+            break;
+    }
+}
+
+/**
+ * Ejecuta la acción sobre las etiquetas especificadas
+ * @param {string} action - La acción a realizar
+ * @param {Array} selectedLabels - Array de información de etiquetas seleccionadas
+ */
+function executeEdgeAction(action, selectedLabels) {
+    switch (action) {
+        case 'invert':
+            reverseMultipleLabels(selectedLabels);
+            break;
+        case 'change-destination':
+            startLabelReassignment(selectedLabels);
+            break;
+        case 'change-origin':
+            startLabelOriginReassignment(selectedLabels);
+            break;
+    }
+}
+
+/**
+ * Muestra el modal para seleccionar etiquetas específicas
+ * @param {string} action - La acción a realizar
+ * @param {Array} edgeIds - Array de IDs de aristas
+ */
+function showEdgeSelectionModal(action, edgeIds) {
+    const modal = document.getElementById('edgeSelectionModal');
+    const title = document.getElementById('edgeSelectionTitle');
+    const content = document.getElementById('edgeSelectionContent');
+    const executeButton = document.getElementById('executeActionButton');
+    
+    // Configurar el título según la acción
+    const actionTitles = {
+        'invert': 'Seleccionar etiquetas individuales a invertir',
+        'change-destination': 'Seleccionar etiquetas individuales para cambiar destino',
+        'change-origin': 'Seleccionar etiquetas individuales para cambiar origen'
+    };
+    title.textContent = actionTitles[action] || 'Seleccionar etiquetas';
+    
+    // Agrupar etiquetas por pares de nodos (origen -> destino)
+    // Cada etiqueta es tratada como una entidad individual
+    const edgeGroups = groupEdgesByNodePair(edgeIds);
+    
+    // Generar el contenido del modal
+    content.innerHTML = generateEdgeSelectionHTML(edgeGroups);
+    
+    // Configurar el botón de ejecutar
+    executeButton.onclick = () => {
+        const selectedLabels = getSelectedEdgesFromModal();
+        if (selectedLabels.length > 0) {
+            executeEdgeAction(action, selectedLabels);
+            closeEdgeSelectionModal();
+        } else {
+            alert('Por favor selecciona al menos una etiqueta para proceder.');
+        }
+    };
+    
+    // Mostrar el modal
+    modal.style.display = 'flex';
+    
+    // Añadir listeners para los checkboxes
+    setupEdgeSelectionListeners();
+}
+
+/**
+ * Agrupa las etiquetas de aristas por pares de nodos (origen -> destino)
+ * Cada etiqueta (label) se trata como una entidad individual
+ * @param {Array} edgeIds - Array de IDs de aristas
+ * @returns {Object} Objeto con las etiquetas agrupadas por pares de nodos
+ */
+function groupEdgesByNodePair(edgeIds) {
+    const groups = {};
+    
+    edgeIds.forEach(edgeId => {
+        const edge = edges.find(e => e.id == edgeId); // Usar == para comparación flexible
+        if (!edge) return;
+        
+        const fromNode = nodes.find(n => n.id === edge.from);
+        const toNode = nodes.find(n => n.id === edge.to);
+        
+        if (!fromNode || !toNode) return;
+        
+        const pairKey = `${fromNode.label}->${toNode.label}`;
+        
+        if (!groups[pairKey]) {
+            groups[pairKey] = {
+                fromLabel: fromNode.label,
+                toLabel: toNode.label,
+                labels: [] // Cambiado de 'edges' a 'labels' para reflejar que trabajamos con etiquetas individuales
+            };
+        }
+        
+        // Procesar cada etiqueta como una entidad individual
+        let edgeLabels;
+        if (edge.labels && Array.isArray(edge.labels)) {
+            edgeLabels = edge.labels.map(label => {
+                if (typeof label === 'object' && label.text) {
+                    return label.text;
+                } else if (typeof label === 'string') {
+                    return label;
+                } else {
+                    return String(label);
+                }
+            });
+        } else if (edge.label) {
+            edgeLabels = [edge.label];
+        } else {
+            edgeLabels = ['ε'];
+        }
+        
+        // Crear una entrada individual para cada etiqueta
+        // Cada etiqueta es tratada como una entidad separada e independiente
+        edgeLabels.forEach((labelText, labelIndex) => {
+            groups[pairKey].labels.push({
+                edgeId: edge.id,
+                labelText: labelText,
+                labelIndex: labelIndex, // Índice de la etiqueta dentro de la arista
+                fromNodeId: edge.from,
+                toNodeId: edge.to,
+                uniqueId: `${edge.id}-${labelIndex}` // ID único para cada etiqueta
+            });
+        });
+    });
+    
+    return groups;
+}
+
+/**
+ * Genera el HTML para el modal de selección de etiquetas individuales
+ * @param {Object} edgeGroups - Objeto con las etiquetas agrupadas por pares de nodos
+ * @returns {string} HTML generado
+ */
+function generateEdgeSelectionHTML(edgeGroups) {
+    let html = '<div class="select-all-group">';
+    html += '<input type="checkbox" id="selectAllEdges" class="select-all-checkbox" checked>';
+    html += '<label for="selectAllEdges">Seleccionar todas las etiquetas</label>';
+    html += '</div>';
+    
+    Object.keys(edgeGroups).forEach(pairKey => {
+        const group = edgeGroups[pairKey];
+        const groupId = `group-${pairKey.replace(/[^a-zA-Z0-9]/g, '-')}`;
+        
+        html += `<div class="node-pair-group">`;
+        html += `<div class="node-pair-header" data-group="${groupId}">`;
+        html += `<span class="group-label">${group.fromLabel} → ${group.toLabel} (${group.labels.length} etiqueta${group.labels.length !== 1 ? 's' : ''})</span>`;
+        html += `<span class="expand-icon">▼</span>`;
+        html += `</div>`;
+        html += `<div class="node-pair-labels expanded" id="${groupId}">`;
+        
+        group.labels.forEach((labelInfo, index) => {
+            html += `<div class="edge-item">`;
+            html += `<input type="checkbox" class="edge-checkbox" value="${labelInfo.uniqueId}" checked>`;
+            html += `<div class="edge-labels">`;
+            html += `<span class="edge-identifier">Etiqueta de Arista ${labelInfo.edgeId}:</span>`;
+            html += `<span class="edge-label-tag">${labelInfo.labelText}</span>`;
+            html += `</div>`;
+            html += `</div>`;
+        });
+        
+        html += `</div>`;
+        html += `</div>`;
+    });
+    
+    return html;
+}
+
+/**
+ * Configura los listeners para los checkboxes del modal
+ */
+function setupEdgeSelectionListeners() {
+    const selectAllCheckbox = document.getElementById('selectAllEdges');
+    const edgeCheckboxes = document.querySelectorAll('.edge-checkbox');
+    const groupHeaders = document.querySelectorAll('.node-pair-header');
+    
+    // Listener para seleccionar/deseleccionar todo
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            edgeCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+        });
+    }
+    
+    // Listeners para checkboxes individuales
+    edgeCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            // Actualizar el estado del checkbox "seleccionar todo"
+            updateSelectAllCheckbox();
+        });
+    });
+    
+    // Listeners para colapsar/expandir grupos
+    groupHeaders.forEach(header => {
+        header.addEventListener('click', function(e) {
+            // Solo expandir/colapsar si no se hizo clic en un checkbox
+            if (e.target.type === 'checkbox') return;
+            
+            const groupId = this.getAttribute('data-group');
+            const labelsDiv = document.getElementById(groupId);
+            const icon = this.querySelector('.expand-icon');
+            
+            if (labelsDiv && icon) {
+                if (labelsDiv.classList.contains('expanded')) {
+                    labelsDiv.classList.remove('expanded');
+                    this.classList.add('collapsed');
+                    icon.textContent = '▶';
+                } else {
+                    labelsDiv.classList.add('expanded');
+                    this.classList.remove('collapsed');
+                    icon.textContent = '▼';
+                }
+            }
+        });
+    });
+    
+    // Función auxiliar para actualizar el estado del checkbox "seleccionar todo"
+    function updateSelectAllCheckbox() {
+        if (!selectAllCheckbox) return;
+        
+        const checkedCount = Array.from(edgeCheckboxes).filter(cb => cb.checked).length;
+        const totalCount = edgeCheckboxes.length;
+        
+        if (checkedCount === 0) {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = false;
+        } else if (checkedCount === totalCount) {
+            selectAllCheckbox.checked = true;
+            selectAllCheckbox.indeterminate = false;
+        } else {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = true;
+        }
+    }
+}
+
+/**
+ * Obtiene la información de las etiquetas seleccionadas en el modal
+ * @returns {Array} Array de objetos con información de etiquetas seleccionadas
+ */
+function getSelectedEdgesFromModal() {
+    const checkboxes = document.querySelectorAll('.edge-checkbox:checked');
+    return Array.from(checkboxes).map(checkbox => {
+        const uniqueId = checkbox.value;
+        // Buscar el último guión para separar edgeId y labelIndex correctamente
+        const lastDashIndex = uniqueId.lastIndexOf('-');
+        const edgeId = uniqueId.substring(0, lastDashIndex);
+        const labelIndex = uniqueId.substring(lastDashIndex + 1);
+        return {
+            uniqueId: uniqueId,
+            edgeId: edgeId,
+            labelIndex: parseInt(labelIndex)
+        };
+    });
+}
+
+/**
+ * Cierra el modal de selección de aristas
+ */
+function closeEdgeSelectionModal() {
+    const modal = document.getElementById('edgeSelectionModal');
+    modal.style.display = 'none';
 }
 
 
@@ -751,6 +1428,7 @@ function saveEdgeLabels(fromNode, toNode) {
 
 window.onclick = function (event) {
     if (event.target == customAlertModal) closeMessage();
+    if (event.target == document.getElementById('edgeSelectionModal')) closeEdgeSelectionModal();
     if (!event.target.closest('.main-menu-container')) {
         document.querySelectorAll('.submenu').forEach(sub => sub.style.display = 'none');
     }
@@ -765,15 +1443,26 @@ document.addEventListener('DOMContentLoaded', () => {
         e.stopPropagation();
         if (e.target.matches('.simple-context-menu-item') && !e.target.classList.contains('disabled')) {
             const action = e.target.dataset.action;
+            
+            // Filtrar solo las aristas seleccionadas (ignorar nodos seleccionados)
+            const onlyEdgeIds = selectedEdgeIds.filter(id => {
+                return edges.some(edge => edge.id === id);
+            });
+            
+            if (onlyEdgeIds.length === 0) {
+                hideCanvasContextMenu();
+                return;
+            }
+            
             switch (action) {
                 case 'invert':
-                    reverseMultipleEdges(selectedEdgeIds);
+                    handleEdgeAction('invert', onlyEdgeIds);
                     break;
                 case 'change-destination':
-                    startEdgeReassignment(selectedEdgeIds);
+                    handleEdgeAction('change-destination', onlyEdgeIds);
                     break;
                 case 'change-origin':
-                    startEdgeOriginReassignment(selectedEdgeIds);
+                    handleEdgeAction('change-origin', onlyEdgeIds);
                     break;
             }
             hideCanvasContextMenu();
@@ -844,7 +1533,7 @@ function restoreState() {
 
     // Limpia la selección actual para evitar inconsistencias
     selectedNodeIds = [];
-    selectedEdgeId = null;
+    selectedEdgeIds = [];
 
     redrawCanvas();
     updateUndoRedoButtons();
@@ -935,7 +1624,7 @@ function newFile() {
         edges = [];
         nodeCounter = 0;
         selectedNodeIds = [];
-        selectedEdgeId = null;
+        selectedEdgeIds = [];
 
         // Limpia el historial y guarda el nuevo estado vacío
         history = [];
@@ -1022,7 +1711,7 @@ function exportImage() {
     tempCtx.scale(renderScale, renderScale);
 
     let tempEdgeDrawCounts = {};
-    edges.forEach(edge => drawEdge(tempCtx, edge, nodes, tempEdgeDrawCounts, selectedEdgeId, theme));
+    edges.forEach(edge => drawEdge(tempCtx, edge, nodes, tempEdgeDrawCounts, selectedEdgeIds, theme));
     nodes.forEach(node => drawNode(tempCtx, node, selectedNodeIds, theme));
     tempCtx.restore();
 
