@@ -192,60 +192,78 @@ function drawSelfLoop(ctx, node, edge, isSelected, theme, drawCount) {
 // Función para dibujar la etiqueta de la arista
 function drawEdgeLabel(ctx, fromNode, toNode, edge, isSelected, theme, isCurved, perpX, perpY) {
     if (fromNode.id === toNode.id) return;
-
-    const worldOffset = 12; // Un offset fijo funciona bien ahora que la curva está controlada.
+    
+    const worldOffset = 12;
     const lineHeight = 15;
     let labelX, labelY;
-
+    
     ctx.font = '14px Arial';
     ctx.textAlign = 'center';
-
+    
+    // Nos aseguramos de tener un arreglo de objetos para los labels.
+    // Si el label es un string, lo convertimos.
+    const rawLabels = edge.labels || [edge.label];
+    // Actualizamos edge.labels para que cada label sea un objeto con su propiedad text.
+    edge.labels = rawLabels.map(label => (typeof label === 'object' ? label : { text: label }));
+    
     if (isCurved) {
         const dx = toNode.x - fromNode.x;
         const dy = toNode.y - fromNode.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-
-        // --- INICIO DE LA MODIFICACIÓN ---
-        // Se aplica la MISMA lógica de curvatura máxima que en drawCurvedEdge.
         const maxCurvature = 40;
         const curvature = Math.min(maxCurvature, distance * 0.15);
-        // --- FIN DE LA MODIFICACIÓN ---
-
         const controlX = (fromNode.x + toNode.x) / 2 + perpX * curvature;
         const controlY = (fromNode.y + toNode.y) / 2 + perpY * curvature;
         const midCurveX = 0.25 * fromNode.x + 0.5 * controlX + 0.25 * toNode.x;
         const midCurveY = 0.25 * fromNode.y + 0.5 * controlY + 0.25 * toNode.y;
-
+    
         labelX = midCurveX + perpX * worldOffset;
         labelY = midCurveY + perpY * worldOffset;
-
-        // ... (el resto de la función se queda igual) ...
-        if (perpY < 0) {
-            ctx.textBaseline = 'bottom';
-        } else {
-            ctx.textBaseline = 'top';
-        }
-
-        const labels = edge.labels || [edge.label];
-        labels.forEach((label, index) => {
-            ctx.fillStyle = isSelected ? theme.selectedEdge : theme.edgeText;
+    
+        // Ajusta el baseline según la dirección vertical
+        ctx.textBaseline = (perpY < 0 ? 'bottom' : 'top');
+    
+        edge.labels.forEach((labelObj, index) => {
             const stackOffsetX = index * lineHeight * perpX;
             const stackOffsetY = index * lineHeight * perpY;
-            ctx.fillText(label, labelX + stackOffsetX, labelY + stackOffsetY);
+            const currentX = labelX + stackOffsetX;
+            const currentY = labelY + stackOffsetY;
+            ctx.fillStyle = isSelected ? theme.selectedEdge : theme.edgeText;
+            ctx.fillText(labelObj.text, currentX, currentY);
+    
+            // Medir el texto para obtener el cuadro de colisión (hitbox)
+            const metrics = ctx.measureText(labelObj.text);
+            const textWidth = metrics.width + 10; // margen extra
+            const textHeight = 18; // altura fija
+            // Guardar la información en el propio objeto label
+            labelObj.x = currentX - (textWidth / 2);
+            labelObj.y = currentY - (textHeight / 2);
+            labelObj.width = textWidth;
+            labelObj.height = textHeight;
         });
-
+    
     } else {
         labelX = (fromNode.x + toNode.x) / 2;
         labelY = (fromNode.y + toNode.y) / 2 - worldOffset;
         ctx.textBaseline = 'bottom';
-        const labels = edge.labels || [edge.label];
-        labels.forEach((label, index) => {
+    
+        edge.labels.forEach((labelObj, index) => {
             ctx.fillStyle = isSelected ? theme.selectedEdge : theme.edgeText;
-            ctx.fillText(label, labelX, labelY - (index * lineHeight));
+            const currentY = labelY - (index * lineHeight);
+            ctx.fillText(labelObj.text, labelX, currentY);
+    
+            const metrics = ctx.measureText(labelObj.text);
+            const textWidth = metrics.width + 10;
+            const textHeight = 18;
+            labelObj.x = labelX - textWidth / 2;
+            labelObj.y = currentY - textHeight / 2;
+            labelObj.width = textWidth;
+            labelObj.height = textHeight;
         });
     }
-
-    ctx.textBaseline = 'alphabetic'; // Reset
+    
+    // Resetear baseline
+    ctx.textBaseline = 'alphabetic';
 }
 
 // Función auxiliar para dibujar la flecha en aristas curvas

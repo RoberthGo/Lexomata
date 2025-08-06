@@ -32,7 +32,7 @@ canvas.addEventListener('click', (event) => {
             handleEdgeCreationClick(x, y, nodes, redrawCanvas, edgeCreationState);
             break;
         case 'delete':
-            handleDeleteClick(x, y, nodes, edges, redrawCanvas, isClickOnEdge);
+            handleDeleteClick(clickedObject, x, y, nodes, edges, redrawCanvas, isClickOnEdge);
             break;
         case 'setStart':
             if (clickedObject.type === 'node') {
