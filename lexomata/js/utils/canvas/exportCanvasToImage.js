@@ -23,23 +23,51 @@ function updateExportPreview() {
     const previewImage = document.getElementById('exportPreviewImage');
     if (!previewImage) return;
 
-    const PREVIEW_RESOLUTION = 1024; // Resolución fija y ligera para la preview
+    const objetivoAncho = 1600;
+
+    //Calcular la relación de aspecto según el área de exportación seleccionada
+    const exportArea = document.querySelector('input[name="exportArea"]:checked').value;
+    let relacionDeAspecto;
+
+    if (exportArea === 'current') {
+        // Para vista actual, usar las dimensiones del canvas
+        relacionDeAspecto = canvas.height / canvas.width;
+    } else {
+        // Para todo el contenido, calcular basándose en el bounding box
+        const padding = 50;
+        const bounds = calculateContentBoundingBox();
+        const contentWidth = (bounds.maxX - bounds.minX) + (padding * 2);
+        const contentHeight = (bounds.maxY - bounds.minY) + (padding * 2);
+
+        // Usar relación de aspecto del contenido, con fallback
+        relacionDeAspecto = contentHeight > 0 && contentWidth > 0 ? contentHeight / contentWidth : 1;
+    }
+
+    const nuevoAlto = objetivoAncho * relacionDeAspecto;
+    const anchoRedondeado = Math.round(objetivoAncho);
+    const altoRedondeado = Math.round(nuevoAlto);
+
+    // Validar que las dimensiones sean válidas
+    if (anchoRedondeado <= 0 || altoRedondeado <= 0) {
+        console.error('Dimensiones inválidas para la exportación:', anchoRedondeado, altoRedondeado);
+        return;
+    }
 
     // Generamos la imagen combinada en baja resolución
-    const previewCanvas = generateCombinedImage(PREVIEW_RESOLUTION);
+    const previewCanvas = generateCombinedImage(anchoRedondeado, altoRedondeado);
 
     // Mostramos el resultado en el <img>
     previewImage.src = previewCanvas.toDataURL('image/png', 0.9);
 }
 
-
 /**
  * Función Maestra de Renderizado: Genera la imagen combinada (autómata + tabla)
  * en un tamaño específico.
  * @param {number} targetWidth - El ancho base para la imagen del autómata.
+ * @param {number} targetHeight - El alto base para la imagen del autómata.
  * @returns {HTMLCanvasElement} - El canvas final con la imagen combinada.
  */
-function generateCombinedImage(targetWidth) {
+function generateCombinedImage(targetWidth, targetHeight) {
     // 1. Lee todas las opciones del modal, ya que afectan el renderizado
     const themeKey = document.getElementById('exportTheme').value;
     const exportArea = document.querySelector('input[name="exportArea"]:checked').value;
@@ -50,16 +78,17 @@ function generateCombinedImage(targetWidth) {
     };
     let theme = colorPalette[themeKey] || colorPalette.light;
 
-    // 2. Dibuja el canvas del autómata al tamaño solicitado (targetWidth)
+    // 2. Dibuja el canvas del autómata al tamaño solicitado
     const automataCanvas = document.createElement('canvas');
     const automataCtx = automataCanvas.getContext('2d');
 
-    // (La lógica de dibujado del autómata es la misma de siempre, pero usa targetWidth)
+    // Usar las dimensiones ya calculadas
+    automataCanvas.width = targetWidth;
+    automataCanvas.height = targetHeight;
+
+    // Calcular la escala y posición según el área de exportación
     let renderPanX, renderPanY, renderScale;
     if (exportArea === 'current') {
-        const aspectRatio = canvas.height / canvas.width;
-        automataCanvas.width = targetWidth;
-        automataCanvas.height = targetWidth * aspectRatio > 0 ? targetWidth * aspectRatio : targetWidth;
         const scaleFactor = targetWidth / canvas.width;
         renderScale = scale * scaleFactor;
         renderPanX = panX * scaleFactor;
@@ -68,10 +97,6 @@ function generateCombinedImage(targetWidth) {
         const padding = 50;
         const bounds = calculateContentBoundingBox();
         const contentWidth = (bounds.maxX - bounds.minX) + (padding * 2);
-        const contentHeight = (bounds.maxY - bounds.minY) + (padding * 2);
-        const contentAspectRatio = contentHeight > 0 && contentWidth > 0 ? contentHeight / contentWidth : 1;
-        automataCanvas.width = targetWidth;
-        automataCanvas.height = targetWidth * contentAspectRatio;
         renderScale = contentWidth > 0 ? targetWidth / contentWidth : 1;
         renderPanX = (-bounds.minX + padding) * renderScale;
         renderPanY = (-bounds.minY + padding) * renderScale;
@@ -171,7 +196,33 @@ function drawResultsToCanvasForExport(ctx, width, height, theme, zoom, charLimit
         return { input: inputText, result: resultText };
     });
 
-    if (data.length === 0) { /* ... */ return 0; }
+    if (data.length === 0) {
+        // 1. Define un ancho fijo para el panel del mensaje.
+        const placeholderWidth = 200 * scaleFactor;
+        const totalWidth = placeholderWidth + PADDING * 2;
+
+        // 2. Si estamos en el segundo paso (el de dibujar de verdad), dibuja el mensaje.
+        if (width > 0) {
+            ctx.save();
+            if (theme.background) {
+                ctx.fillStyle = theme.background;
+                ctx.fillRect(0, 0, width, height);
+            }
+
+            // Dibuja el mensaje centrado
+            ctx.fillStyle = TEXT_COLOR;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = `italic ${FONT_SIZE * 0.9}px Arial`;
+            ctx.globalAlpha = 0.8;
+            ctx.fillText("No hay casos de prueba para mostrar", width / 2, height / 2);
+
+            ctx.restore();
+        }
+
+        // 3. Devuelve el ancho para que la imagen final se ensamble correctamente.
+        return totalWidth;
+    }
 
     // --- CÁLCULO DE ANCHO DE COLUMNA DINÁMICO ---
     let maxInputWidth = ctx.measureText("Input").width;
@@ -217,6 +268,58 @@ function drawResultsToCanvasForExport(ctx, width, height, theme, zoom, charLimit
 
     // --- Devolver el ancho calculado ---
     return tableTotalWidth + PADDING * 2;
+}
+
+/**
+ * Exporta la imagen final llamando al renderizador maestro con la
+ * alta resolución seleccionada por el usuario.
+ */
+function exportImage() {
+    const fileName = document.getElementById('exportFilename').value || projectName;
+    const format = document.getElementById('exportFormat').value;
+    const exportWidth = parseInt(document.getElementById('exportResolution').value); // La alta resolución
+
+    // Calcular la altura basándose en la relación de aspecto
+    const exportArea = document.querySelector('input[name="exportArea"]:checked').value;
+    let relacionDeAspecto;
+
+    if (exportArea === 'current') {
+        // Para vista actual, usar las dimensiones del canvas
+        relacionDeAspecto = canvas.height / canvas.width;
+    } else {
+        // Para todo el contenido, calcular basándose en el bounding box
+        const padding = 50;
+        const bounds = calculateContentBoundingBox();
+        const contentWidth = (bounds.maxX - bounds.minX) + (padding * 2);
+        const contentHeight = (bounds.maxY - bounds.minY) + (padding * 2);
+
+        // Usar relación de aspecto del contenido, con fallback
+        relacionDeAspecto = contentHeight > 0 && contentWidth > 0 ? contentHeight / contentWidth : 1;
+    }
+
+    const exportHeight = Math.round(exportWidth * relacionDeAspecto);
+
+    // Validar que las dimensiones sean válidas
+    if (exportWidth <= 0 || exportHeight <= 0) {
+        console.error('Dimensiones inválidas para la exportación:', exportWidth, exportHeight);
+        alert('Error: No se pueden calcular las dimensiones de exportación válidas.');
+        return;
+    }
+
+    // Generamos la imagen combinada en ALTA resolución
+    const exportCanvas = generateCombinedImage(exportWidth, exportHeight);
+
+    // Descargar el resultado
+    const finalDataUrl = exportCanvas.toDataURL(format, 0.9);
+    const link = document.createElement('a');
+    link.href = finalDataUrl;
+    link.download = `${fileName}.${format.split('/')[1]}`;
+    if (document.getElementById('attachResultsCheckbox').checked && exportCanvas.width > exportWidth) {
+        link.download = `${fileName}-con-resultados.${format.split('/')[1]}`;
+    }
+    link.click();
+
+    closeExportModal();
 }
 
 // Listeners para actualizar la previsualización en tiempo real

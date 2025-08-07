@@ -2006,33 +2006,6 @@ exportFormatSelect.addEventListener('change', () => {
     }
 });
 
-/**
- * Exporta la imagen final llamando al renderizador maestro con la
- * alta resolución seleccionada por el usuario.
- */
-function exportImage() {
-    const fileName = document.getElementById('exportFilename').value || projectName;
-    const format = document.getElementById('exportFormat').value;
-    const exportWidth = parseInt(document.getElementById('exportResolution').value); // La alta resolución
-
-    // Generamos la imagen combinada en ALTA resolución
-    const exportCanvas = generateCombinedImage(exportWidth);
-
-    // Descargar el resultado
-    const finalDataUrl = exportCanvas.toDataURL(format, 0.9);
-    const link = document.createElement('a');
-    link.href = finalDataUrl;
-    link.download = `${fileName}.${format.split('/')[1]}`;
-    if (document.getElementById('attachResultsCheckbox').checked && exportCanvas.width > exportWidth) {
-        link.download = `${fileName}-con-resultados.${format.split('/')[1]}`;
-    }
-    link.click();
-
-    closeExportModal();
-}
-
-
-
 function autoSaveToLocalStorage() {
     const storageKey = `lexomata_autosave_${currentMode}`;
     // Se prepara el objeto con todo lo necesario para guardar
