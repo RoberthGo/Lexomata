@@ -142,6 +142,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!hasDragged) {
             if (e.button === 0 && currentTool === 'select') {
+                // PRIMERO: Verificar si se hizo clic en una etiqueta (máxima prioridad)
+                const worldCoords = getCanvasPoint(e.clientX, e.clientY);
+                const labelInfo = detectLabelClick(worldCoords.x, worldCoords.y);
+                
+                if (labelInfo) {
+                    // Si se hizo clic en una etiqueta, entrar en modo de edición y salir inmediatamente
+                    e.preventDefault();
+                    e.stopPropagation();
+                    startLabelEdit(labelInfo);
+                    return; // Salir completamente sin procesar más eventos
+                }
+
+                // SEGUNDO: Procesar selección de objetos solo si NO se clickeó una etiqueta
                 const clickedObject = objectClickedOnMouseDown;
                 if (!clickedObject) {
                     selectedEdgeIds = [];
@@ -177,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                 } else if (clickedObject.type === 'edge') {
-                    // --- LÓGICA DE SELECCIÓN DE ARISTAS---
+                    // --- LÓGICA DE SELECCIÓN DE ARISTAS ---
                     const edge = clickedObject.object;
                     if (e.shiftKey) {
                         // Multiselección de aristas

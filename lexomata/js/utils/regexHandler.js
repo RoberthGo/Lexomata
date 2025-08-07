@@ -7,61 +7,130 @@
  */
 class RegexHandler {
     /**
+     * Extrae el texto de una etiqueta, manejando tanto strings como objetos
+     * @param {string|object} label - La etiqueta (puede ser string o objeto con propiedad text)
+     * @returns {string|null} - El texto extraído o null si no es válido
+     */
+    static extractLabelText(label) {
+        // Manejar valores null o undefined
+        if (label === null || label === undefined) {
+            return null;
+        }
+        
+        // Si ya es un string, verificar que no sea "[object Object]"
+        if (typeof label === 'string') {
+            if (label === '[object Object]' || label === '') {
+                return null;
+            }
+            return label;
+        }
+        
+        // Si es un objeto, extraer la propiedad text
+        if (typeof label === 'object') {
+            // Verificar si tiene propiedad text
+            if (label.hasOwnProperty('text') && typeof label.text === 'string') {
+                if (label.text === '[object Object]' || label.text === '') {
+                    return null;
+                }
+                return label.text;
+            }
+            
+            // Si es un objeto sin propiedad text, podría ser un error
+            console.warn('Label es un objeto sin propiedad text válida:', label);
+            return null;
+        }
+        
+        // Para cualquier otro tipo, convertir a string de manera segura
+        try {
+            const stringValue = String(label);
+            if (stringValue === '[object Object]' || stringValue === 'undefined' || stringValue === 'null') {
+                return null;
+            }
+            return stringValue;
+        } catch (error) {
+            console.warn('Error al convertir label a string:', error);
+            return null;
+        }
+    }
+
+    /**
      * Verifica si una etiqueta es una expresión regular válida
-     * @param {string} label - La etiqueta a verificar
+     * @param {string|object} label - La etiqueta a verificar
      * @returns {boolean}
      */
     static isRegexPattern(label) {
+        // Extraer el texto de la etiqueta
+        const labelText = this.extractLabelText(label);
+        
+        // Si no se pudo extraer texto válido, no es una regex
+        if (!labelText || typeof labelText !== 'string') {
+            return false;
+        }
+        
         // Verificar si la etiqueta está entre barras diagonales o contiene metacaracteres
-        return label.startsWith('/') && label.endsWith('/') ||
-               label.includes('[') || label.includes(']') ||
-               label.includes('(') || label.includes(')') ||
-               label.includes('*') || label.includes('+') ||
-               label.includes('?') || label.includes('|') ||
-               label.includes('^') || label.includes('$') ||
-               label.includes('\\d') || label.includes('\\w') ||
-               label.includes('\\s') || label.includes('.');
+        return labelText.startsWith('/') && labelText.endsWith('/') ||
+               labelText.includes('[') || labelText.includes(']') ||
+               labelText.includes('(') || labelText.includes(')') ||
+               labelText.includes('*') || labelText.includes('+') ||
+               labelText.includes('?') || labelText.includes('|') ||
+               labelText.includes('^') || labelText.includes('$') ||
+               labelText.includes('\\d') || labelText.includes('\\w') ||
+               labelText.includes('\\s') || labelText.includes('.');
     }
 
     /**
      * Convierte una etiqueta en un objeto RegExp
-     * @param {string} label - La etiqueta a convertir
+     * @param {string|object} label - La etiqueta a convertir
      * @returns {RegExp|null}
      */
     static createRegExp(label) {
+        // Extraer el texto de la etiqueta
+        const labelText = this.extractLabelText(label);
+        
+        // Verificar que se extrajo texto válido
+        if (!labelText || typeof labelText !== 'string') {
+            return null;
+        }
+        
         try {
             // Si está entre barras diagonales, extraer el patrón y flags
-            if (label.startsWith('/') && label.endsWith('/')) {
-                const lastSlash = label.lastIndexOf('/');
-                const pattern = label.slice(1, lastSlash);
-                const flags = label.slice(lastSlash + 1);
+            if (labelText.startsWith('/') && labelText.endsWith('/')) {
+                const lastSlash = labelText.lastIndexOf('/');
+                const pattern = labelText.slice(1, lastSlash);
+                const flags = labelText.slice(lastSlash + 1);
                 return new RegExp(pattern, flags);
             }
             
             // Si no está entre barras, tratarlo como patrón directo
-            return new RegExp(label);
+            return new RegExp(labelText);
         } catch (error) {
-            console.warn(`Error creando expresión regular para "${label}":`, error);
+            console.warn(`Error creando expresión regular para "${labelText}":`, error);
             return null;
         }
     }
 
     /**
      * Encuentra la coincidencia más larga al inicio de la cadena
-     * @param {string} label - La etiqueta (puede ser regex o literal)
+     * @param {string|object} label - La etiqueta (puede ser regex o literal)
      * @param {string} input - La cadena de entrada
      * @returns {string|null} - La coincidencia encontrada o null
      */
     static findMatch(label, input) {
-        if (!label || !input) return null;
+        // Extraer el texto de la etiqueta
+        const labelText = this.extractLabelText(label);
+        
+        // Verificar que ambos parámetros sean válidos
+        if (!labelText || typeof labelText !== 'string' || !input || typeof input !== 'string') {
+            return null;
+        }
 
         // Si no es una expresión regular, usar coincidencia literal
-        if (!this.isRegexPattern(label)) {
-            return input.startsWith(label) ? label : null;
+        if (!this.isRegexPattern(labelText)) {
+            return input.startsWith(labelText) ? labelText : null;
         }
 
         // Crear expresión regular
-        const regex = this.createRegExp(label);
+        const regex = this.createRegExp(labelText);
         if (!regex) return null;
 
         // Asegurar que la regex busque desde el inicio
@@ -73,7 +142,7 @@ class RegexHandler {
             const match = input.match(anchoredRegex);
             return match ? match[0] : null;
         } catch (error) {
-            console.warn(`Error ejecutando regex "${label}" en "${input}":`, error);
+            console.warn(`Error ejecutando regex "${labelText}" en "${input}":`, error);
             return null;
         }
     }
@@ -81,21 +150,32 @@ class RegexHandler {
     /**
      * Obtiene todas las posibles coincidencias desde el inicio de la cadena
      * para múltiples etiquetas, priorizando las más largas
-     * @param {Array<string>} labels - Array de etiquetas
+     * @param {Array<string|object>} labels - Array de etiquetas
      * @param {string} input - La cadena de entrada
      * @returns {Array<{label: string, match: string, length: number}>}
      */
     static findAllMatches(labels, input) {
+        // Verificar que labels sea un array válido
+        if (!Array.isArray(labels) || !input || typeof input !== 'string') {
+            return [];
+        }
+        
         const matches = [];
 
         for (const label of labels) {
-            const match = this.findMatch(label, input);
-            if (match) {
-                matches.push({
-                    label: label,
-                    match: match,
-                    length: match.length
-                });
+            // Extraer el texto de la etiqueta
+            const labelText = this.extractLabelText(label);
+            
+            // Solo procesar si se pudo extraer texto válido
+            if (labelText) {
+                const match = this.findMatch(labelText, input);
+                if (match) {
+                    matches.push({
+                        label: labelText,
+                        match: match,
+                        length: match.length
+                    });
+                }
             }
         }
 
@@ -105,17 +185,28 @@ class RegexHandler {
 
     /**
      * Valida si una etiqueta es una expresión regular válida
-     * @param {string} label - La etiqueta a validar
+     * @param {string|object} label - La etiqueta a validar
      * @returns {{valid: boolean, error?: string}}
      */
     static validateRegex(label) {
-        if (!this.isRegexPattern(label)) {
+        // Extraer el texto de la etiqueta
+        const labelText = this.extractLabelText(label);
+        
+        // Verificar que se extrajo texto válido
+        if (!labelText || typeof labelText !== 'string') {
+            return { 
+                valid: false, 
+                error: 'La etiqueta debe ser una cadena de texto válida' 
+            };
+        }
+        
+        if (!this.isRegexPattern(labelText)) {
             // Para cadenas literales, verificar caracteres de escape inválidos
-            return this.validateLiteralString(label);
+            return this.validateLiteralString(labelText);
         }
 
         try {
-            this.createRegExp(label);
+            this.createRegExp(labelText);
             return { valid: true };
         } catch (error) {
             return { 
@@ -127,14 +218,25 @@ class RegexHandler {
 
     /**
      * Valida una cadena literal para caracteres de escape inválidos
-     * @param {string} label - La etiqueta literal a validar
+     * @param {string|object} label - La etiqueta literal a validar
      * @returns {{valid: boolean, error?: string}}
      */
     static validateLiteralString(label) {
+        // Extraer el texto de la etiqueta
+        const labelText = this.extractLabelText(label);
+        
+        // Verificar que se extrajo texto válido
+        if (!labelText || typeof labelText !== 'string') {
+            return { 
+                valid: false, 
+                error: 'La etiqueta debe ser una cadena de texto válida' 
+            };
+        }
+        
         // Detectar secuencias de escape inválidas en cadenas literales
         // Caracteres de escape válidos: \d, \D, \w, \W, \s, \S, \n, \r, \t, \f, \v, \b, \\, \/, \[, \], \(, \), \{, \}, \., \*, \+, \?, \^, \$, \|
         const invalidEscapePattern = /\\([^dnwsrntfvbDSWRNTFVB0-9\[\](){}.*+?^$|\\\/])/g;
-        const matches = label.match(invalidEscapePattern);
+        const matches = labelText.match(invalidEscapePattern);
         
         if (matches) {
             const invalidEscapes = matches.map(match => match);
@@ -150,37 +252,45 @@ class RegexHandler {
 
     /**
      * Genera ejemplos de cadenas que coincidirían con una expresión regular
-     * @param {string} label - La etiqueta regex
+     * @param {string|object} label - La etiqueta regex
      * @param {number} maxExamples - Número máximo de ejemplos
      * @returns {Array<string>}
      */
     static generateExamples(label, maxExamples = 5) {
-        if (!this.isRegexPattern(label)) {
-            return [label]; // Para cadenas literales, el ejemplo es la misma cadena
+        // Extraer el texto de la etiqueta
+        const labelText = this.extractLabelText(label);
+        
+        // Si no se pudo extraer texto válido, retornar array vacío
+        if (!labelText || typeof labelText !== 'string') {
+            return [];
+        }
+        
+        if (!this.isRegexPattern(labelText)) {
+            return [labelText]; // Para cadenas literales, el ejemplo es la misma cadena
         }
 
         // Ejemplos básicos para patrones comunes
         const examples = [];
 
-        if (label.includes('\\d')) {
+        if (labelText.includes('\\d')) {
             examples.push('123', '0', '999');
         }
-        if (label.includes('\\w')) {
+        if (labelText.includes('\\w')) {
             examples.push('abc', 'A1', 'test');
         }
-        if (label.includes('\\s')) {
+        if (labelText.includes('\\s')) {
             examples.push(' ', '\t', '\n');
         }
-        if (label.includes('[a-z]')) {
+        if (labelText.includes('[a-z]')) {
             examples.push('a', 'z', 'hello');
         }
-        if (label.includes('[A-Z]')) {
+        if (labelText.includes('[A-Z]')) {
             examples.push('A', 'Z', 'HELLO');
         }
-        if (label.includes('[0-9]')) {
+        if (labelText.includes('[0-9]')) {
             examples.push('0', '9', '123');
         }
-        if (label.includes('.')) {
+        if (labelText.includes('.')) {
             examples.push('a', '1', '@');
         }
 
@@ -194,33 +304,41 @@ class RegexHandler {
 
     /**
      * Obtiene información descriptiva sobre una expresión regular
-     * @param {string} label - La etiqueta regex
+     * @param {string|object} label - La etiqueta regex
      * @returns {string}
      */
     static getDescription(label) {
-        if (!this.isRegexPattern(label)) {
-            return `Coincidencia exacta: "${label}"`;
+        // Extraer el texto de la etiqueta
+        const labelText = this.extractLabelText(label);
+        
+        // Si no se pudo extraer texto válido, retornar descripción de error
+        if (!labelText || typeof labelText !== 'string') {
+            return 'Etiqueta inválida';
+        }
+        
+        if (!this.isRegexPattern(labelText)) {
+            return `Coincidencia exacta: "${labelText}"`;
         }
 
         let description = 'Expresión regular: ';
         
-        if (label.includes('\\d')) description += 'dígitos, ';
-        if (label.includes('\\w')) description += 'caracteres alfanuméricos, ';
-        if (label.includes('\\s')) description += 'espacios en blanco, ';
-        if (label.includes('[a-z]')) description += 'letras minúsculas, ';
-        if (label.includes('[A-Z]')) description += 'letras mayúsculas, ';
-        if (label.includes('[0-9]')) description += 'números, ';
-        if (label.includes('.')) description += 'cualquier carácter, ';
-        if (label.includes('*')) description += 'cero o más repeticiones, ';
-        if (label.includes('+')) description += 'una o más repeticiones, ';
-        if (label.includes('?')) description += 'opcional, ';
-        if (label.includes('|')) description += 'alternativas, ';
+        if (labelText.includes('\\d')) description += 'dígitos, ';
+        if (labelText.includes('\\w')) description += 'caracteres alfanuméricos, ';
+        if (labelText.includes('\\s')) description += 'espacios en blanco, ';
+        if (labelText.includes('[a-z]')) description += 'letras minúsculas, ';
+        if (labelText.includes('[A-Z]')) description += 'letras mayúsculas, ';
+        if (labelText.includes('[0-9]')) description += 'números, ';
+        if (labelText.includes('.')) description += 'cualquier carácter, ';
+        if (labelText.includes('*')) description += 'cero o más repeticiones, ';
+        if (labelText.includes('+')) description += 'una o más repeticiones, ';
+        if (labelText.includes('?')) description += 'opcional, ';
+        if (labelText.includes('|')) description += 'alternativas, ';
 
         // Limpiar la descripción
         description = description.replace(/, $/, '');
         
         if (description === 'Expresión regular: ') {
-            description += `patrón "${label}"`;
+            description += `patrón "${labelText}"`;
         }
 
         return description;
