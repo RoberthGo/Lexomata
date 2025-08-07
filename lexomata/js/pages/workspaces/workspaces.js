@@ -625,8 +625,13 @@ function createOrMergeEdge(fromId, toId, labelsToAdd) {
         });
         return null; // No se creó una nueva arista
     } else {
-        // Crear nueva arista
-        const newEdge = new EdgeAutomata(fromId, toId, labelsToAdd);
+        // Crear nueva arista según el modo actual
+        let newEdge;
+        if (currentMode === 'turing') {
+            newEdge = createTuringEdge(fromId, toId, labelsToAdd);
+        } else {
+            newEdge = new EdgeAutomata(fromId, toId, labelsToAdd);
+        }
         return newEdge;
     }
 }
@@ -1188,7 +1193,7 @@ function finishLabelEdit() {
         return;
     }
 
-    const validation = validateTransitionLabel(newText);
+    const validation = validateTransitionLabel(newText, currentMode);
     if (!validation.isValid) {
         // Si no es válido, restaurar el texto original
         updateLabelText(labelEditState.originalText);
@@ -1724,7 +1729,7 @@ function saveEdgeLabels(fromNode, toNode) {
         const value = input.value.trim();
         if (!value) return; // Ignorar campos vacíos
 
-        const validation = validateTransitionLabel(value);
+        const validation = validateTransitionLabel(value, currentMode);
         if (validation.isValid) {
             newLabels.push(value);
         } else {
@@ -1733,8 +1738,29 @@ function saveEdgeLabels(fromNode, toNode) {
     });
 
     if (validationErrors.length > 0) {
-        const errorMessage = "Error al procesar la transicion, verifica que tenga caracteres validos" +
-            "\no no uses un caracter de escape invalido (\\) \n";
+        let errorMessage;
+        if (currentMode === 'turing') {
+            errorMessage = "Error al procesar la transición de Turing. Formato requerido: 'leer,escribir,mover' (ej: 'a,b,R')\n\n";
+            errorMessage += validationErrors.join('\n');
+            
+            // Agregar sugerencias para cada error
+            const suggestions = inputs.map((input, index) => {
+                const value = input.value.trim();
+                if (value) {
+                    const validation = validateTransitionLabel(value, currentMode);
+                    if (!validation.isValid) {
+                        return `Sugerencia para campo ${index + 1}: ${suggestTuringTransitionFix(value)}`;
+                    }
+                }
+                return null;
+            }).filter(s => s !== null);
+            
+            if (suggestions.length > 0) {
+                errorMessage += '\n\nSugerencias:\n' + suggestions.join('\n');
+            }
+        } else {
+            errorMessage = "Error al procesar la transicion, verifica que tenga caracteres validos\no no uses un caracter de escape invalido (\\)\n" + validationErrors.join('\n');
+        }
         showMessage(errorMessage);
         return;
     }
@@ -1767,8 +1793,15 @@ function saveEdgeLabels(fromNode, toNode) {
         });
 
     } else {
-        // 4. SI NO EXISTE: crea una arista nueva con las etiquetas recolectadas.
-        const newEdge = new EdgeAutomata(fromNode.id, toNode.id, newLabels);
+        // 4. SI NO EXISTE: crea una arista nueva con las etiquetas recolectadas según el modo.
+        let newEdge;
+        if (currentMode === 'turing') {
+            // Para máquinas de Turing, crear EdgeTouring con las transiciones parseadas
+            newEdge = createTuringEdge(fromNode.id, toNode.id, newLabels);
+        } else {
+            // Para autómatas, usar EdgeAutomata
+            newEdge = new EdgeAutomata(fromNode.id, toNode.id, newLabels);
+        }
         edges.push(newEdge);
     }
 
@@ -1776,6 +1809,47 @@ function saveEdgeLabels(fromNode, toNode) {
     redrawCanvas();
     saveState();
     closeMessage('customEdgeModal');
+}
+
+/**
+ * Crea una arista de máquina de Turing con las transiciones especificadas
+ * @param {string} fromId - ID del nodo origen
+ * @param {string} toId - ID del nodo destino
+ * @param {Array} transitionLabels - Array de etiquetas en formato "leer,escribir,mover"
+ * @returns {EdgeTouring} - Nueva arista de Turing
+ */
+function createTuringEdge(fromId, toId, transitionLabels) {
+    // Parsear la primera transición para los parámetros del constructor
+    const firstTransition = parseTuringTransition(transitionLabels[0]);
+    
+    // Crear la arista con los parámetros de la primera transición
+    const turingEdge = new EdgeTouring(
+        fromId, 
+        toId, 
+        [], // transitions array se inicializa vacío
+        firstTransition.read,
+        firstTransition.write,
+        firstTransition.move
+    );
+    
+    // Asignar todas las etiquetas al array labels para compatibilidad con el sistema existente
+    turingEdge.labels = transitionLabels;
+    
+    return turingEdge;
+}
+
+/**
+ * Parsea una transición de Turing en formato "leer,escribir,mover"
+ * @param {string} transitionStr - String de transición
+ * @returns {Object} - Objeto con propiedades read, write, move
+ */
+function parseTuringTransition(transitionStr) {
+    const parts = transitionStr.split(',');
+    return {
+        read: parts[0] || '',
+        write: parts[1] || '',
+        move: parts[2] || 'R'
+    };
 }
 
 
@@ -2154,12 +2228,125 @@ function updateViewMenuVisibility() {
 /**
  * Valida una etiqueta de transición para asegurar que no contenga caracteres de escape inválidos
  * @param {string} label - La etiqueta a validar
+ * @param {string} mode - Modo actual ('automata' o 'turing')
  * @returns {object} - Objeto con isValid (boolean) y error (string)
  */
-function validateTransitionLabel(label) {
+function validateTransitionLabel(label, mode = 'automata') {
     if (!label || typeof label !== 'string') {
         return { isValid: false, error: 'La etiqueta no puede estar vacía' };
     }
+
+    // Validaciones específicas para máquina de Turing
+    if (mode === 'turing') {
+        return validateTuringTransition(label);
+    }
+
+    // Validaciones para autómata (código original)
+    return validateAutomataTransition(label);
+}
+
+/**
+ * Valida una transición de máquina de Turing
+ * @param {string} label - Etiqueta en formato "leer,escribir,mover"
+ * @returns {object} - Objeto con isValid y error
+ */
+function validateTuringTransition(label) {
+    // Verificar formato básico "a,b,c"
+    const parts = label.split(',');
+    
+    if (parts.length !== 3) {
+        return {
+            isValid: false,
+            error: 'Formato inválido. Use: "leer,escribir,mover" (ej: "a,b,R")'
+        };
+    }
+
+    const [readChar, writeChar, moveDir] = parts.map(part => part.trim());
+
+    // Validar carácter de lectura
+    if (!readChar) {
+        return {
+            isValid: false,
+            error: 'El carácter de lectura no puede estar vacío'
+        };
+    }
+
+    if (readChar.length > 1 && readChar !== 'ε' && readChar !== 'λ' && readChar !== '□' && readChar !== 'blank') {
+        return {
+            isValid: false,
+            error: 'El carácter de lectura debe ser un solo carácter o un símbolo especial (ε, λ, □, blank)'
+        };
+    }
+
+    // Validar carácter de escritura
+    if (!writeChar) {
+        return {
+            isValid: false,
+            error: 'El carácter de escritura no puede estar vacío'
+        };
+    }
+
+    if (writeChar.length > 1 && writeChar !== 'ε' && writeChar !== 'λ' && writeChar !== '□' && writeChar !== 'blank') {
+        return {
+            isValid: false,
+            error: 'El carácter de escritura debe ser un solo carácter o un símbolo especial (ε, λ, □, blank)'
+        };
+    }
+
+    // Validar dirección de movimiento
+    const validMoves = ['L', 'R', 'M', 'l', 'r', 'm', 'S', 's'];
+    if (!validMoves.includes(moveDir)) {
+        return {
+            isValid: false,
+            error: 'La dirección debe ser L (izquierda), R (derecha), M/S (mantener/stay)'
+        };
+    }
+
+    return { isValid: true, error: null };
+}
+
+/**
+ * Proporciona sugerencias para corregir transiciones de Turing mal formateadas
+ * @param {string} label - Etiqueta que falló la validación
+ * @returns {string} - Sugerencia de corrección
+ */
+function suggestTuringTransitionFix(label) {
+    const suggestions = [];
+    
+    // Si no tiene comas, sugerir el formato
+    if (!label.includes(',')) {
+        suggestions.push('Agregue comas para separar: leer,escribir,mover');
+        suggestions.push(`Ejemplo: "${label},${label},R"`);
+        return suggestions.join('\n');
+    }
+    
+    const parts = label.split(',');
+    
+    if (parts.length < 3) {
+        suggestions.push('Faltan componentes. Formato: leer,escribir,mover');
+    }
+    
+    if (parts.length > 3) {
+        suggestions.push('Demasiados componentes. Use solo: leer,escribir,mover');
+    }
+    
+    // Verificar la dirección si existe
+    if (parts.length >= 3) {
+        const moveDir = parts[2].trim();
+        if (!['L', 'R', 'M', 'l', 'r', 'm', 'S', 's'].includes(moveDir)) {
+            suggestions.push('Dirección inválida. Use: L (izquierda), R (derecha), M/S (mantener)');
+        }
+    }
+    
+    return suggestions.length > 0 ? suggestions.join('\n') : 'Verifique el formato: leer,escribir,mover';
+}
+
+/**
+ * Valida una transición de autómata (función original)
+ * @param {string} label - Etiqueta de la transición
+ * @returns {object} - Objeto con isValid y error
+ */
+function validateAutomataTransition(label) {
 
     // Casos específicos de errores comunes con caracteres de escape
     const commonInvalidEscapes = [
@@ -2255,3 +2442,177 @@ function mergeOrUpdateEdge(edgeToModify, newFromId, newToId, edgesToDelete, sele
         edgeToModify.to = newToId;
     }
 }
+
+/**
+ * Valida y convierte una arista al tipo correcto según el modo actual
+ * @param {Object} edge - La arista a validar
+ * @param {string} mode - Modo actual ('automata' o 'turing')
+ * @returns {Object} - Arista validada y posiblemente convertida
+ */
+function validateAndConvertEdge(edge, mode) {
+    // Si la arista ya es del tipo correcto, devolverla tal como está
+    if (mode === 'turing' && edge instanceof EdgeTouring) {
+        return edge;
+    }
+    if (mode === 'automata' && edge instanceof EdgeAutomata) {
+        return edge;
+    }
+
+    // Si el tipo no coincide con el modo, convertir
+    if (mode === 'turing' && !(edge instanceof EdgeTouring)) {
+        // Convertir a EdgeTouring
+        const labels = edge.labels || [];
+        if (labels.length > 0) {
+            // Validar que las etiquetas tengan el formato correcto para Turing
+            const validLabels = labels.filter(label => {
+                const labelText = typeof label === 'object' ? label.text : label;
+                const validation = validateTuringTransition(labelText);
+                return validation.isValid;
+            });
+            
+            if (validLabels.length > 0) {
+                return createTuringEdge(edge.from, edge.to, validLabels);
+            }
+        }
+        // Si no hay etiquetas válidas, crear una EdgeTouring con valores por defecto
+        const defaultEdge = new EdgeTouring(edge.from, edge.to, [], 'ε', 'ε', 'R');
+        defaultEdge.id = edge.id;
+        defaultEdge.labels = edge.labels || [];
+        return defaultEdge;
+    }
+    
+    if (mode === 'automata' && !(edge instanceof EdgeAutomata)) {
+        // Convertir a EdgeAutomata
+        const newEdge = new EdgeAutomata(edge.from, edge.to, edge.labels || []);
+        newEdge.id = edge.id;
+        newEdge.note = edge.note || '';
+        return newEdge;
+    }
+
+    return edge;
+}
+
+/**
+ * Valida todas las aristas del proyecto y las convierte al tipo correcto
+ * @param {string} mode - Modo actual ('automata' o 'turing')
+ */
+function validateAllEdges(mode) {
+    edges = edges.map(edge => validateAndConvertEdge(edge, mode));
+}
+
+/**
+ * Inicializa las validaciones del proyecto basadas en el modo
+ * Esta función se debe llamar al cargar el workspace o cambiar de modo
+ */
+function initializeEdgeValidations() {
+    // Validar todas las aristas existentes
+    validateAllEdges(currentMode);
+    
+    // Redibuja el canvas para reflejar los cambios
+    redrawCanvas();
+    
+    console.log(`Validaciones inicializadas para modo: ${currentMode}`);
+}
+
+// Inicializar las validaciones cuando se carga la página
+document.addEventListener('DOMContentLoaded', function() {
+    // Esperar un poco para asegurar que todas las variables estén inicializadas
+    setTimeout(() => {
+        if (typeof currentMode !== 'undefined' && (currentMode === 'automata' || currentMode === 'turing')) {
+            initializeEdgeValidations();
+        }
+    }, 100);
+});
+
+// ---------------------------------------------------------------------------------
+// SECTION: Edge Validation System Documentation
+// ---------------------------------------------------------------------------------
+
+/*
+SISTEMA DE VALIDACIONES PARA TRANSICIONES
+
+Este sistema implementa validaciones diferenciadas para transiciones de autómatas
+y máquinas de Turing, asegurando que se usen los tipos de datos correctos según el modo.
+
+CARACTERÍSTICAS PRINCIPALES:
+
+1. VALIDACIÓN POR MODO:
+   - Modo 'automata': Usa EdgeAutomata y validaciones de expresiones regulares
+   - Modo 'turing': Usa EdgeTouring y validaciones de formato "leer,escribir,mover"
+
+2. FUNCIONES PRINCIPALES:
+   
+   validateTransitionLabel(label, mode):
+   - Función principal que delegoa a la validación específica según el modo
+   - Parámetros: label (string), mode ('automata' | 'turing')
+   - Retorna: {isValid: boolean, error: string}
+   
+   validateTuringTransition(label):
+   - Valida formato "leer,escribir,mover" para máquinas de Turing
+   - Acepta símbolos especiales: ε, λ, □, blank
+   - Direcciones válidas: L, R, M, S (izquierda, derecha, mantener/stay)
+   
+   validateAutomataTransition(label):
+   - Valida expresiones regulares y etiquetas de autómatas
+   - Controla caracteres de escape y sintaxis regex
+   
+   createTuringEdge(fromId, toId, transitionLabels):
+   - Crea aristas de tipo EdgeTouring con transiciones parseadas
+   - Mantiene compatibilidad con el sistema de labels existente
+   
+   validateAndConvertEdge(edge, mode):
+   - Convierte aristas entre tipos según el modo actual
+   - Útil para cargar proyectos mixtos o cambiar de modo
+   
+   initializeEdgeValidations():
+   - Inicializa el sistema de validaciones al cargar la página
+   - Convierte todas las aristas existentes al tipo correcto
+
+3. INTEGRACIÓN CON MODALES:
+   - saveEdgeLabels(): Actualizada para usar validaciones específicas por modo
+   - saveTuringEdgeTransitions(): Usa validaciones de Turing con sugerencias
+   - Mensajes de error contextuales con sugerencias de corrección
+
+4. CARACTERÍSTICAS ADICIONALES:
+   - Sugerencias automáticas para corregir errores de formato
+   - Conversión automática entre tipos de aristas
+   - Compatibilidad retroactiva con proyectos existentes
+   - Validación en tiempo real durante la edición de etiquetas
+
+EJEMPLOS DE USO:
+
+Para autómatas:
+- Etiquetas válidas: "a", "\\d+", "[a-z]*", "ε"
+- El sistema valida expresiones regulares y caracteres de escape
+
+Para máquinas de Turing:
+- Formato: "leer,escribir,mover"
+- Ejemplos válidos: "a,b,R", "0,1,L", "ε,□,M"
+- Símbolos especiales: ε (épsilon), λ (lambda), □ (blank), blank
+
+MODO DE OPERACIÓN:
+El sistema detecta automáticamente el modo actual (automata/turing) y aplica
+las validaciones correspondientes. Al cambiar de modo o cargar un proyecto,
+todas las aristas se validan y convierten al tipo correcto automáticamente.
+
+EJECUCIÓN DE MÁQUINAS DE TURING:
+Las funciones de ejecución de máquinas de Turing se han trasladado al archivo:
+/js/utils/turingExecution/turingExecutionInterface.js
+
+Este archivo incluye un motor de ejecución completo para máquinas de Turing que:
+- Lee transiciones en formato "leer,escribir,mover"
+- Simula la cinta infinita con expansion automática
+- Ejecuta paso a paso o completamente
+- Maneja símbolos especiales (□, ε, λ, blank)
+- Provee visualización integrada con la cinta
+- Incluye validaciones y detección de bucles infinitos
+
+FUNCIONES DE EJECUCIÓN DISPONIBLES (en turingExecutionInterface.js):
+- testTuringMachine(cadena, pasoAPaso): Prueba la máquina
+- stepForwardTuring() / stepBackwardTuring(): Navegación paso a paso
+- runTuringToCompletion(): Ejecución automática completa
+- showTuringExecutionInfo(): Información detallada del estado
+- exportTuringExecutionHistory(): Exporta historial de ejecución
+
+Para ver la lista completa de comandos, ejecuta: showTuringHelp()
+*/

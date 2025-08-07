@@ -91,8 +91,9 @@ function addTuringEdgeTransitionRow(container) {
 function saveTuringEdgeTransitions(fromNode, toNode) {
     const allTransitionGroups = document.querySelectorAll('.tm-edge-transition-group');
     const newLabels = [];
+    const validationErrors = [];
 
-    allTransitionGroups.forEach(group => {
+    allTransitionGroups.forEach((group, index) => {
         const readChar = group.querySelector('.tm-edge-read-char').value.trim();
         const writeChar = group.querySelector('.tm-edge-write-char').value.trim();
         const moveDir = group.querySelector('.tm-edge-move-dir').value;
@@ -100,19 +101,44 @@ function saveTuringEdgeTransitions(fromNode, toNode) {
         if (readChar && writeChar) {
             // Formateamos la transición al formato "leer,escribir,mover"
             const formattedLabel = `${readChar},${writeChar},${moveDir}`;
-            newLabels.push(formattedLabel);
+            
+            // Validar la transición usando la función de validación de Turing
+            if (typeof validateTransitionLabel === 'function') {
+                const validation = validateTransitionLabel(formattedLabel, 'turing');
+                if (validation.isValid) {
+                    newLabels.push(formattedLabel);
+                } else {
+                    validationErrors.push(`Transición ${index + 1}: ${validation.error}`);
+                }
+            } else {
+                // Fallback si la función no está disponible
+                newLabels.push(formattedLabel);
+            }
         }
     });
 
-    if (newLabels.length === 0) {
-        closeMessage('customEdgeModal');
+    if (validationErrors.length > 0) {
+        const errorMessage = "Error al procesar las transiciones de Turing:\n" + validationErrors.join('\n');
+        if (typeof showMessage === 'function') {
+            showMessage(errorMessage);
+        } else {
+            alert(errorMessage);
+        }
         return;
     }
 
-    // Reutilizamos TU LÓGICA EXACTA para añadir o crear aristas
+    if (newLabels.length === 0) {
+        if (typeof closeMessage === 'function') {
+            closeMessage('customEdgeModal');
+        }
+        return;
+    }
+
+    // Buscar si ya existe una arista entre estos nodos
     let existingEdge = edges.find(e => e.from === fromNode.id && e.to === toNode.id);
 
     if (existingEdge) {
+        // Si existe, agregar las nuevas transiciones
         if (!Array.isArray(existingEdge.labels)) {
             existingEdge.labels = [existingEdge.label];
         }
@@ -122,10 +148,28 @@ function saveTuringEdgeTransitions(fromNode, toNode) {
             }
         });
     } else {
-        const newEdge = new EdgeAutomata(fromNode.id, toNode.id, newLabels);
+        // Crear nueva arista de Turing
+        let newEdge;
+        if (typeof createTuringEdge === 'function') {
+            newEdge = createTuringEdge(fromNode.id, toNode.id, newLabels);
+        } else {
+            // Fallback: crear EdgeTouring directamente
+            const firstTransition = newLabels[0].split(',');
+            newEdge = new EdgeTouring(
+                fromNode.id, 
+                toNode.id, 
+                [], 
+                firstTransition[0] || '', 
+                firstTransition[1] || '', 
+                firstTransition[2] || 'R'
+            );
+            newEdge.labels = newLabels;
+        }
         edges.push(newEdge);
     }
-    console.log("Transiciones guardadas:", newLabels);
+    
+    console.log("Transiciones de Turing guardadas:", newLabels);
+    
     redrawCanvas();
     saveState();
     closeMessage('customEdgeModal');

@@ -131,6 +131,9 @@
             <h3 class="turing-tape-title">Cinta de Máquina de Turing</h3>
 
             <div class="turing-tape-controls">
+              <button class="turing-tape-button" id="executeTuringButton">
+                <i class="fas fa-play"></i> Ejecutar
+              </button>
               <button class="turing-tape-button" id="resetTapeButton">
                 <i class="fas fa-undo"></i> Reiniciar
               </button>
@@ -146,6 +149,34 @@
             </div>
           </div>
 
+          <div class="turing-tape-input-section">
+            <input type="text" id="turingStringInput" class="turing-string-input" placeholder="Ingrese la cadena inicial para la cinta..."
+              maxlength="50">
+            <button id="applyTuringStringButton" class="apply-turing-string-button">
+              <i class="fas fa-check"></i> Aplicar a Cinta
+            </button>
+          </div>
+
+          <!-- Controles de navegación paso a paso -->
+          <div class="turing-step-controls" style="display: none;">
+            <div class="step-navigation-buttons">
+              <button id="turingStepBackwardButton" class="turing-step-button" disabled>
+                <i class="fas fa-step-backward"></i> Anterior
+              </button>
+              <button id="turingStepForwardButton" class="turing-step-button" disabled>
+                <i class="fas fa-step-forward"></i> Siguiente
+              </button>
+              <button id="turingStopStepButton" class="turing-step-button stop-button">
+                <i class="fas fa-stop"></i> Detener
+              </button>
+            </div>
+          </div>
+
+          <!-- Información de ejecución -->
+          <div class="turing-execution-info" style="display: none;">
+            <div id="turingExecutionStatus" class="execution-status"></div>
+            <div id="turingTransitionsInfo" class="transitions-info"></div>
+          </div>
           <div class="turing-tape-wrapper">
             <canvas id="turingTapeCanvas" class="turing-tape-canvas"></canvas>
             <div class="turing-tape-head">
@@ -409,11 +440,14 @@
 
   <script src="../js/models/State.js"></script>
   <script src="../js/models/EdgeAutomata.js"></script>
+  <script src="../js/models/EdgeTouring.js"></script>
   <script src="../js/utils/canvas/exportCanvasToImage.js"></script>
   <script src="../js/pages/workspaces/workspaces.js"> </script>
   <script src="../js/pages/workspaces/canvasSettings.js"></script>
   <script src="../js/pages/workspaces/toolbar.js"> </script>
   <script src="../js/utils/automataExecution/ExecutionController.js"></script>
+  <script src="../js/utils/turingExecution/TuringExecutionController.js"></script>
+  <script src="../js/utils/turingExecution/turingExecutionInterface.js"></script>
   <script src="../js/utils/canvas/canvas.js"></script>
   <script src="../js/utils/canvas/Node/addNode.js"></script>
   <script src="../js/utils/canvas/addEdge.js"></script>
