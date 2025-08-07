@@ -220,7 +220,7 @@ function drawResultsToCanvasForExport(ctx, width, height, theme, zoom, charLimit
 }
 
 // Listeners para actualizar la previsualización en tiempo real
-document.getElementById('noFormat').addEventListener('change', updateExportPreview);
+document.getElementById('exportFormat').addEventListener('change', updateExportPreview);
 document.getElementById('exportResolution').addEventListener('change', updateExportPreview);
 document.getElementById('exportTheme').addEventListener('change', updateExportPreview);
 document.querySelectorAll('input[name="exportArea"]').forEach(radio => {
