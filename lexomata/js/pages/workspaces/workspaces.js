@@ -109,8 +109,6 @@ let projectName = 'nuevo-automata';
 // --- OBTENCIÓN DEL MODO DE TRABAJO ---
 const urlParams = new URLSearchParams(window.location.search);
 const currentMode = urlParams.get('mode') || 'automata';
-
-
 let nodes = [];
 let edges = [];
 let nodeCounter = 0
@@ -436,7 +434,7 @@ function distancePointToLine(px, py, x1, y1, x2, y2) {
 
 function reverseMultipleEdges(edgeIds) {
     if (!edgeIds || edgeIds.length === 0) return;
-    
+
     // Crear una copia de las aristas a procesar para evitar modificar el array original durante la iteración
     const edgesToProcess = edgeIds.map(edgeId => {
         const edge = edges.find(e => e.id == edgeId);
@@ -458,9 +456,9 @@ function reverseMultipleEdges(edgeIds) {
         if (!originalEdge) return;
 
         // Buscar si ya existe una arista en la dirección inversa que NO esté en la selección actual
-        const existingOppositeEdge = edges.find(e => 
-            e.from === edgeInfo.originalTo && 
-            e.to === edgeInfo.originalFrom && 
+        const existingOppositeEdge = edges.find(e =>
+            e.from === edgeInfo.originalTo &&
+            e.to === edgeInfo.originalFrom &&
             !edgeIds.includes(e.id) // No debe estar en la selección actual
         );
 
@@ -472,7 +470,7 @@ function reverseMultipleEdges(edgeIds) {
                     const existingLabelText = typeof existingLabel === 'object' ? existingLabel.text : existingLabel;
                     return existingLabelText === labelText;
                 });
-                
+
                 if (!labelExists) {
                     existingOppositeEdge.labels.push(label);
                 }
@@ -525,9 +523,9 @@ function reverseMultipleLabels(selectedLabels) {
         if (labelsToReverse.length === edge.labels.length) {
             // Usar la misma lógica que reverseMultipleEdges para evitar problemas con aristas bidireccionales
             // Buscar si ya existe una arista en la dirección inversa que NO esté siendo procesada
-            const existingOppositeEdge = edges.find(e => 
-                e.from === edge.to && 
-                e.to === edge.from && 
+            const existingOppositeEdge = edges.find(e =>
+                e.from === edge.to &&
+                e.to === edge.from &&
                 !selectedLabels.some(labelInfo => labelInfo.edgeId == e.id) // No debe estar en la selección actual
             );
 
@@ -539,7 +537,7 @@ function reverseMultipleLabels(selectedLabels) {
                         const existingLabelText = typeof existingLabel === 'object' ? existingLabel.text : existingLabel;
                         return existingLabelText === labelText;
                     });
-                    
+
                     if (!labelExists) {
                         existingOppositeEdge.labels.push(label);
                     }
@@ -620,7 +618,7 @@ function createOrMergeEdge(fromId, toId, labelsToAdd) {
                 const existingLabelText = typeof existingLabel === 'object' ? existingLabel.text : existingLabel;
                 return existingLabelText === labelText;
             });
-            
+
             if (!labelExists) {
                 existingEdge.labels.push(label);
             }
@@ -988,7 +986,7 @@ let labelEditState = {
 function detectLabelClick(x, y) {
     for (let edge of edges) {
         if (!edge.labels) continue;
-        
+
         for (let i = 0; i < edge.labels.length; i++) {
             const label = edge.labels[i];
             if (
@@ -1076,16 +1074,16 @@ function handleLabelEditKeydown(e) {
             break;
         case 'Backspace':
             if (labelEditState.cursorPosition > 0) {
-                const newText = currentText.slice(0, labelEditState.cursorPosition - 1) + 
-                              currentText.slice(labelEditState.cursorPosition);
+                const newText = currentText.slice(0, labelEditState.cursorPosition - 1) +
+                    currentText.slice(labelEditState.cursorPosition);
                 updateLabelText(newText);
                 labelEditState.cursorPosition--;
             }
             break;
         case 'Delete':
             if (labelEditState.cursorPosition < currentText.length) {
-                const newText = currentText.slice(0, labelEditState.cursorPosition) + 
-                              currentText.slice(labelEditState.cursorPosition + 1);
+                const newText = currentText.slice(0, labelEditState.cursorPosition) +
+                    currentText.slice(labelEditState.cursorPosition + 1);
                 updateLabelText(newText);
             }
             break;
@@ -1108,9 +1106,9 @@ function handleLabelEditKeydown(e) {
         default:
             // Solo permitir caracteres imprimibles
             if (e.key.length === 1 && !e.ctrlKey && !e.altKey) {
-                const newText = currentText.slice(0, labelEditState.cursorPosition) + 
-                              e.key + 
-                              currentText.slice(labelEditState.cursorPosition);
+                const newText = currentText.slice(0, labelEditState.cursorPosition) +
+                    e.key +
+                    currentText.slice(labelEditState.cursorPosition);
                 updateLabelText(newText);
                 labelEditState.cursorPosition++;
             }
@@ -1131,10 +1129,10 @@ function handleLabelEditClickOutside(e) {
     if (e.target === canvas) {
         const worldCoords = getCanvasPoint(e.clientX, e.clientY);
         const clickedLabel = detectLabelClick(worldCoords.x, worldCoords.y);
-        
+
         // Si no se hizo clic en la etiqueta que se está editando, terminar edición
-        if (!clickedLabel || 
-            clickedLabel.edge !== labelEditState.edge || 
+        if (!clickedLabel ||
+            clickedLabel.edge !== labelEditState.edge ||
             clickedLabel.labelIndex !== labelEditState.labelIndex) {
             finishLabelEdit();
         }
@@ -1148,11 +1146,11 @@ function handleLabelEditClickOutside(e) {
 function getCurrentLabelText() {
     const edge = labelEditState.edge;
     const labelIndex = labelEditState.labelIndex;
-    
+
     if (edge.labels && edge.labels[labelIndex]) {
-        return typeof edge.labels[labelIndex] === 'object' ? 
-               edge.labels[labelIndex].text : 
-               edge.labels[labelIndex];
+        return typeof edge.labels[labelIndex] === 'object' ?
+            edge.labels[labelIndex].text :
+            edge.labels[labelIndex];
     }
     return '';
 }
@@ -1164,7 +1162,7 @@ function getCurrentLabelText() {
 function updateLabelText(newText) {
     const edge = labelEditState.edge;
     const labelIndex = labelEditState.labelIndex;
-    
+
     if (edge.labels && edge.labels[labelIndex]) {
         if (typeof edge.labels[labelIndex] === 'object') {
             edge.labels[labelIndex].text = newText;
@@ -1181,7 +1179,7 @@ function finishLabelEdit() {
     if (!labelEditState.isActive) return;
 
     const newText = getCurrentLabelText().trim();
-    
+
     // Validar el nuevo texto
     if (!newText) {
         // Si está vacío, restaurar el texto original
@@ -1216,7 +1214,7 @@ function cancelLabelEdit() {
 
     // Restaurar texto original
     updateLabelText(labelEditState.originalText);
-    
+
     resetLabelEditState();
     redrawCanvas();
 }
@@ -1226,11 +1224,11 @@ function cancelLabelEdit() {
  */
 function resetLabelEditState() {
     stopBlinkingEffect();
-    
+
     // Remover listeners
     document.removeEventListener('keydown', handleLabelEditKeydown);
     document.removeEventListener('click', handleLabelEditClickOutside);
-    
+
     labelEditState.isActive = false;
     labelEditState.edge = null;
     labelEditState.labelIndex = null;
@@ -1762,7 +1760,7 @@ function saveEdgeLabels(fromNode, toNode) {
                 const newLabelText = typeof label === 'object' ? label.text : label;
                 return existingLabelText === newLabelText;
             });
-            
+
             if (!labelExists) {
                 existingEdge.labels.push(label);
             }
@@ -2008,79 +2006,27 @@ exportFormatSelect.addEventListener('change', () => {
     }
 });
 
-// EXPORT IMAGE
-
+/**
+ * Exporta la imagen final llamando al renderizador maestro con la
+ * alta resolución seleccionada por el usuario.
+ */
 function exportImage() {
-    // 1. Obtener todas las opciones del modal
     const fileName = document.getElementById('exportFilename').value || projectName;
     const format = document.getElementById('exportFormat').value;
-    const exportWidth = parseInt(document.getElementById('exportResolution').value); // Ancho fijo en píxeles
-    const themeKey = document.getElementById('exportTheme').value;
-    const exportArea = document.querySelector('input[name="exportArea"]:checked').value;
+    const exportWidth = parseInt(document.getElementById('exportResolution').value); // La alta resolución
 
-    // 2. Crear un canvas temporal
-    const tempCanvas = document.createElement('canvas');
-    const tempCtx = tempCanvas.getContext('2d');
+    // Generamos la imagen combinada en ALTA resolución
+    const exportCanvas = generateCombinedImage(exportWidth);
 
-    let renderPanX, renderPanY, renderScale;
-
-    if (exportArea === 'current') {
-        // a. Calcula el alto de la exportación manteniendo la proporción de la ventana actual
-        const aspectRatio = canvas.height / canvas.width;
-        const exportHeight = exportWidth * aspectRatio;
-        tempCanvas.width = exportWidth;
-        tempCanvas.height = exportHeight;
-
-        // b. Corrige el zoom y el paneo para el nuevo tamaño
-        const scaleFactor = exportWidth / canvas.width;
-        renderScale = scale * scaleFactor;
-        renderPanX = panX * scaleFactor;
-        renderPanY = panY * scaleFactor;
-
-    } else { // exportArea === 'all'
-        const padding = 50; // Margen en píxeles del "mundo"
-        const bounds = calculateContentBoundingBox();
-
-        const contentWidth = (bounds.maxX - bounds.minX) + (padding * 2);
-        const contentHeight = (bounds.maxY - bounds.minY) + (padding * 2);
-
-        // a. Calcula el alto de la exportación manteniendo la proporción del contenido
-        const contentAspectRatio = contentHeight > 0 && contentWidth > 0 ? contentHeight / contentWidth : 1;
-        const exportHeight = exportWidth * contentAspectRatio;
-        tempCanvas.width = exportWidth;
-        tempCanvas.height = exportHeight;
-
-        // b. Calcula el zoom y paneo para centrar el contenido
-        renderScale = contentWidth > 0 ? exportWidth / contentWidth : 1;
-        renderPanX = (-bounds.minX + padding) * renderScale;
-        renderPanY = (-bounds.minY + padding) * renderScale;
+    // Descargar el resultado
+    const finalDataUrl = exportCanvas.toDataURL(format, 0.9);
+    const link = document.createElement('a');
+    link.href = finalDataUrl;
+    link.download = `${fileName}.${format.split('/')[1]}`;
+    if (document.getElementById('attachResultsCheckbox').checked && exportCanvas.width > exportWidth) {
+        link.download = `${fileName}-con-resultados.${format.split('/')[1]}`;
     }
-
-    // 3. Dibujar fondo y autómata en el canvas temporal
-    let theme;
-    if (themeKey !== 'transparent') {
-        theme = colorPalette[themeKey];
-        tempCtx.fillStyle = theme.background;
-        tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-    } else {
-        theme = colorPalette.light; // Usar colores claros para nodos/aristas sobre fondo transparente
-    }
-
-    tempCtx.save();
-    tempCtx.translate(renderPanX, renderPanY);
-    tempCtx.scale(renderScale, renderScale);
-
-    let tempEdgeDrawCounts = {};
-    edges.forEach(edge => drawEdge(tempCtx, edge, nodes, tempEdgeDrawCounts, selectedEdgeIds, theme));
-    nodes.forEach(node => drawNode(tempCtx, node, selectedNodeIds, theme));
-    tempCtx.restore();
-
-    // 4. Generar y descargar la imagen
-    const dataUrl = tempCanvas.toDataURL(format, 0.9);
-    const a = document.createElement('a');
-    a.href = dataUrl;
-    a.download = `${fileName}.${format.split('/')[1]}`;
-    a.click();
+    link.click();
 
     closeExportModal();
 }
@@ -2323,7 +2269,7 @@ function mergeOrUpdateEdge(edgeToModify, newFromId, newToId, edgesToDelete, sele
                 const existingLabelText = typeof existingLabel === 'object' ? existingLabel.text : existingLabel;
                 return existingLabelText === labelText;
             });
-            
+
             if (!labelExists) {
                 existingEdge.labels.push(label);
             }

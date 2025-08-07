@@ -261,7 +261,17 @@
     <div class="custom-modal-content">
 
       <div class="export-preview-wrapper">
+
         <img id="exportPreviewImage" alt="Previsualización de la exportación del autómata">
+
+        <div id="zoomControlsContainer" class="zoom-controls" style="display: none;">
+          <label>Zoom de Tabla:</label>
+          <button id="zoomOutBtn" title="Alejar">-</button>
+          <span id="zoomLevelDisplay">100%</span>
+          <button id="zoomInBtn" title="Acercar">+</button>
+          <button id="zoomResetBtn" title="Restablecer Zoom">⟲</button>
+        </div>
+
       </div>
 
       <div class="export-options-wrapper">
@@ -295,13 +305,24 @@
             <option value="transparent" id="transparentOption">Transparente (Solo PNG)</option>
           </select>
 
-          <label>Área a exportar:</label>
+          <h4 class="grid-span-title">Área a Exportar</h4>
+          <label for="inputCharLimit">Límite Caracteres (Input):</label>
+          <input type="number" id="inputCharLimit" class="modal-input" value="20" min="5">
+
+          <label for="resultCharLimit">Límite Caracteres (Result):</label>
+          <input type="number" id="resultCharLimit" class="modal-input" value="15" min="5">
+
           <div class="radio-group">
             <input type="radio" id="exportViewAll" name="exportArea" value="all" checked>
             <label for="exportViewAll">Ajustar al Contenido</label>
 
             <input type="radio" id="exportViewCurrent" name="exportArea" value="current">
             <label for="exportViewCurrent">Vista Actual</label>
+          </div>
+
+          <div class="checkbox-group">
+            <input type="checkbox" id="attachResultsCheckbox" name="attachResults">
+            <label for="attachResultsCheckbox">Adjuntar resultados de Multi-Run</label>
           </div>
 
           <div class="modal-actions">
@@ -405,6 +426,7 @@
   <script src="../js/utils/canvas/stringAnalyzer.js"></script>
   <script src="../js/utils/canvas/multipleRun.js"></script>
   <script src="../js/utils/regexHandler.js"></script>
+  <script src="../js/utils/canvas/multipleRunDrawCanvas.js"></script>
 </body>
 
 </html>

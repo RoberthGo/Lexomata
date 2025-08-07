@@ -725,17 +725,18 @@ body.dark .close-button:focus {
 /* En workspace.css, al final del archivo */
 
 .export-options-grid {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 1rem;
-  align-items: center;
-  margin: 1.5rem 0;
-  text-align: left;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 12px 16px; /* Ajustamos espaciado vertical y horizontal */
+    align-items: center;
+    text-align: left;
 }
 
 .export-options-grid label {
-  font-weight: 600;
-  font-size: 0.9rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    justify-self: end; /* ¡CLAVE! Alinea la etiqueta a la derecha de su celda */
+    text-align: right;
 }
 
 .modal-input{
@@ -857,19 +858,21 @@ body.dark #modalInputContainer #modalTextInput:focus {
 }
 
 #exportModal .export-options-grid {
-  display: grid;
-  grid-template-columns: 1fr; 
-  gap: 0rem; 
-  text-align: left;
-  margin-top: 1.7rem;
-  margin-bottom: 0rem;
+    display: grid;
+    align-items: center;
+    align-items: baseline;
 }
 
 #exportModal .export-options-grid label {
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: #555;
-  padding-left: 0.2rem;
+    justify-self: start;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #555;
+}
+
+#exportModal .export-options-grid input,select{
+    margin-bottom: 0rem;
 }
 
 #exportModal .export-options-grid input,select, .radio-group{
@@ -922,14 +925,6 @@ body.dark #exportModal .modal-select:focus {
     background-color: #2a2a3e;
 }
 
-.radio-group {
-  display: flex;
-  flex-wrap: wrap;
-  row-gap: 0.5rem;    
-  column-gap: 1.5rem; 
-  align-items: center;
-  margin-top: 0.5rem; 
-}
 
 .radio-group input[type="radio"] {
   opacity: 0;
@@ -942,9 +937,11 @@ body.dark #exportModal .modal-select:focus {
   align-items: center;
   cursor: pointer;
   font-size: 0.9rem;
-  font-weight: 500;
   transition: color 0.2s ease;
 }
+
+
+
 
 .radio-group label::before {
   content: '';
@@ -2466,20 +2463,12 @@ TOURING
     display: flex;
     flex-direction: row;
     min-width: 85vw;
-    min-height: 85vh; 
+    min-height: 70vh; 
     padding: 0;
     overflow: hidden;
 }
 
-/* 2. Estilos para el nuevo contenedor de la previsualización (columna izquierda) */
-.export-preview-wrapper {
-    flex: 1.5; /* Ocupa 2/3 del espacio */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #f0f2f5;
-    padding: 1.5rem;
-}
+
 
 .preview-placeholder-text {
     font-size: 2.5rem;
@@ -2490,12 +2479,11 @@ TOURING
 
 /* 3. Estilos para el nuevo contenedor de las opciones (columna derecha) */
 .export-options-wrapper {
-    flex: 0.6; /* Ocupa 1/3 del espacio */
-    position: relative;
+    flex: 0.6;
     display: flex;
-    flex-direction: column;
+    flex-direction: column; /* Estructura vertical */
     padding: 1.5rem 2rem;
-    min-width: 330px;
+    min-width: 400px; /* Ancho mínimo para que no se comprima demasiado */
 }
 
 /* 4. Ajustes para posicionar tus elementos originales dentro de la nueva columna */
@@ -2519,9 +2507,6 @@ body.dark #exportModal .custom-modal-content {
     background-color: #333;
 }
 
-body.dark .export-preview-wrapper {
-    background-color: #2d3748;
-}
 
 body.dark .preview-placeholder-text {
     color: #4a5568;
@@ -2531,23 +2516,289 @@ body.dark .export-options-wrapper {
     background-color: #333;
 }
 
+body.dark .export-options-wrapper h3 {
+    border-bottom-color: #3a3a50;
+}
+
 .export-options-wrapper h3 {
-  text-align: center;
-  width: 100%;
-  padding-right: 20px; /* Compensa el espacio del botón de cerrar */
-  margin-bottom: 1.5rem; /* Asegura un buen espaciado debajo del título */
+    text-align: center;
+    width: 100%;
+    margin-bottom: 2rem; /* Más espacio inferior */
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee; /* Separador visual */
 }
 
 /* --- ESTILOS PARA LA IMAGEN DE PREVISUALIZACIÓN --- */
 #exportPreviewImage {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain; /* Se asegura que la imagen quepa sin deformarse */
-  border-radius: 8px;
-  background-color: #ffffff; /* Fondo blanco para previsualizar PNGs transparentes */
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    max-width: 100%;
+    max-height: 85vh;
+    object-fit: contain;
 }
 
 body.dark #exportPreviewImage {
   background-color: #4a5568; /* Un fondo oscuro para el modo oscuro */
+}
+
+/* --- ESTILOS PARA LA NUEVA OPCIÓN DE ADJUNTAR RESULTADOS --- */
+
+/* Contenedor de la imagen del autómata */
+.automata-preview-container {
+    flex: 2; /* Proporción para la imagen */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Contenedor de la previsualización de la tabla */
+.results-preview-container {
+    flex: 1; /* Proporción para la tabla */
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    border-left: 2px solid #e0e0e0;
+    padding-left: 1.5rem;
+}
+
+body.dark .results-preview-container {
+    border-left-color: #4a4a60;
+}
+
+/* Canvas para la tabla de resultados */
+#resultsCanvas {
+   width: 100%;
+    height: 100%;
+    background-color: transparent; /* Fondo transparente */
+    cursor: grab;
+}
+
+#resultsCanvas:active {
+    cursor: grabbing;
+}
+
+body.dark #resultsCanvas {
+    background-color: #2d3748;
+    border-color: #4a4a60;
+}
+
+/* Controles de Zoom para la tabla */
+.zoom-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: #e9ecef;
+    padding: 0.5rem;
+    border-radius: 8px;
+}
+
+body.dark .zoom-controls {
+    background-color: #3a3a50;
+}
+
+.zoom-controls button {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #ccc;
+    border-radius: 50%;
+    background-color: #fff;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.zoom-controls button:hover {
+    background-color: #20c997;
+    color: white;
+    border-color: #20c997;
+}
+
+#zoomLevelDisplay {
+    font-weight: 600;
+    font-size: 0.9rem;
+    min-width: 50px;
+    text-align: center;
+}
+
+/* --- ESTILOS PARA EL NUEVO CHECKBOX --- */
+
+
+
+/* Ocultamos el checkbox por defecto */
+.checkbox-group input[type="checkbox"] {
+    opacity: 0;
+    position: fixed;
+    width: 0;
+}
+
+.checkbox-group label {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: color 0.2s ease;
+}
+
+/* Creamos el cuadrado personalizado */
+.checkbox-group label::before {
+    content: '';
+    width: 18px;
+    height: 18px;
+    border-radius: 4px; /* Hacemos que sea un cuadrado */
+    border: 2px solid #d0d0d0;
+    background-color: #fff;
+    margin-right: 0.8rem;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+body.dark .checkbox-group label::before {
+    border-color: #555;
+    background-color: #2d2d3d;
+}
+
+/* Estilo para cuando el checkbox está marcado */
+.checkbox-group input[type="checkbox"]:checked + label {
+    color: #333;
+}
+
+body.dark .checkbox-group input[type="checkbox"]:checked + label {
+    color: #fff;
+}
+
+.checkbox-group input[type="checkbox"]:checked + label::before {
+    border-color: #20c997;
+    background-color: #20c997;
+    /* Usamos un SVG para la palomita (check) */
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23fff' d='M6.564.75l-3.59 3.612-1.538-1.55L0 4.26 2.974 7.25 8 2.193z'/%3e%3c/svg%3e");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 50%;
+}
+
+/* --- ESTILOS PARA LA NUEVA VISTA PREVIA UNIFICADA --- */
+
+/* El contenedor principal ahora es más simple */
+.export-preview-wrapper {
+    flex: 2.5;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+    justify-content: center;
+    background-color: #f0f2f5;
+    position: relative; 
+}
+
+body.dark .export-preview-wrapper {
+    background-color: #2d3748;
+}
+
+/* La imagen de previsualización */
+#exportPreviewImage {
+    max-width: 100%;
+    max-height: 85%; /* Dejamos espacio para los controles de zoom */
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Controles de zoom (ligeramente ajustados) */
+.zoom-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.8rem;
+    background-color: #e9ecef;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    width: auto;
+}
+
+.zoom-controls label {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+body.dark .zoom-controls {
+    background-color: #3a3a50;
+}
+
+#zoomControlsContainer {
+    position: absolute; /* Saca el elemento del flujo normal */
+    bottom: 20px;       /* Lo posiciona a 20px del borde inferior */
+    left: 50%;          /* Lo centra horizontalmente */
+    transform: translateX(-50%);
+    z-index: 10;        /* Asegura que esté por encima de la imagen */
+    
+    display: flex; /* Mantenemos flex para su layout interno */
+    justify-content: center;
+    align-items: center;
+    gap: 0.8rem;
+    
+    /* Mejoramos su apariencia para que parezca una "píldora" flotante */
+    background-color: rgba(233, 236, 239, 0.9);
+    padding: 0.6rem 1.2rem;
+    border-radius: 50px; /* Bordes redondeados */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+body.dark #zoomControlsContainer {
+    background-color: rgba(58, 58, 80, 0.9);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.radio-group,
+.checkbox-group {
+    /* Ya NO ocupan todo el ancho. Se alinean con los inputs. */
+    grid-column: 1 / -1; 
+    display: flex;
+    align-items: center;
+    gap: 1.5rem; /* Espacio entre las opciones de radio */
+    margin-top: 0; /* Reseteamos márgenes */
+    margin-bottom: 0;
+    padding: 0; /* Reseteamos padding */
+}
+
+.export-options-grid .radio-group {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #eee;
+    grid-column: 1 / -1;
+}
+
+body.dark .export-options-grid .radio-group {
+    border-top-color: #3a3a50;
+}
+
+.grid-span-title {
+    grid-column: 1 / -1;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #333;
+    margin-top: 0.5rem;
+    padding-top: 1.2rem;
+    border-top: 1px solid #e9ecef;
+    text-align: center;
+}
+
+
+body.dark .grid-span-title {
+    color: #e0e0e0;
+    border-top-color: #3a3a50;
+}
+
+.radio-group label,
+.checkbox-group label {
+    justify-self: start;
+    text-align: left;
+    font-weight: 500; /* Letra un poco más ligera que las etiquetas principales */
+}
+
+body.dark .radio-group label,
+body.dark .checkbox-group label {
+    color: #ccc;
 }
