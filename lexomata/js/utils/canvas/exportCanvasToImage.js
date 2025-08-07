@@ -23,7 +23,7 @@ function updateExportPreview() {
     const previewImage = document.getElementById('exportPreviewImage');
     if (!previewImage) return;
 
-    const objetivoAncho = 1600;
+    const objetivoAncho = 1200;
 
     //Calcular la relación de aspecto según el área de exportación seleccionada
     const exportArea = document.querySelector('input[name="exportArea"]:checked').value;
@@ -277,27 +277,31 @@ function drawResultsToCanvasForExport(ctx, width, height, theme, zoom, charLimit
 function exportImage() {
     const fileName = document.getElementById('exportFilename').value || projectName;
     const format = document.getElementById('exportFormat').value;
-    const exportWidth = parseInt(document.getElementById('exportResolution').value); // La alta resolución
-
-    // Calcular la altura basándose en la relación de aspecto
+    // Resolución máxima en el lado mayor (ancho o alto)
+    const resolution = parseInt(document.getElementById('exportResolution').value);
+    // Calculamos la proporción según el área de exportación
     const exportArea = document.querySelector('input[name="exportArea"]:checked').value;
     let relacionDeAspecto;
-
     if (exportArea === 'current') {
-        // Para vista actual, usar las dimensiones del canvas
         relacionDeAspecto = canvas.height / canvas.width;
     } else {
-        // Para todo el contenido, calcular basándose en el bounding box
         const padding = 50;
         const bounds = calculateContentBoundingBox();
         const contentWidth = (bounds.maxX - bounds.minX) + (padding * 2);
         const contentHeight = (bounds.maxY - bounds.minY) + (padding * 2);
-
-        // Usar relación de aspecto del contenido, con fallback
         relacionDeAspecto = contentHeight > 0 && contentWidth > 0 ? contentHeight / contentWidth : 1;
     }
-
-    const exportHeight = Math.round(exportWidth * relacionDeAspecto);
+    // Asignamos resolution al lado mayor y calculamos el otro
+    let exportWidth, exportHeight;
+    if (relacionDeAspecto <= 1) {
+        // Paisaje o cuadrado: ancho = resolution
+        exportWidth = resolution;
+        exportHeight = Math.round(resolution * relacionDeAspecto);
+    } else {
+        // Retrato: alto = resolution
+        exportHeight = resolution;
+        exportWidth = Math.round(resolution / relacionDeAspecto);
+    }
 
     // Validar que las dimensiones sean válidas
     if (exportWidth <= 0 || exportHeight <= 0) {
@@ -306,20 +310,14 @@ function exportImage() {
         return;
     }
 
-    // Generamos la imagen combinada en ALTA resolución
-    const exportCanvas = generateCombinedImage(exportWidth, exportHeight);
-
-    // Descargar el resultado
-    const finalDataUrl = exportCanvas.toDataURL(format, 0.9);
+    // Generamos la imagen combinada en ALTA resolución (gráfico + tabla)
+    const finalCanvas = generateCombinedImage(exportWidth, exportHeight);
+    // Descargar el lienzo combinado directamente
+    const finalDataUrl = finalCanvas.toDataURL(format, 0.9);
     const link = document.createElement('a');
     link.href = finalDataUrl;
-    link.download = `${fileName}.${format.split('/')[1]}`;
-    if (document.getElementById('attachResultsCheckbox').checked && exportCanvas.width > exportWidth) {
-        link.download = `${fileName}-con-resultados.${format.split('/')[1]}`;
-    }
+    link.download = `${fileName}.${format.split('/').pop()}`;
     link.click();
-
-    closeExportModal();
 }
 
 // Listeners para actualizar la previsualización en tiempo real
