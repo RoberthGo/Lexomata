@@ -527,6 +527,11 @@ body.dark .automata-canvas {
     padding: 1.5rem 1rem;
 }
 
+
+#custom-modal-Export{
+    height: 90vh;
+}
+
 body.dark .custom-modal-content {
     background-color: #333;
     color: #e0e0e0;
