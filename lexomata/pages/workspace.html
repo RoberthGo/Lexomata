@@ -199,12 +199,12 @@
                 <div class="string-analyzer-pointer-indicator"></div>
               </div>
             </div>
-            
+
             <!-- Estado del análisis -->
             <div class="analysis-status status-ready" id="analysisStatus">
               Preparado
             </div>
-            
+
             <!-- Información de transiciones disponibles -->
             <div class="transitions-info" id="transitionsInfo">
               <div class="no-transitions">No hay análisis en curso</div>
@@ -259,46 +259,54 @@
 
   <div id="exportModal" class="custom-modal">
     <div class="custom-modal-content">
-      <span class="close-button" onclick="closeExportModal()">&times;</span>
-      <h3>Opciones de Exportación de Imagen</h3>
 
-      <div class="export-options-grid">
-        <label for="exportFilename">Nombre de archivo:</label>
-        <input type="text" id="exportFilename" class="modal-input" value="automata">
+      <div class="export-preview-wrapper">
+        <img id="exportPreviewImage" alt="Previsualización de la exportación del autómata">
+      </div>
 
-        <label for="exportFormat">Formato:</label>
-        <select id="exportFormat" class="modal-select">
-          <option value="image/png">PNG</option>
-          <option value="image/jpeg">JPEG</option>
-        </select>
+      <div class="export-options-wrapper">
 
-        <label for="exportResolution">Resolución:</label>
-        <select id="exportResolution" class="modal-select">
-          <option value="1280">HD (1280px)</option>
-          <option value="1920" selected>Full HD (1920px)</option>
-          <option value="2560">2K / QHD (2560px)</option>
-          <option value="3840">4K (3840px)</option>
-          <option value="7680">8K (7680px)</option>
-        </select>
+        <span class="close-button" onclick="closeExportModal()">&times;</span>
+        <h3>Opciones de Exportación de Imagen</h3>
 
-        <label for="exportTheme">Tema de Exportación:</label>
-        <select id="exportTheme" class="modal-select">
-          <option value="light" selected>Tema Claro</option>
-          <option value="dark">Tema Oscuro</option>
-          <option value="transparent" id="transparentOption">Transparente (Solo PNG)</option>
-        </select>
+        <div class="export-options-grid">
+          <label for="exportFilename">Nombre de archivo:</label>
+          <input type="text" id="exportFilename" class="modal-input" value="automata">
 
-        <label>Área a exportar:</label>
-        <div class="radio-group">
-          <input type="radio" id="exportViewAll" name="exportArea" value="all" checked>
-          <label for="exportViewAll">Ajustar al Contenido</label>
+          <label for="exportFormat">Formato:</label>
+          <select id="exportFormat" class="modal-select">
+            <option value="image/png">PNG</option>
+            <option value="image/jpeg">JPEG</option>
+          </select>
 
-          <input type="radio" id="exportViewCurrent" name="exportArea" value="current">
-          <label for="exportViewCurrent">Vista Actual</label>
-        </div>
+          <label for="exportResolution">Resolución:</label>
+          <select id="exportResolution" class="modal-select">
+            <option value="1280">HD (1280px)</option>
+            <option value="1920" selected>Full HD (1920px)</option>
+            <option value="2560">2K / QHD (2560px)</option>
+            <option value="3840">4K (3840px)</option>
+            <option value="7680">8K (7680px)</option>
+          </select>
 
-        <div class="modal-actions">
-          <button id="confirmExportButton" class="modal-button">Exportar</button>
+          <label for="exportTheme">Tema de Exportación:</label>
+          <select id="exportTheme" class="modal-select">
+            <option value="light" selected>Tema Claro</option>
+            <option value="dark">Tema Oscuro</option>
+            <option value="transparent" id="transparentOption">Transparente (Solo PNG)</option>
+          </select>
+
+          <label>Área a exportar:</label>
+          <div class="radio-group">
+            <input type="radio" id="exportViewAll" name="exportArea" value="all" checked>
+            <label for="exportViewAll">Ajustar al Contenido</label>
+
+            <input type="radio" id="exportViewCurrent" name="exportArea" value="current">
+            <label for="exportViewCurrent">Vista Actual</label>
+          </div>
+
+          <div class="modal-actions">
+            <button id="confirmExportButton" class="modal-button">Exportar</button>
+          </div>
         </div>
       </div>
     </div>
@@ -344,14 +352,13 @@
           <thead>
             <tr>
               <th>Input</th>
-              <th class="output-column">Output</th>
               <th>Result</th>
               <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
             <tr class="placeholder-row">
-              <td colspan="4">Presiona "Añadir Fila" para ingresar datos...</td>
+              <td colspan="3">Presiona "Añadir Fila" para ingresar datos...</td>
             </tr>
           </tbody>
         </table>
