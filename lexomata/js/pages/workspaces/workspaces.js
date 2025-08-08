@@ -104,11 +104,12 @@ const ctx = canvas.getContext('2d');
 const exportFormatSelect = document.getElementById('exportFormat');
 const transparentOption = document.getElementById('transparentOption');
 const exportThemeSelect = document.getElementById('exportTheme');
-let projectName = 'nuevo-automata';
+let projectName = 'nuevo-';
 
 // --- OBTENCIÓN DEL MODO DE TRABAJO ---
 const urlParams = new URLSearchParams(window.location.search);
 const currentMode = urlParams.get('mode') || 'automata';
+projectName+=currentMode;
 let nodes = [];
 let edges = [];
 let nodeCounter = 0
@@ -2043,6 +2044,7 @@ function openFile() {
             const fileName = file.name.toLowerCase();
 
             if (fileName.endsWith('.json')) {
+                
                 parseAndLoadJSON(fileContent);
             } else if (fileName.endsWith('.jff')) {
 
