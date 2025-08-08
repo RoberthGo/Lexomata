@@ -1594,7 +1594,7 @@ function showNoteEditor(element) {
     // Configura el título del modal
     const elementType = element.radius ? 'nodo' : 'arista'; // Distingue si es nodo o arista
     const elementName = element.label;
-    message.textContent = `Nota para ${elementType} ${elementName}:`;
+    message.textContent = `Nota para ${elementType}:`;
 
     // Muestra el editor
     noteContainer.style.display = 'flex';
@@ -1834,7 +1834,8 @@ function createTuringEdge(fromId, toId, transitionLabels) {
     
     // Asignar todas las etiquetas al array labels para compatibilidad con el sistema existente
     turingEdge.labels = transitionLabels;
-    
+    turingEdge.note = ""; 
+
     return turingEdge;
 }
 
@@ -1844,6 +1845,7 @@ function createTuringEdge(fromId, toId, transitionLabels) {
  * @returns {Object} - Objeto con propiedades read, write, move
  */
 function parseTuringTransition(transitionStr) {
+    transitionStr = String(transitionStr);
     const parts = transitionStr.split(',');
     return {
         read: parts[0] || '',
@@ -1895,6 +1897,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 case 'change-origin':
                     handleEdgeAction('change-origin', onlyEdgeIds);
                     break;
+                case 'notes-edges':
+                    const edge = edges.find(e => String(e.id) === String(onlyEdgeIds[0]));
+                    if (edge) {
+                        showNoteEditor(edge);
+                        //console.log("Notas de la arista:", edge.note);
+                    }
+                    break;
             }
             hideCanvasContextMenu();
         }
@@ -1915,6 +1924,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    const brandSubtitle = document.querySelector('.brand-subtitle');
+    if (currentMode === 'turing') {
+        brandSubtitle.textContent = 'Interfaz de Máquina de Turing';
+    } else {
+        brandSubtitle.textContent = 'Interfaz de Autómata Finito';
+    }
 
     if (canvas) {
         canvas.width = canvas.parentElement.clientWidth;
@@ -2097,13 +2113,11 @@ function autoSaveToLocalStorage() {
 
 function loadFromLocalStorage() {
     const storageKey = `lexomata_autosave_${currentMode}`;
-
     const savedStateJSON = localStorage.getItem(storageKey);
-    if (!savedStateJSON) return; // No hay nada guardado
+    if (!savedStateJSON) return;
 
     const savedState = JSON.parse(savedStateJSON);
 
-    // Actualiza el estado de la aplicación.
     nodes = savedState.nodes.map(nodeData => {
         const node = new State(nodeData.id, nodeData.label, nodeData.x, nodeData.y);
         node.IsStart = nodeData.IsStart || false;
@@ -2113,13 +2127,21 @@ function loadFromLocalStorage() {
     });
 
     edges = savedState.edges.map(edgeData => {
-        return new EdgeAutomata(edgeData.from, edgeData.to, edgeData.labels, edgeData.IsMetaCaracter);
+        let edge;
+        if (currentMode === 'turing') {
+            edge = createTuringEdge(edgeData.from, edgeData.to, edgeData.labels);
+            edge.transitions = edgeData.transitions || [];
+        } else {
+            edge = new EdgeAutomata(edgeData.from, edgeData.to, edgeData.labels, edgeData.IsMetaCaracter);
+        }
+        // Guarda la nota que se había editado
+        edge.note = edgeData.note || "";
+        return edge;
     });
 
     nodeCounter = savedState.nodeCounter;
     projectName = savedState.projectName;
 
-    // Reinicia el historial de deshacer y guarda este estado cargado.
     history = [];
     historyIndex = -1;
     saveState();
