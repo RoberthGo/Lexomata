@@ -7,7 +7,10 @@ const automataPreviewContainer = document.querySelector('.automata-preview-conta
 const zoomControlsContainer = document.getElementById('zoomControlsContainer');
 
 // Configuración del canvas de resultados
-let tableExportZoom = 1;
+// Base table zoom: 80% of actual size considered as 100%
+const BASE_TABLE_ZOOM = 0.8;
+let normalizedZoom = 1; // 1 = 100%, up to 3 = 300%
+let tableExportZoom = BASE_TABLE_ZOOM * normalizedZoom;
 let resultsZoom = 1;
 let resultsPanX = 0;
 let resultsPanY = 0;
@@ -32,8 +35,10 @@ function toggleResultsPreview() {
  * Actualiza la variable de zoom y la UI, luego refresca la previsualización.
  */
 function updateTableZoom(newZoom) {
-    tableExportZoom = Math.max(0.2, Math.min(newZoom, 2)); // Limitar zoom
-    zoomLevelDisplay.textContent = `${Math.round(tableExportZoom * 100)}%`;
+    // newZoom is normalized (1–3)
+    normalizedZoom = Math.max(1, Math.min(newZoom, 3));
+    tableExportZoom = BASE_TABLE_ZOOM * normalizedZoom;
+    zoomLevelDisplay.textContent = `${Math.round(normalizedZoom * 100)}%`;
     updateExportPreview(); // Refrescar la preview para ver el cambio
 }
 
@@ -136,8 +141,8 @@ function drawResultsToCanvas() {
     resultsCtx.restore();
 }
 
-zoomInBtn.addEventListener('click', () => updateTableZoom(tableExportZoom + 0.1));
-zoomOutBtn.addEventListener('click', () => updateTableZoom(tableExportZoom - 0.1));
+zoomInBtn.addEventListener('click', () => updateTableZoom(normalizedZoom + 0.1));
+zoomOutBtn.addEventListener('click', () => updateTableZoom(normalizedZoom - 0.1));
 zoomResetBtn.addEventListener('click', () => updateTableZoom(1));
 
 // Finalmente, agrega el listener principal al checkbox

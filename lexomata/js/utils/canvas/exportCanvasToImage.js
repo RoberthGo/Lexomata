@@ -23,7 +23,8 @@ function updateExportPreview() {
     const previewImage = document.getElementById('exportPreviewImage');
     if (!previewImage) return;
 
-    const objetivoAncho = 1200;
+    // Preview max side dimension (maintain aspect ratio but smaller for performance)
+    const previewMaxSide = 800;
 
     //Calcular la relación de aspecto según el área de exportación seleccionada
     const exportArea = document.querySelector('input[name="exportArea"]:checked').value;
@@ -43,21 +44,32 @@ function updateExportPreview() {
         relacionDeAspecto = contentHeight > 0 && contentWidth > 0 ? contentHeight / contentWidth : 1;
     }
 
-    const nuevoAlto = objetivoAncho * relacionDeAspecto;
-    const anchoRedondeado = Math.round(objetivoAncho);
-    const altoRedondeado = Math.round(nuevoAlto);
-
-    // Validar que las dimensiones sean válidas
-    if (anchoRedondeado <= 0 || altoRedondeado <= 0) {
-        console.error('Dimensiones inválidas para la exportación:', anchoRedondeado, altoRedondeado);
+    // ====== Preview sizing mirrored from export ======
+    // Obtener resolución seleccionada para export (mayor lado en px)
+    const resolution = parseInt(document.getElementById('exportResolution').value) || previewMaxSide;
+    let exportWidth, exportHeight;
+    if (relacionDeAspecto <= 1) {
+        exportWidth = resolution;
+        exportHeight = Math.round(resolution * relacionDeAspecto);
+    } else {
+        exportHeight = resolution;
+        exportWidth = Math.round(resolution / relacionDeAspecto);
+    }
+    // Escalar para previewMaxSide
+    const scale = previewMaxSide / Math.max(exportWidth, exportHeight);
+    const previewWidth2 = Math.round(exportWidth * scale);
+    const previewHeight2 = Math.round(exportHeight * scale);
+    if (previewWidth2 <= 0 || previewHeight2 <= 0) {
+        console.error('Dimensiones inválidas para el preview:', previewWidth2, previewHeight2);
         return;
     }
-
-    // Generamos la imagen combinada en baja resolución
-    const previewCanvas = generateCombinedImage(anchoRedondeado, altoRedondeado);
-
-    // Mostramos el resultado en el <img>
-    previewImage.src = previewCanvas.toDataURL('image/png', 0.9);
+    // Generar preview con mismo algoritmo de export pero escala menor
+    // Ajustar tableExportZoom para que la tabla escale igual que la resolución
+    const originalZoom = tableExportZoom;
+    tableExportZoom = originalZoom * scale;
+    const previewCanvas2 = generateCombinedImage(previewWidth2, previewHeight2);
+    tableExportZoom = originalZoom;
+    previewImage.src = previewCanvas2.toDataURL('image/png', 0.9);
 }
 
 /**
@@ -159,10 +171,10 @@ function generateCombinedImage(targetWidth, targetHeight) {
  */
 function drawResultsToCanvasForExport(ctx, width, height, theme, zoom, charLimits) {
     // --- Lógica de tamaño y estilo ---
-    const scaleFactor = (width / 400) * zoom;
+    const scaleFactor = zoom; // use zoom directly so width calculations align with actual drawing
     const FONT_SIZE = 16 * scaleFactor;
     // ... (resto de las constantes de estilo)
-    const PADDING = 20 * scaleFactor;
+    const PADDING = 20 * zoom; // margin scaled by zoom for consistent ratio in preview and export
     const ROW_HEIGHT = 35 * scaleFactor;
     const HEADER_FILL = theme.nodeFill;
     const TEXT_COLOR = theme.nodeText;
@@ -326,4 +338,18 @@ document.getElementById('exportResolution').addEventListener('change', updateExp
 document.getElementById('exportTheme').addEventListener('change', updateExportPreview);
 document.querySelectorAll('input[name="exportArea"]').forEach(radio => {
     radio.addEventListener('change', updateExportPreview);
+});
+// Al presionar Enter en límites de caracteres, aplicar el valor y refrescar preview
+['inputCharLimit', 'resultCharLimit'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                let v = parseInt(el.value, 10) || 1;
+                v = Math.min(Math.max(v, 1), 120);
+                el.value = v;
+                updateExportPreview();
+            }
+        });
+    }
 });
