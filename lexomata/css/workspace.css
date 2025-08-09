@@ -1,3 +1,51 @@
+/* ======================================================================================== */
+/* CSS CUSTOM PROPERTIES - DESIGN SYSTEM */
+/* ======================================================================================== */
+
+:root {
+    /* Colors */
+    --color-primary: #20c997;
+    --color-primary-dark: #1a9e7a;
+    --color-secondary: #e0e0e0;
+    --color-secondary-dark: #c7c7c7;
+    --color-success: #28a745;
+    --color-success-dark: #218838;
+    --color-danger: #dc3545;
+    --color-danger-dark: #c82333;
+    --color-info: #007bff;
+    --color-info-dark: #0056b3;
+    --color-warning: #ffc107;
+    --color-warning-dark: #e0a800;
+    
+    /* Dark theme colors */
+    --color-primary-purple: #8854d0;
+    --color-primary-purple-dark: #6c42a4;
+    
+    /* Border radius */
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 10px;
+    --radius-round: 50%;
+    
+    /* Transitions */
+    --transition-fast: 0.1s ease;
+    --transition-base: 0.2s ease;
+    --transition-slow: 0.3s ease;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.15);
+    
+    /* Spacing */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+}
+
 /* Basic CSS reset */
 * {
     margin: 0;
@@ -504,11 +552,13 @@ body.dark .automata-canvas {
     top: 0;
     width: 100%;
     height: 100%;
-    overflow: auto;
     background-color: rgba(0,0,0,0.4);
     justify-content: center;
     align-items: center;
     backdrop-filter: blur(5px);
+    padding: 1rem;
+    box-sizing: border-box;
+    overflow: hidden; /* Eliminamos el scroll del modal principal */
 }
 
 .custom-modal-content {
@@ -525,11 +575,18 @@ body.dark .automata-canvas {
     opacity: 0;
     animation: modalOpen 0.3s forwards ease-out;
     padding: 1.5rem 1rem;
+    max-height: calc(100vh - 2rem);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
 }
 
-
 #custom-modal-Export{
-    height: 90vh;
+    height: auto;
+    max-height: 85vh;
+    overflow: hidden;
+    padding: 0; /* Reset padding for export modal */
+    display: flex; /* Override the general modal content display */
 }
 
 body.dark .custom-modal-content {
@@ -550,6 +607,12 @@ body.dark .custom-modal-content {
     top: 0;
     right: 12px;
     cursor: pointer;
+    z-index: 20;
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: all 0.2s ease;
 }
 
 .close-button:hover,
@@ -557,11 +620,13 @@ body.dark .custom-modal-content {
     color: #000;
     text-decoration: none;
     cursor: pointer;
+    background-color: rgba(0,0,0,0.1);
 }
 
 body.dark .close-button:hover,
 body.dark .close-button:focus {
     color: #eee;
+    background-color: rgba(255,255,255,0.1);
 }
 
 /* Responsive design */
@@ -729,10 +794,36 @@ body.dark .close-button:focus {
 
 /* En workspace.css, al final del archivo */
 
+/* ======================================================================================== */
+/* REUSABLE UTILITY CLASSES */
+/* ======================================================================================== */
+
+/* Common border radius values */
+.border-radius-sm { border-radius: var(--radius-sm); }
+.border-radius-md { border-radius: var(--radius-md); }
+.border-radius-lg { border-radius: var(--radius-lg); }
+.border-radius-xl { border-radius: var(--radius-xl); }
+.border-radius-round { border-radius: var(--radius-round); }
+
+/* Common transitions */
+.transition-base { transition: all var(--transition-base); }
+.transition-colors { transition: background-color var(--transition-base), color var(--transition-base), border-color var(--transition-base); }
+.transition-transform { transition: transform var(--transition-base), box-shadow var(--transition-base); }
+
+/* Common shadows */
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+
+/* ======================================================================================== */
+/* MODAL STYLES - CONSOLIDATED */
+/* ======================================================================================== */
+
+/* Export options grid */
 .export-options-grid {
     display: grid;
     grid-template-columns: auto 1fr;
-    gap: 12px 16px; /* Ajustamos espaciado vertical y horizontal */
+    gap: 12px 16px;
     align-items: center;
     text-align: left;
 }
@@ -740,72 +831,326 @@ body.dark .close-button:focus {
 .export-options-grid label {
     font-weight: 600;
     font-size: 0.9rem;
-    justify-self: end; /* ¡CLAVE! Alinea la etiqueta a la derecha de su celda */
+    justify-self: end;
     text-align: right;
 }
 
-.modal-input{
-    width: 65%;
-}
-
+/* Modal inputs and selects - CONSOLIDATED */
 .modal-input, .modal-select {
-  padding: 0.6rem;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  background-color: #f0f0f0;
+    padding: 0.6rem;
+    border-radius: var(--radius-md);
+    border: 1px solid #ccc;
+    background-color: #f0f0f0;
+    color: #333;
+    transition: border-color var(--transition-base), background-color var(--transition-base);
+    font-family: inherit;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-body.dark .modal-input, body.dark .modal-select {
-  border-color: #555;
-  background-color: #2d2d3d;
-  color: #e0e0e0;
+.modal-input:focus, .modal-select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    background-color: #fff;
 }
 
+body.dark .modal-input, 
+body.dark .modal-select {
+    border-color: #555;
+    background-color: #2d2d3d;
+    color: #e0e0e0;
+}
+
+body.dark .modal-input:focus, 
+body.dark .modal-select:focus {
+    border-color: var(--color-primary);
+    background-color: #2a2a3e;
+}
+
+/* Modal actions container */
 .modal-actions {
-  display: flex;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: var(--spacing-md);
+    flex-wrap: wrap;
 }
 
-.modal-actions .modal-button {
-  flex-grow: 1; 
-  font-size: 1rem; 
-}
-
-.modal-button{
-  padding: 0.7rem 1.2rem;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  background-color: #20c997;
-  color: white;
-  
-  margin-top: 0.2rem;
+/* Base modal button styles - CONSOLIDATED */
+.modal-button {
+    padding: 0.7rem 1.2rem;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    font-family: 'Poppins', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    min-width: fit-content;
+    white-space: nowrap;
+    
+    /* Primary button styles (default) */
+    background-color: var(--color-primary);
+    color: white;
+    border: 1px solid transparent;
 }
 
 .modal-button:hover {
-  background-color: #1a9e7a;
-}
-body.dark .modal-button {
-  background-color: #8854d0;
-}
-body.dark .modal-button:hover {
-  background-color: #6c42a4;
+    background-color: var(--color-primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(32, 201, 151, 0.3);
 }
 
+.modal-button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(32, 201, 151, 0.3);
+}
+
+.modal-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #6c757d;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Secondary button variant */
+.modal-button.secondary,
 .modal-button-secondary {
-  background-color: #e0e0e0;
-  color: #333;
+    background-color: var(--color-secondary);
+    color: #333;
+    border: 1px solid #ddd;
 }
+
+.modal-button.secondary:hover,
 .modal-button-secondary:hover {
-  background-color: #c7c7c7;
+    background-color: var(--color-secondary-dark);
+    border-color: #bbb;
+    box-shadow: var(--shadow-md);
 }
+
+/* Danger button variant */
+.modal-button.danger {
+    background-color: var(--color-danger);
+    color: white;
+}
+
+.modal-button.danger:hover {
+    background-color: var(--color-danger-dark);
+    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
+}
+
+/* Success button variant */
+.modal-button.success {
+    background-color: var(--color-success);
+    color: white;
+}
+
+.modal-button.success:hover {
+    background-color: var(--color-success-dark);
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+}
+
+/* Dark mode styles for all button variants */
+body.dark .modal-button {
+    background-color: var(--color-primary-purple);
+}
+
+body.dark .modal-button:hover {
+    background-color: var(--color-primary-purple-dark);
+    box-shadow: 0 2px 4px rgba(136, 84, 208, 0.3);
+}
+
+body.dark .modal-button.secondary,
 body.dark .modal-button-secondary {
-  background-color: #4a4a60;
-  color: #e0e0e0;
+    background-color: #4a4a60;
+    color: #e0e0e0;
+    border-color: #5a5a70;
 }
+
+body.dark .modal-button.secondary:hover,
 body.dark .modal-button-secondary:hover {
-  background-color: #5a5a70;
+    background-color: #5a5a70;
+    border-color: #6a6a80;
+    box-shadow: 0 2px 4px rgba(74, 74, 96, 0.3);
+}
+
+body.dark .modal-button.danger {
+    background-color: #e74c3c;
+}
+
+body.dark .modal-button.danger:hover {
+    background-color: #c0392b;
+    box-shadow: 0 2px 4px rgba(231, 76, 60, 0.3);
+}
+
+body.dark .modal-button.success {
+    background-color: #27ae60;
+}
+
+body.dark .modal-button.success:hover {
+    background-color: #229954;
+    box-shadow: 0 2px 4px rgba(39, 174, 96, 0.3);
+}
+
+/* ======================================================================================== */
+/* REUSABLE BUTTON SYSTEM - CONSOLIDATED */
+/* ======================================================================================== */
+
+/* Base button class for all application buttons */
+.app-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    font-weight: 500;
+    font-family: 'Poppins', sans-serif;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    white-space: nowrap;
+    min-width: fit-content;
+    text-decoration: none;
+    
+    /* Default primary appearance */
+    background-color: var(--color-primary);
+    color: white;
+}
+
+.app-button:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.app-button:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-sm);
+}
+
+.app-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Button size variants */
+.app-button.btn-sm {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.8rem;
+}
+
+.app-button.btn-lg {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: 1rem;
+}
+
+/* Button color variants */
+.app-button.btn-secondary {
+    background-color: var(--color-secondary);
+    color: #333;
+    border-color: #ddd;
+}
+
+.app-button.btn-secondary:hover {
+    background-color: var(--color-secondary-dark);
+    border-color: #bbb;
+}
+
+.app-button.btn-success {
+    background-color: var(--color-success);
+    color: white;
+}
+
+.app-button.btn-success:hover {
+    background-color: var(--color-success-dark);
+}
+
+.app-button.btn-danger {
+    background-color: var(--color-danger);
+    color: white;
+}
+
+.app-button.btn-danger:hover {
+    background-color: var(--color-danger-dark);
+}
+
+.app-button.btn-info {
+    background-color: var(--color-info);
+    color: white;
+}
+
+.app-button.btn-info:hover {
+    background-color: var(--color-info-dark);
+}
+
+.app-button.btn-warning {
+    background-color: var(--color-warning);
+    color: #212529;
+}
+
+.app-button.btn-warning:hover {
+    background-color: var(--color-warning-dark);
+}
+
+/* Dark mode for all button variants */
+body.dark .app-button {
+    background-color: var(--color-primary-purple);
+}
+
+body.dark .app-button:hover {
+    background-color: var(--color-primary-purple-dark);
+}
+
+body.dark .app-button.btn-secondary {
+    background-color: #4a4a60;
+    color: #e0e0e0;
+    border-color: #5a5a70;
+}
+
+body.dark .app-button.btn-secondary:hover {
+    background-color: #5a5a70;
+    border-color: #6a6a80;
+}
+
+body.dark .app-button.btn-success {
+    background-color: #27ae60;
+}
+
+body.dark .app-button.btn-success:hover {
+    background-color: #229954;
+}
+
+body.dark .app-button.btn-danger {
+    background-color: #e74c3c;
+}
+
+body.dark .app-button.btn-danger:hover {
+    background-color: #c0392b;
+}
+
+body.dark .app-button.btn-info {
+    background-color: #3498db;
+}
+
+body.dark .app-button.btn-info:hover {
+    background-color: #2980b9;
+}
+
+body.dark .app-button.btn-warning {
+    background-color: #f39c12;
+    color: #2c3e50;
+}
+
+body.dark .app-button.btn-warning:hover {
+    background-color: #e67e22;
 }
 
 
@@ -864,35 +1209,43 @@ body.dark #modalInputContainer #modalTextInput:focus {
 
 #exportModal .export-options-grid {
     display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 12px 16px; /* Reducimos el gap vertical */
     align-items: center;
-    align-items: baseline;
+    text-align: left;
+    width: 100%;
 }
 
 #exportModal .export-options-grid label {
-    justify-self: start;
-    text-align: left;
+    justify-self: end;
+    text-align: right;
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 0.85rem; /* Reducimos ligeramente el tamaño de fuente */
     color: #555;
+    white-space: nowrap;
 }
 
-#exportModal .export-options-grid input,select{
+#exportModal .export-options-grid input,
+#exportModal .export-options-grid select {
     margin-bottom: 0rem;
 }
 
-#exportModal .export-options-grid input,select, .radio-group{
-    margin-bottom: 1rem;
+#exportModal .export-options-grid input,
+#exportModal .export-options-grid select, 
+#exportModal .radio-group {
+    margin-bottom: 0; /* Reducimos el margen inferior */
 }
 
 #exportModal .modal-input,
 #exportModal .modal-select {
-  width: 100%;
-  background-color: #f0f2f5;
-  border: 2px solid transparent; 
-  border-radius: 8px;
-  padding: 0.7rem;
-  font-size: 0.95rem;
-  transition: border-color 0.2s ease, background-color 0.2s ease;
+    width: 100%;
+    background-color: #f0f2f5;
+    border: 2px solid transparent; 
+    border-radius: 6px; /* Reducimos el border-radius */
+    padding: 0.5rem; /* Reducimos el padding */
+    font-size: 0.9rem; /* Reducimos el tamaño de fuente */
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+    box-sizing: border-box;
 }
 
 #exportModal .modal-input:hover,
@@ -902,12 +1255,10 @@ body.dark #modalInputContainer #modalTextInput:focus {
 
 #exportModal .modal-input:focus,
 #exportModal .modal-select:focus {
-  border-color: #20c997; 
-  background-color: #fff;
-  outline: none;
+    border-color: #20c997; 
+    background-color: #fff;
+    outline: none;
 }
-
-
 
 body.dark #exportModal .export-options-grid label {
     color: #bbb;
@@ -1058,64 +1409,12 @@ body.dark .edge-input:focus {
     background-color: #3a3a50;
 }
 
-/* Modal Actions */
+/* Modal Actions (if needed specifically for edge inputs) */
 .modal-actions {
     display: flex;
     gap: 10px;
     justify-content: flex-end;
     margin-top: 10px;
-}
-
-/* Modal Buttons */
-.modal-button {
-    padding: 10px 18px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-family: 'Poppins', sans-serif;
-    border: none;
-}
-
-/* Primary Button */
-.modal-button {
-    background-color: #20c997;
-    color: white;
-}
-
-.modal-button:hover {
-    background-color: #1a9e7a;
-}
-
-/* Secondary Button */
-.modal-button.secondary {
-    background-color: #f0f0f0;
-    color: #333;
-    border: 1px solid #ddd;
-}
-
-.modal-button.secondary:hover {
-    background-color: #e0e0e0;
-}
-
-/* Dark Mode Buttons */
-body.dark .modal-button {
-    background-color: #8854d0;
-}
-
-body.dark .modal-button:hover {
-    background-color: #6c42a4;
-}
-
-body.dark .modal-button.secondary {
-    background-color: #4a4a60;
-    color: #e0e0e0;
-    border-color: #5a5a70;
-}
-
-body.dark .modal-button.secondary:hover {
-    background-color: #5a5a70;
 }
 
 /* Scrollbar Styles (for edge inputs container) */
@@ -1305,79 +1604,92 @@ body.dark .turing-tape-title {
     gap: 8px;
 }
 
-.turing-tape-button {
+.turing-tape-button,
+.string-analyzer-button {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--spacing-sm);
     padding: 8px 12px;
     border: 1px solid #ccc;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     background-color: #ffffff;
     color: #555;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--transition-base);
+    font-family: inherit;
 }
 
-.turing-tape-button:hover {
+.turing-tape-button:hover,
+.string-analyzer-button:hover {
     background-color: #f8f8f8;
-    border-color: #20c997;
-    color: #20c997;
+    border-color: var(--color-primary);
+    color: var(--color-primary);
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
 }
 
-#closeTapeContainerBtn {
-    color: #dc3545;
+/* Special button variants for Turing */
+.turing-tape-button.btn-execute,
+.string-analyzer-button.btn-execute {
+    background-color: var(--color-success);
+    border-color: var(--color-success);
+    color: white;
 }
-#closeTapeContainerBtn:hover {
-    border-color: #dc3545;
+
+.turing-tape-button.btn-execute:hover,
+.string-analyzer-button.btn-execute:hover {
+    background-color: var(--color-success-dark);
+    border-color: var(--color-success-dark);
+    color: white;
+}
+
+.turing-tape-button.btn-danger,
+.string-analyzer-button.btn-danger {
+    color: var(--color-danger);
+}
+
+.turing-tape-button.btn-danger:hover,
+.string-analyzer-button.btn-danger:hover {
+    border-color: var(--color-danger);
     background-color: rgba(220, 53, 69, 0.1);
 }
 
-#executeTuringButton {
-    background-color: #28a745;
-    border-color: #28a745;
-    color: white;
-}
-
-#executeTuringButton:hover {
-    background-color: #218838;
-    border-color: #218838;
-    color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
-}
-
-body.dark .turing-tape-button {
+/* Dark mode */
+body.dark .turing-tape-button,
+body.dark .string-analyzer-button {
     background-color: #2a2a3e;
     border-color: #3a3a50;
     color: #ccc;
 }
 
-body.dark .turing-tape-button:hover {
+body.dark .turing-tape-button:hover,
+body.dark .string-analyzer-button:hover {
     background-color: #3a3a50;
-    border-color: #20c997;
-    color: #20c997;
+    border-color: var(--color-primary);
+    color: var(--color-primary);
 }
 
-body.dark #closeTapeContainerBtn:hover {
+body.dark .turing-tape-button.btn-execute,
+body.dark .string-analyzer-button.btn-execute {
+    background-color: var(--color-success);
+    border-color: var(--color-success);
+    color: white;
+}
+
+body.dark .turing-tape-button.btn-execute:hover,
+body.dark .string-analyzer-button.btn-execute:hover {
+    background-color: var(--color-success-dark);
+    border-color: var(--color-success-dark);
+    color: white;
+}
+
+body.dark .turing-tape-button.btn-danger:hover,
+body.dark .string-analyzer-button.btn-danger:hover {
     border-color: #e74c3c;
     color: #e74c3c;
     background-color: rgba(231, 76, 60, 0.1);
-}
-
-body.dark #executeTuringButton {
-    background-color: #28a745;
-    border-color: #28a745;
-    color: white;
-}
-
-body.dark #executeTuringButton:hover {
-    background-color: #218838;
-    border-color: #218838;
-    color: white;
 }
 
 .turing-tape-input-section {
@@ -1390,57 +1702,6 @@ body.dark #executeTuringButton:hover {
 .turing-tape-input-section.execution-mode {
     opacity: 0.7;
     pointer-events: none;
-}
-
-.turing-string-input {
-    flex: 1;
-    padding: 8px 12px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 14px;
-    font-family: 'Courier New', monospace;
-    background-color: #ffffff;
-    color: #333;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.turing-string-input:focus {
-    outline: none;
-    border-color: #28a745;
-    box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.25);
-}
-
-body.dark .turing-string-input {
-    background-color: #2a2a3e;
-    border-color: #3a3a50;
-    color: #e0e0e0;
-}
-
-body.dark .turing-string-input:focus {
-    border-color: #28a745;
-    box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.25);
-}
-
-.apply-turing-string-button {
-    padding: 8px 16px;
-    border: 1px solid #28a745;
-    border-radius: 6px;
-    background-color: #28a745;
-    color: white;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.apply-turing-string-button:hover {
-    background-color: #218838;
-    border-color: #218838;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .turing-tape-wrapper {
@@ -1519,6 +1780,7 @@ body.dark .turing-step-controls {
     border-color: #3a3a50;
 }
 
+/* Step control buttons - CONSOLIDATED */
 .step-navigation-buttons {
     display: flex;
     gap: 10px;
@@ -1526,30 +1788,63 @@ body.dark .turing-step-controls {
     align-items: center;
 }
 
-.turing-step-button {
-    background: linear-gradient(135deg, #007bff, #0056b3);
-    color: white;
+.turing-step-button,
+.turing-step-execute-button {
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     padding: 8px 16px;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--transition-base);
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--spacing-sm);
     min-width: 100px;
     justify-content: center;
+    color: white;
+    font-family: inherit;
+}
+
+/* Default step button (info style) */
+.turing-step-button {
+    background: linear-gradient(135deg, var(--color-info), var(--color-info-dark));
 }
 
 .turing-step-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, #0056b3, #004085);
+    background: linear-gradient(135deg, var(--color-info-dark), #004085);
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
 }
 
-.turing-step-button:disabled {
+/* Execute button (success style) */
+.turing-step-execute-button,
+.turing-step-button.btn-execute {
+    background: linear-gradient(135deg, var(--color-success), var(--color-success-dark));
+}
+
+.turing-step-execute-button:hover,
+.turing-step-button.btn-execute:hover {
+    background: linear-gradient(135deg, var(--color-success-dark), #155724);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+/* Stop button (danger style) */
+.turing-step-button.stop-button,
+.turing-step-button.btn-stop {
+    background: linear-gradient(135deg, var(--color-danger), var(--color-danger-dark));
+}
+
+.turing-step-button.stop-button:hover,
+.turing-step-button.btn-stop:hover {
+    background: linear-gradient(135deg, var(--color-danger-dark), #a71e2a);
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+/* Disabled state for all step buttons */
+.turing-step-button:disabled,
+.turing-step-execute-button:disabled {
     background: #6c757d;
     cursor: not-allowed;
     opacity: 0.6;
@@ -1557,36 +1852,6 @@ body.dark .turing-step-controls {
     box-shadow: none;
 }
 
-.turing-step-button.stop-button {
-    background: linear-gradient(135deg, #dc3545, #c82333);
-}
-
-.turing-step-button.stop-button:hover {
-    background: linear-gradient(135deg, #c82333, #a71e2a);
-    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
-}
-
-.turing-step-execute-button {
-    background: linear-gradient(135deg, #28a745, #1e7e34);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    padding: 8px 16px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-left: 10px;
-}
-
-.turing-step-execute-button:hover {
-    background: linear-gradient(135deg, #1e7e34, #155724);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
-}
 
 /* Información de ejecución */
 .turing-execution-info {
@@ -1808,66 +2073,6 @@ body.dark .string-analyzer-title {
     gap: 8px;
 }
 
-.string-analyzer-button {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    background-color: #ffffff;
-    color: #555;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.string-analyzer-button:hover {
-    background-color: #f8f8f8;
-    border-color: #007bff;
-    color: #007bff;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-#closeStringContainerBtn {
-    color: #dc3545;
-}
-
-#closeStringContainerBtn:hover {
-    border-color: #dc3545;
-    background-color: rgba(220, 53, 69, 0.1);
-}
-
-#setStringButton:hover {
-    border-color: #28a745;
-    color: #28a745;
-}
-
-body.dark .string-analyzer-button {
-    background-color: #2a2a3e;
-    border-color: #3a3a50;
-    color: #ccc;
-}
-
-body.dark .string-analyzer-button:hover {
-    background-color: #3a3a50;
-    border-color: #007bff;
-    color: #007bff;
-}
-
-body.dark #closeStringContainerBtn:hover {
-    border-color: #e74c3c;
-    color: #e74c3c;
-    background-color: rgba(231, 76, 60, 0.1);
-}
-
-body.dark #setStringButton:hover {
-    border-color: #28a745;
-    color: #28a745;
-}
-
 #startAutomata {
     background-color: #28a745;
     border-color: #28a745;
@@ -1983,55 +2188,81 @@ body.dark .string-analyzer-wrapper {
     align-items: center;
 }
 
-.string-input {
-    flex: 1;
+/* Input styling - CONSOLIDATED */
+.string-input,
+.turing-string-input,
+.edge-input {
     padding: 8px 12px;
     border: 1px solid #ccc;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     font-size: 14px;
     font-family: 'Courier New', monospace;
     background-color: #ffffff;
     color: #333;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition: border-color var(--transition-base), box-shadow var(--transition-base);
+    width: 100%;
+    box-sizing: border-box;
 }
 
-.string-input:focus {
+.string-input:focus,
+.turing-string-input:focus,
+.edge-input:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    border-color: var(--color-primary);
+    background-color: #fff;
+    box-shadow: 0 0 0 2px rgba(32, 201, 151, 0.25);
 }
 
-body.dark .string-input {
+body.dark .string-input,
+body.dark .turing-string-input,
+body.dark .edge-input {
     background-color: #2a2a3e;
     border-color: #3a3a50;
     color: #e0e0e0;
 }
 
-body.dark .string-input:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+body.dark .string-input:focus,
+body.dark .turing-string-input:focus,
+body.dark .edge-input:focus {
+    border-color: var(--color-primary);
+    background-color: #3a3a50;
+    box-shadow: 0 0 0 2px rgba(32, 201, 151, 0.25);
 }
 
-.apply-string-button {
+/* Apply button styling */
+.apply-string-button,
+.apply-turing-string-button {
     padding: 8px 16px;
-    border: 1px solid #007bff;
-    border-radius: 6px;
-    background-color: #007bff;
+    border: 1px solid var(--color-info);
+    border-radius: var(--radius-md);
+    background-color: var(--color-info);
     color: white;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--transition-base);
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--spacing-sm);
 }
 
-.apply-string-button:hover {
-    background-color: #0056b3;
-    border-color: #0056b3;
+.apply-string-button:hover,
+.apply-turing-string-button:hover {
+    background-color: var(--color-info-dark);
+    border-color: var(--color-info-dark);
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
+}
+
+/* Override for Turing apply button to use success color */
+.apply-turing-string-button {
+    border-color: var(--color-success);
+    background-color: var(--color-success);
+}
+
+.apply-turing-string-button:hover {
+    background-color: var(--color-success-dark);
+    border-color: var(--color-success-dark);
 }
 
 .string-analyzer-display {
@@ -2226,23 +2457,6 @@ body.dark .string-input-modal-container label {
 
 body.dark .string-input-info small {
     color: #aaa;
-}
-
-.modal-actions {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    margin-top: 10px;
-}
-
-.modal-button.secondary {
-    background-color: #6c757d;
-    border-color: #6c757d;
-}
-
-.modal-button.secondary:hover {
-    background-color: #5a6268;
-    border-color: #5a6268;
 }
 
 /* CSS multipleRun */
@@ -2788,13 +3002,16 @@ TOURING
 #exportModal .custom-modal-content {
     display: flex;
     flex-direction: row;
-    min-width: 85vw;
-    min-height: 70vh; 
+    width: 85vw;
+    height: 85vh; /* Aumentamos la altura del modal */
+    max-width: 95vw;
+    max-height: 90vh; /* Altura máxima más generosa */
     padding: 0;
     overflow: hidden;
+    border-radius: 12px;
+    margin: auto;
+    position: relative;
 }
-
-
 
 .preview-placeholder-text {
     font-size: 2.5rem;
@@ -2805,11 +3022,46 @@ TOURING
 
 /* 3. Estilos para el nuevo contenedor de las opciones (columna derecha) */
 .export-options-wrapper {
-    flex: 0.6;
+    flex: 0 0 420px;
     display: flex;
-    flex-direction: column; /* Estructura vertical */
-    padding: 1.5rem 2rem;
-    min-width: 400px; /* Ancho mínimo para que no se comprima demasiado */
+    flex-direction: column;
+    padding: 1rem 1.5rem; /* Reducimos el padding vertical */
+    min-width: 320px;
+    max-width: 450px;
+    overflow-y: auto; /* Permitimos el scroll */
+    overflow-x: hidden;
+    position: relative; /* Añadimos position relative para contener elementos absolutos */
+}
+
+/* Mejora del scrollbar para el panel de opciones */
+.export-options-wrapper::-webkit-scrollbar {
+    width: 6px;
+}
+
+.export-options-wrapper::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.1);
+    border-radius: 3px;
+}
+
+.export-options-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.3);
+    border-radius: 3px;
+}
+
+.export-options-wrapper::-webkit-scrollbar-thumb:hover {
+    background: rgba(0,0,0,0.5);
+}
+
+body.dark .export-options-wrapper::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.1);
+}
+
+body.dark .export-options-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.3);
+}
+
+body.dark .export-options-wrapper::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.5);
 }
 
 /* 4. Ajustes para posicionar tus elementos originales dentro de la nueva columna */
@@ -2824,13 +3076,18 @@ TOURING
 /* Asegura que el contenedor de acciones original se quede al fondo */
 .export-options-wrapper .modal-actions {
     margin-top: auto;
-    padding-top: 1rem;
+    padding-top: 0.8rem;
+    background-color: inherit;
+    padding-bottom: 1rem;
 }
 
 /* --- ESTILOS PARA EL MODO OSCURO --- */
 
 body.dark #exportModal .custom-modal-content {
     background-color: #333;
+    max-height: 90vh;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 
@@ -2842,6 +3099,10 @@ body.dark .export-options-wrapper {
     background-color: #333;
 }
 
+body.dark .export-options-wrapper .modal-actions {
+    background-color: #333; /* Mantenemos el fondo oscuro para los botones */
+}
+
 body.dark .export-options-wrapper h3 {
     border-bottom-color: #3a3a50;
 }
@@ -2849,9 +3110,7 @@ body.dark .export-options-wrapper h3 {
 .export-options-wrapper h3 {
     text-align: center;
     width: 100%;
-    margin-bottom: 2rem; /* Más espacio inferior */
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #eee; /* Separador visual */
+    margin-bottom: 1.5rem;
 }
 
 /* --- ESTILOS PARA LA IMAGEN DE PREVISUALIZACIÓN --- */
@@ -3002,18 +3261,68 @@ body.dark .checkbox-group input[type="checkbox"]:checked + label {
     background-size: 50%;
 }
 
+/* Estilos para los grupos de opciones */
+.fieldset-group {
+  grid-column: 1 / -1; /* Ocupa todo el ancho de la grilla */
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 0.8rem 1rem 1rem;
+}
+
+.fieldset-group legend {
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0 0.5rem;
+  margin-left: 0.5rem;
+  color: #333;
+}
+
+/* Contenedor para las opciones dependientes */
+.sub-options-group {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 16px;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed #e0e0e0;
+  transition: opacity 0.3s ease;
+}
+
+/* Estilo para cuando las opciones están desactivadas */
+.sub-options-group.disabled {
+  opacity: 0.5;
+  pointer-events: none; /* Evita clics en los elementos internos */
+}
+
+/* --- ESTILOS PARA MODO OSCURO --- */
+body.dark .fieldset-group {
+  border-color: #4a4a60;
+}
+
+body.dark .fieldset-group legend {
+  color: #e0e0e0;
+}
+
+body.dark .sub-options-group {
+  border-top-color: #4a4a60;
+}
+
 /* --- ESTILOS PARA LA NUEVA VISTA PREVIA UNIFICADA --- */
 
 /* El contenedor principal ahora es más simple */
 .export-preview-wrapper {
-    flex: 2.5;
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 1rem;
     align-items: center;
     justify-content: center;
     background-color: #f0f2f5;
-    position: relative; 
+    position: relative;
+    min-height: 400px;
+    overflow: hidden;
+    padding: 0.5rem;
 }
 
 body.dark .export-preview-wrapper {
@@ -3022,76 +3331,125 @@ body.dark .export-preview-wrapper {
 
 /* La imagen de previsualización */
 #exportPreviewImage {
-    max-width: 100%;
-    max-height: 85%; /* Dejamos espacio para los controles de zoom */
+    max-width: calc(100% - 2rem);
+    max-height: calc(100% - 80px);
+    width: auto;
+    height: auto;
     object-fit: contain;
     border-radius: 8px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
 }
 
-/* Controles de zoom (ligeramente ajustados) */
+/* Controles de zoom mejorados */
+#zoomControlsContainer {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.8rem;
+    
+    background-color: rgba(233, 236, 239, 0.95);
+    padding: 0.6rem 1.2rem;
+    border-radius: 50px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    transition: all 0.3s ease;
+}
+
+body.dark #zoomControlsContainer {
+    background-color: rgba(58, 58, 80, 0.95);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 .zoom-controls {
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 0.8rem;
-    background-color: #e9ecef;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    width: auto;
 }
 
 .zoom-controls label {
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    color: #495057;
+    white-space: nowrap;
 }
 
-body.dark .zoom-controls {
-    background-color: #3a3a50;
+body.dark .zoom-controls label {
+    color: #e0e0e0;
 }
 
-#zoomControlsContainer {
-    position: absolute; /* Saca el elemento del flujo normal */
-    bottom: 20px;       /* Lo posiciona a 20px del borde inferior */
-    left: 50%;          /* Lo centra horizontalmente */
-    transform: translateX(-50%);
-    z-index: 10;        /* Asegura que esté por encima de la imagen */
-    
-    display: flex; /* Mantenemos flex para su layout interno */
-    justify-content: center;
+.zoom-controls button {
+    width: 32px;
+    height: 32px;
+    border: 1px solid #ccc;
+    border-radius: 50%;
+    background-color: #fff;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
     align-items: center;
-    gap: 0.8rem;
-    
-    /* Mejoramos su apariencia para que parezca una "píldora" flotante */
-    background-color: rgba(233, 236, 239, 0.9);
-    padding: 0.6rem 1.2rem;
-    border-radius: 50px; /* Bordes redondeados */
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-    backdrop-filter: blur(4px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    justify-content: center;
 }
 
-body.dark #zoomControlsContainer {
-    background-color: rgba(58, 58, 80, 0.9);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+.zoom-controls button:hover {
+    background-color: #20c997;
+    color: white;
+    border-color: #20c997;
+    transform: scale(1.05);
+}
+
+body.dark .zoom-controls button {
+    background-color: #4a4a60;
+    border-color: #5a5a70;
+    color: #e0e0e0;
+}
+
+body.dark .zoom-controls button:hover {
+    background-color: #20c997;
+    border-color: #20c997;
+    color: white;
+}
+
+#zoomLevelDisplay {
+    font-weight: 600;
+    font-size: 0.85rem;
+    min-width: 50px;
+    text-align: center;
+    color: #495057;
+}
+
+body.dark #zoomLevelDisplay {
+    color: #e0e0e0;
 }
 
 .radio-group,
 .checkbox-group {
-    /* Ya NO ocupan todo el ancho. Se alinean con los inputs. */
     grid-column: 1 / -1; 
     display: flex;
     align-items: center;
-    gap: 1.5rem; /* Espacio entre las opciones de radio */
-    margin-top: 0; /* Reseteamos márgenes */
+    justify-content: flex-start;
+    gap: 1.2rem; /* Reducimos el gap */
+    margin-top: 0;
     margin-bottom: 0;
-    padding: 0; /* Reseteamos padding */
+    padding: 0;
+    width: 100%;
+    flex-wrap: wrap;
 }
 
 .export-options-grid .radio-group {
-    margin-top: 0.5rem;
-    padding-top: 0.5rem;
+    margin-top: 0.3rem; /* Reducimos el margen superior */
+    padding-top: 0.3rem; /* Reducimos el padding superior */
     border-top: 1px solid #eee;
     grid-column: 1 / -1;
 }
@@ -3100,31 +3458,402 @@ body.dark .export-options-grid .radio-group {
     border-top-color: #3a3a50;
 }
 
-.grid-span-title {
-    grid-column: 1 / -1;
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: #333;
-    margin-top: 0.5rem;
-    padding-top: 1.2rem;
-    border-top: 1px solid #e9ecef;
-    text-align: center;
-}
-
-
-body.dark .grid-span-title {
-    color: #e0e0e0;
-    border-top-color: #3a3a50;
-}
-
 .radio-group label,
 .checkbox-group label {
     justify-self: start;
     text-align: left;
-    font-weight: 500; /* Letra un poco más ligera que las etiquetas principales */
+    font-weight: 500;
+    font-size: 0.85rem; /* Reducimos el tamaño de fuente */
+    cursor: pointer;
+    transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
 }
 
 body.dark .radio-group label,
 body.dark .checkbox-group label {
     color: #ccc;
+}
+
+
+#exportModal .modal-actions {
+  justify-content: center;
+  width: 100%;
+}
+
+/* ======================================================================================== */
+/* RESPONSIVE DESIGN PARA MODAL DE EXPORTACIÓN */
+/* ======================================================================================== */
+
+/* Tablets y pantallas medianas (768px - 1024px) */
+@media (max-width: 1024px) {
+    #exportModal .custom-modal-content {
+        width: 90vw;
+        height: 88vh; /* Aumentamos la altura también en tablets */
+        max-width: 95vw;
+        max-height: 92vh;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .export-preview-wrapper {
+        flex: 1;
+        min-height: 300px;
+        max-height: 50vh;
+        order: 1;
+        overflow: hidden;
+    }
+
+    .export-options-wrapper {
+        flex: 1;
+        min-width: 100%;
+        max-width: none;
+        padding: 0.8rem 1.2rem; /* Reducimos el padding */
+        order: 2;
+        border-top: 1px solid #eee;
+        overflow-y: visible; /* Removemos el scroll en tablets también */
+        overflow-x: hidden;
+    }
+
+    body.dark .export-options-wrapper {
+        border-top-color: #3a3a50;
+    }
+
+    .export-options-grid {
+        grid-template-columns: auto 1fr;
+        gap: 8px 12px; /* Reducimos los gaps */
+    }
+
+    #exportPreviewImage {
+        max-height: calc(100% - 60px);
+    }
+
+    #zoomControlsContainer {
+        bottom: 10px;
+        padding: 0.5rem 1rem;
+    }
+
+    .zoom-controls button {
+        width: 28px;
+        height: 28px;
+        font-size: 1rem;
+    }
+
+    .zoom-controls label {
+        font-size: 0.8rem;
+    }
+
+    #zoomLevelDisplay {
+        font-size: 0.8rem;
+        min-width: 45px;
+    }
+}
+
+/* Móviles y pantallas pequeñas (hasta 768px) */
+@media (max-width: 768px) {
+    .custom-modal {
+        padding: 0.5rem;
+        align-items: flex-start;
+        justify-content: center;
+        padding-top: 5vh;
+    }
+
+    #exportModal .custom-modal-content {
+        width: 95vw;
+        height: 90vh;
+        max-width: 95vw;
+        max-height: 90vh;
+        flex-direction: column;
+        border-radius: 8px;
+        margin: 0;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .export-preview-wrapper {
+        flex: 0 0 35vh;
+        min-height: 200px;
+        max-height: 35vh;
+        padding: 0.5rem;
+        overflow: hidden;
+        order: 1;
+    }
+
+    .export-options-wrapper {
+        flex: 1;
+        padding: 1rem;
+        overflow-y: auto;
+        overflow-x: hidden;
+        order: 2;
+        min-height: 0; /* Importante para que el flex funcione correctamente */
+    }
+   
+    .export-options-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        text-align: left;
+    }
+
+    .export-options-grid label {
+        justify-self: start;
+        text-align: left;
+        font-size: 0.85rem;
+        margin-bottom: 0.3rem;
+    }
+
+    .modal-input,
+    .modal-select {
+        width: 100%;
+        padding: 0.6rem;
+        font-size: 0.9rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .radio-group,
+    .checkbox-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.8rem;
+        margin: 0.5rem 0;
+    }
+
+    .radio-group label,
+    .checkbox-group label {
+        font-size: 0.85rem;
+    }
+
+    .grid-span-title {
+        font-size: 0.85rem;
+        margin-top: 0.8rem;
+        padding-top: 0.8rem;
+    }
+
+    .modal-actions {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #eee;
+        bottom: 0;
+        background: inherit;
+    }
+
+    body.dark .modal-actions {
+        border-top-color: #3a3a50;
+    }
+
+    .modal-button {
+        width: 100%;
+        padding: 0.8rem;
+        font-size: 0.95rem;
+    }
+
+    .close-button {
+        font-size: 24px;
+        top: 5px;
+        right: 10px;
+    }
+
+    #exportPreviewImage {
+        max-width: calc(100% - 1rem);
+        max-height: calc(100% - 40px);
+        border-radius: 6px;
+    }
+
+    #zoomControlsContainer {
+        bottom: 5px;
+        padding: 0.4rem 0.8rem;
+        border-radius: 25px;
+        backdrop-filter: blur(6px);
+    }
+
+    .zoom-controls {
+        gap: 0.5rem;
+    }
+
+    .zoom-controls button {
+        width: 24px;
+        height: 24px;
+        font-size: 0.9rem;
+    }
+
+    .zoom-controls label {
+        font-size: 0.75rem;
+        display: none; /* Ocultamos el label en móviles para ahorrar espacio */
+    }
+
+    #zoomLevelDisplay {
+        font-size: 0.75rem;
+        min-width: 40px;
+    }
+
+    .preview-placeholder-text {
+        font-size: 1.5rem;
+        text-align: center;
+        padding: 1rem;
+    }
+}
+
+/* Móviles muy pequeños (hasta 480px) */
+@media (max-width: 480px) {
+    .custom-modal {
+        padding: 0.25rem;
+        padding-top: 2vh;
+    }
+
+    #exportModal .custom-modal-content {
+        width: 98vw;
+        height: 95vh;
+        max-width: 98vw;
+        max-height: 95vh;
+        border-radius: 6px;
+        margin: 0;
+        overflow: hidden;
+    }
+
+    .export-preview-wrapper {
+        flex: 0 0 30vh;
+        min-height: 150px;
+        max-height: 30vh;
+        padding: 0.25rem;
+        overflow: hidden;
+    }
+
+    .export-options-wrapper {
+        flex: 1;
+        padding: 0.75rem;
+        overflow-y: auto;
+        overflow-x: hidden;
+        min-height: 0;
+    }
+
+    .export-options-wrapper h3 {
+        font-size: 1rem;
+    }
+
+    .export-options-grid {
+        gap: 6px;
+    }
+
+    .export-options-grid label {
+        font-size: 0.8rem;
+        margin-bottom: 0.2rem;
+    }
+
+    .modal-input,
+    .modal-select {
+        padding: 0.5rem;
+        font-size: 0.85rem;
+        margin-bottom: 0.6rem;
+    }
+
+    .radio-group,
+    .checkbox-group {
+        gap: 0.6rem;
+        margin: 0.4rem 0;
+    }
+
+    .radio-group label,
+    .checkbox-group label {
+        font-size: 0.8rem;
+    }
+
+    .radio-group label::before,
+    .checkbox-group label::before {
+        width: 16px;
+        height: 16px;
+        margin-right: 0.5rem;
+    }
+
+    .grid-span-title {
+        font-size: 0.8rem;
+        margin-top: 0.6rem;
+        padding-top: 0.6rem;
+    }
+
+    .modal-button {
+        padding: 0.7rem;
+        font-size: 0.9rem;
+    }
+
+    .close-button {
+        font-size: 20px;
+        top: 3px;
+        right: 8px;
+    }
+
+    #exportPreviewImage {
+        border-radius: 4px;
+    }
+
+    #zoomControlsContainer {
+        bottom: 3px;
+        padding: 0.3rem 0.6rem;
+        border-radius: 20px;
+    }
+
+    .zoom-controls button {
+        width: 22px;
+        height: 22px;
+        font-size: 0.8rem;
+    }
+
+    #zoomLevelDisplay {
+        font-size: 0.7rem;
+        min-width: 35px;
+    }
+
+    .preview-placeholder-text {
+        font-size: 1.2rem;
+        padding: 0.5rem;
+    }
+}
+
+/* Mejoras específicas para pantallas en orientación vertical (portrait) */
+@media (max-height: 600px) and (orientation: portrait) {
+    .custom-modal {
+        padding: 0.25rem;
+        padding-top: 1vh;
+    }
+
+    #exportModal .custom-modal-content {
+        height: 98vh;
+        max-height: 98vh;
+        overflow: hidden;
+    }
+
+    .export-preview-wrapper {
+        flex: 0 0 25vh;
+        max-height: 25vh;
+        min-height: 120px;
+        overflow: hidden;
+    }
+
+    .export-options-wrapper {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        min-height: 0;
+    }
+}
+
+/* Mejoras para dispositivos con pantallas muy anchas */
+@media (min-width: 1400px) {
+    #exportModal .custom-modal-content {
+        min-width: 80vw;
+        max-width: 85vw;
+    }
+
+    .export-options-wrapper {
+        flex: 0 0 480px;
+        max-width: 500px;
+        padding: 2rem 2.5rem;
+    }
+
+    .export-options-grid {
+        gap: 14px 18px;
+    }
+
+    .export-options-wrapper h3 {
+        font-size: 1.3rem;
+    }
 }

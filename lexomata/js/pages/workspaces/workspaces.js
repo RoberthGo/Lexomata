@@ -109,7 +109,7 @@ let projectName = 'nuevo-';
 // --- OBTENCIÓN DEL MODO DE TRABAJO ---
 const urlParams = new URLSearchParams(window.location.search);
 const currentMode = urlParams.get('mode') || 'automata';
-projectName+=currentMode;
+projectName += currentMode;
 let nodes = [];
 let edges = [];
 let nodeCounter = 0
@@ -1743,7 +1743,7 @@ function saveEdgeLabels(fromNode, toNode) {
         if (currentMode === 'turing') {
             errorMessage = "Error al procesar la transición de Turing. Formato requerido: 'leer,escribir,mover' (ej: 'a,b,R')\n\n";
             errorMessage += validationErrors.join('\n');
-            
+
             // Agregar sugerencias para cada error
             const suggestions = inputs.map((input, index) => {
                 const value = input.value.trim();
@@ -1755,7 +1755,7 @@ function saveEdgeLabels(fromNode, toNode) {
                 }
                 return null;
             }).filter(s => s !== null);
-            
+
             if (suggestions.length > 0) {
                 errorMessage += '\n\nSugerencias:\n' + suggestions.join('\n');
             }
@@ -1822,20 +1822,20 @@ function saveEdgeLabels(fromNode, toNode) {
 function createTuringEdge(fromId, toId, transitionLabels) {
     // Parsear la primera transición para los parámetros del constructor
     const firstTransition = parseTuringTransition(transitionLabels[0]);
-    
+
     // Crear la arista con los parámetros de la primera transición
     const turingEdge = new EdgeTouring(
-        fromId, 
-        toId, 
+        fromId,
+        toId,
         [], // transitions array se inicializa vacío
         firstTransition.read,
         firstTransition.write,
         firstTransition.move
     );
-    
+
     // Asignar todas las etiquetas al array labels para compatibilidad con el sistema existente
     turingEdge.labels = transitionLabels;
-    turingEdge.note = ""; 
+    turingEdge.note = "";
 
     return turingEdge;
 }
@@ -2044,7 +2044,7 @@ function openFile() {
             const fileName = file.name.toLowerCase();
 
             if (fileName.endsWith('.json')) {
-                
+
                 parseAndLoadJSON(fileContent);
             } else if (fileName.endsWith('.jff')) {
 
@@ -2277,7 +2277,7 @@ function validateTransitionLabel(label, mode = 'automata') {
 function validateTuringTransition(label) {
     // Verificar formato básico "a,b,c"
     const parts = label.split(',');
-    
+
     if (parts.length !== 3) {
         return {
             isValid: false,
@@ -2336,24 +2336,24 @@ function validateTuringTransition(label) {
  */
 function suggestTuringTransitionFix(label) {
     const suggestions = [];
-    
+
     // Si no tiene comas, sugerir el formato
     if (!label.includes(',')) {
         suggestions.push('Agregue comas para separar: leer,escribir,mover');
         suggestions.push(`Ejemplo: "${label},${label},R"`);
         return suggestions.join('\n');
     }
-    
+
     const parts = label.split(',');
-    
+
     if (parts.length < 3) {
         suggestions.push('Faltan componentes. Formato: leer,escribir,mover');
     }
-    
+
     if (parts.length > 3) {
         suggestions.push('Demasiados componentes. Use solo: leer,escribir,mover');
     }
-    
+
     // Verificar la dirección si existe
     if (parts.length >= 3) {
         const moveDir = parts[2].trim();
@@ -2361,7 +2361,7 @@ function suggestTuringTransitionFix(label) {
             suggestions.push('Dirección inválida. Use: L (izquierda), R (derecha), M/S (mantener)');
         }
     }
-    
+
     return suggestions.length > 0 ? suggestions.join('\n') : 'Verifique el formato: leer,escribir,mover';
 }
 
@@ -2493,7 +2493,7 @@ function validateAndConvertEdge(edge, mode) {
                 const validation = validateTuringTransition(labelText);
                 return validation.isValid;
             });
-            
+
             if (validLabels.length > 0) {
                 return createTuringEdge(edge.from, edge.to, validLabels);
             }
@@ -2504,7 +2504,7 @@ function validateAndConvertEdge(edge, mode) {
         defaultEdge.labels = edge.labels || [];
         return defaultEdge;
     }
-    
+
     if (mode === 'automata' && !(edge instanceof EdgeAutomata)) {
         // Convertir a EdgeAutomata
         const newEdge = new EdgeAutomata(edge.from, edge.to, edge.labels || []);
@@ -2531,21 +2531,37 @@ function validateAllEdges(mode) {
 function initializeEdgeValidations() {
     // Validar todas las aristas existentes
     validateAllEdges(currentMode);
-    
+
     // Redibuja el canvas para reflejar los cambios
     redrawCanvas();
-    
+
     console.log(`Validaciones inicializadas para modo: ${currentMode}`);
 }
 
 // Inicializar las validaciones cuando se carga la página
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Esperar un poco para asegurar que todas las variables estén inicializadas
     setTimeout(() => {
         if (typeof currentMode !== 'undefined' && (currentMode === 'automata' || currentMode === 'turing')) {
             initializeEdgeValidations();
         }
     }, 100);
+
+    const attachCheckbox = document.getElementById('attachResultsCheckbox');
+    const subOptionsContainer = document.getElementById('multiRunSubOptions');
+    const charInputs = subOptionsContainer.querySelectorAll('input');
+
+    attachCheckbox.addEventListener('change', function () {
+        const isDisabled = !this.checked;
+
+        // Activa/desactiva el contenedor visualmente
+        subOptionsContainer.classList.toggle('disabled', isDisabled);
+
+        // Activa/desactiva los inputs funcionalmente
+        charInputs.forEach(input => {
+            input.disabled = isDisabled;
+        });
+    });
 });
 
 // ---------------------------------------------------------------------------------

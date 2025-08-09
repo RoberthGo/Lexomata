@@ -150,8 +150,8 @@
           </div>
 
           <div class="turing-tape-input-section">
-            <input type="text" id="turingStringInput" class="turing-string-input" placeholder="Ingrese la cadena inicial para la cinta..."
-              maxlength="50">
+            <input type="text" id="turingStringInput" class="turing-string-input"
+              placeholder="Ingrese la cadena inicial para la cinta..." maxlength="50">
             <button id="applyTuringStringButton" class="apply-turing-string-button">
               <i class="fas fa-check"></i> Aplicar a Cinta
             </button>
@@ -311,54 +311,64 @@
         <h3>Opciones de Exportación de Imagen</h3>
 
         <div class="export-options-grid">
-          <label for="exportFilename">Nombre de archivo:</label>
-          <input type="text" id="exportFilename" class="modal-input" value="automata">
+          <fieldset class="fieldset-group">
+            <legend>Configuración de Archivo</legend>
 
-          <label for="exportFormat">Formato:</label>
-          <select id="exportFormat" class="modal-select">
-            <option value="image/png">PNG</option>
-            <option value="image/jpeg">JPEG</option>
-          </select>
+            <label for="exportFilename">Nombre de archivo:</label>
+            <input type="text" id="exportFilename" class="modal-input" value="automata">
 
-          <label for="exportResolution">Resolución:</label>
-          <select id="exportResolution" class="modal-select">
-            <option value="1280">HD (1280px)</option>
-            <option value="1920" selected>Full HD (1920px)</option>
-            <option value="2560">2K / QHD (2560px)</option>
-            <option value="3840">4K (3840px)</option>
-            <option value="7680">8K (7680px)</option>
-          </select>
+            <label for="exportFormat">Formato:</label>
+            <select id="exportFormat" class="modal-select">
+              <option value="image/png">PNG</option>
+              <option value="image/jpeg">JPEG</option>
+            </select>
 
-          <label for="exportTheme">Tema de Exportación:</label>
-          <select id="exportTheme" class="modal-select">
-            <option value="light" selected>Tema Claro</option>
-            <option value="dark">Tema Oscuro</option>
-            <option value="transparent" id="transparentOption">Transparente (Solo PNG)</option>
-          </select>
+            <label for="exportResolution">Resolución:</label>
+            <select id="exportResolution" class="modal-select">
+              <option value="1280">HD (1280px)</option>
+              <option value="1920" selected>Full HD (1920px)</option>
+              <option value="2560">2K / QHD (2560px)</option>
+              <option value="3840">4K (3840px)</option>
+              <option value="7680">8K (7680px)</option>
+            </select>
 
-          <h4 class="grid-span-title">Área a Exportar</h4>
-          <label for="inputCharLimit">Límite Caracteres (Input):</label>
-          <input type="number" id="inputCharLimit" class="modal-input" value="20" min="5">
+            <label for="exportTheme">Tema de Exportación:</label>
+            <select id="exportTheme" class="modal-select">
+              <option value="light" selected>Tema Claro</option>
+              <option value="dark">Tema Oscuro</option>
+              <option value="transparent" id="transparentOption">Transparente (Solo PNG)</option>
+            </select>
+          </fieldset>
 
-          <label for="resultCharLimit">Límite Caracteres (Result):</label>
-          <input type="number" id="resultCharLimit" class="modal-input" value="15" min="5">
+          <fieldset class="fieldset-group">
+            <legend>Área del Autómata</legend>
+            <div class="radio-group">
+              <input type="radio" id="exportViewAll" name="exportArea" value="all" checked>
+              <label for="exportViewAll">Ajustar al Contenido</label>
 
-          <div class="radio-group">
-            <input type="radio" id="exportViewAll" name="exportArea" value="all" checked>
-            <label for="exportViewAll">Ajustar al Contenido</label>
+              <input type="radio" id="exportViewCurrent" name="exportArea" value="current">
+              <label for="exportViewCurrent">Vista Actual</label>
+            </div>
+          </fieldset>
 
-            <input type="radio" id="exportViewCurrent" name="exportArea" value="current">
-            <label for="exportViewCurrent">Vista Actual</label>
-          </div>
+          <fieldset class="fieldset-group">
+            <legend>Resultados de Multi-Run</legend>
+            <div class="checkbox-group">
+              <input type="checkbox" id="attachResultsCheckbox" name="attachResults">
+              <label for="attachResultsCheckbox">Adjuntar resultados</label>
+            </div>
 
-          <div class="checkbox-group">
-            <input type="checkbox" id="attachResultsCheckbox" name="attachResults">
-            <label for="attachResultsCheckbox">Adjuntar resultados de Multi-Run</label>
-          </div>
+            <div id="multiRunSubOptions" class="sub-options-group disabled">
+              <label for="inputCharLimit">Límite Caracteres (Input):</label>
+              <input type="number" id="inputCharLimit" class="modal-input" value="20" min="5" disabled>
 
-          <div class="modal-actions">
-            <button id="confirmExportButton" class="modal-button">Exportar</button>
-          </div>
+              <label for="resultCharLimit">Límite Caracteres (Result):</label>
+              <input type="number" id="resultCharLimit" class="modal-input" value="15" min="5" disabled>
+            </div>
+          </fieldset>
+
+          <button id="confirmExportButton" class="modal-button">Exportar</button>
+
         </div>
       </div>
     </div>
