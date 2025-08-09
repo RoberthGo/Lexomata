@@ -48,13 +48,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (!inputValue) return;
 
-        // --- LÓGICA REAL USANDO EXECUTION CONTROLLER ---
-        const controller = new ExecutionController(nodes, edges, inputValue);
+        // Determinar modo actual (automata o turing)
+        const mode = (typeof getCurrentMode === 'function') ? getCurrentMode() : 'automata';
+        let controller;
+        if (mode === 'turing') {
+            // Máquina de Turing: headPosition por defecto 0
+            controller = new TuringExecutionController(nodes, edges, inputValue, 0);
+        } else {
+            // Autómata finito
+            controller = new ExecutionController(nodes, edges, inputValue);
+        }
         const finalState = controller.getHistory().pop();
 
+        // Mostrar resultado según status
         if (finalState.status === 'ACCEPTED') {
             resultEl.textContent = 'Aceptada';
             resultEl.classList.add('result-accept');
+        } else if (finalState.status === 'TIMEOUT') {
+            resultEl.textContent = 'Timeout';
+            resultEl.classList.add('result-reject');
         } else {
             resultEl.textContent = 'Rechazado';
             resultEl.classList.add('result-reject');
