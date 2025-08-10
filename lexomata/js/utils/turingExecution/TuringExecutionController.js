@@ -60,7 +60,7 @@ class TuringExecutionController {
      * @param {string} char - Carácter a escribir
      */
     writeTape(tapeState, char) {
-        if (char === '□' || char === 'blank') {
+        if (char === '□' || char === 'blank' || char === '☐') { // Accept blank space as ☐
             // Eliminar el carácter (simular celda vacía)
             delete tapeState.tape[tapeState.headPosition];
         } else {
@@ -140,8 +140,8 @@ class TuringExecutionController {
      * @returns {boolean} True si coinciden
      */
     matchesCharacter(readChar, currentChar) {
-        // Manejar símbolos especiales
-        if (readChar === '□' || readChar === 'blank') {
+        // Manejar símbolos especiales, incluyendo ☐ cuando se ingrese un espacio
+        if (readChar === '□' || readChar === 'blank' || readChar === '☐') {
             return currentChar === '□';
         }
         if (readChar === 'ε' || readChar === 'λ') {
