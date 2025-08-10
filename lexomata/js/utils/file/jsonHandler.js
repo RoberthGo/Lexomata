@@ -53,20 +53,20 @@ function parseAndLoadJSON(fileContent) {
         // Valida que el archivo tenga la estructura esperada
         if (data && data.nodes && data.edges) {
             // Detecta si el archivo es una máquina de Turing
-            const isFileTouring = isTuringMachine(data);
+            const isFileTuring = isTuringMachine(data);
             
             // Obtiene el modo actual del canvas desde la URL
             const params = new URLSearchParams(window.location.search);
             const currentMode = params.get('mode');
-            const isCanvasTouring = currentMode === 'turing';
+            const isCanvasTuring = currentMode === 'turing';
             
             // Valida la compatibilidad entre el modo del canvas y el tipo de archivo
-            if (isCanvasTouring && !isFileTouring) {
+            if (isCanvasTuring && !isFileTuring) {
                 alert("El archivo no tiene la información válida. Se esperaba un archivo de máquina de Turing pero se detectó un autómata.");
                 return;
             }
             
-            if (!isCanvasTouring && isFileTouring) {
+            if (!isCanvasTuring && isFileTuring) {
                 alert("El archivo no tiene la información válida. Se esperaba un archivo de autómata pero se detectó una máquina de Turing.");
                 return;
             }

@@ -195,7 +195,7 @@ function suggestTuringTransitionFix(label) {
  */
 function validateAndConvertEdge(edge, mode) {
     // Si la arista ya es del tipo correcto, devolverla tal como está
-    if (mode === 'turing' && edge instanceof EdgeTouring) {
+    if (mode === 'turing' && edge instanceof EdgeTuring) {
         return edge;
     }
     if (mode === 'automata' && edge instanceof EdgeAutomata) {
@@ -203,8 +203,8 @@ function validateAndConvertEdge(edge, mode) {
     }
 
     // Si el tipo no coincide con el modo, convertir
-    if (mode === 'turing' && !(edge instanceof EdgeTouring)) {
-        // Convertir a EdgeTouring
+    if (mode === 'turing' && !(edge instanceof EdgeTuring)) {
+        // Convertir a EdgeTuring
         const labels = edge.labels || [];
         if (labels.length > 0) {
             // Validar que las etiquetas tengan el formato correcto para Turing
@@ -218,8 +218,8 @@ function validateAndConvertEdge(edge, mode) {
                 return createTuringEdge(edge.from, edge.to, validLabels);
             }
         }
-        // Si no hay etiquetas válidas, crear una EdgeTouring con valores por defecto
-        const defaultEdge = new EdgeTouring(edge.from, edge.to, [], 'ε', 'ε', 'R');
+        // Si no hay etiquetas válidas, crear una EdgeTuring con valores por defecto
+        const defaultEdge = new EdgeTuring(edge.from, edge.to, [], 'ε', 'ε', 'R');
         defaultEdge.id = edge.id;
         defaultEdge.labels = edge.labels || [];
         return defaultEdge;

@@ -163,9 +163,9 @@ function saveTuringEdgeTransitions(fromNode, toNode) {
         if (typeof createTuringEdge === 'function') {
             newEdge = createTuringEdge(fromNode.id, toNode.id, newLabels);
         } else {
-            // Fallback: crear EdgeTouring directamente
+            // Fallback: crear EdgeTuring directamente
             const firstTransition = newLabels[0].split(',');
-            newEdge = new EdgeTouring(
+            newEdge = new EdgeTuring(
                 fromNode.id, 
                 toNode.id, 
                 [], 

@@ -140,7 +140,7 @@ function saveEdgeLabels(fromNode, toNode) {
         // 4. SI NO EXISTE: crea una arista nueva con las etiquetas recolectadas según el modo.
         let newEdge;
         if (currentMode === 'turing') {
-            // Para máquinas de Turing, crear EdgeTouring con las transiciones parseadas
+            // Para máquinas de Turing, crear EdgeTuring con las transiciones parseadas
             newEdge = createTuringEdge(fromNode.id, toNode.id, newLabels);
         } else {
             // Para autómatas, usar EdgeAutomata
@@ -160,14 +160,14 @@ function saveEdgeLabels(fromNode, toNode) {
  * @param {string} fromId - ID del nodo origen
  * @param {string} toId - ID del nodo destino
  * @param {Array} transitionLabels - Array de etiquetas en formato "leer,escribir,mover"
- * @returns {EdgeTouring} - Nueva arista de Turing
+ * @returns {EdgeTuring} - Nueva arista de Turing
  */
 function createTuringEdge(fromId, toId, transitionLabels) {
     // Parsear la primera transición para los parámetros del constructor
     const firstTransition = parseTuringTransition(transitionLabels[0]);
 
     // Crear la arista con los parámetros de la primera transición
-    const turingEdge = new EdgeTouring(
+    const turingEdge = new EdgeTuring(
         fromId,
         toId,
         [], // transitions array se inicializa vacío

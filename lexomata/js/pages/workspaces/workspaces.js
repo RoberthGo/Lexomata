@@ -1796,7 +1796,7 @@ function saveEdgeLabels(fromNode, toNode) {
         // 4. SI NO EXISTE: crea una arista nueva con las etiquetas recolectadas según el modo.
         let newEdge;
         if (currentMode === 'turing') {
-            // Para máquinas de Turing, crear EdgeTouring con las transiciones parseadas
+            // Para máquinas de Turing, crear EdgeTuring con las transiciones parseadas
             newEdge = createTuringEdge(fromNode.id, toNode.id, newLabels);
         } else {
             // Para autómatas, usar EdgeAutomata
@@ -1816,14 +1816,14 @@ function saveEdgeLabels(fromNode, toNode) {
  * @param {string} fromId - ID del nodo origen
  * @param {string} toId - ID del nodo destino
  * @param {Array} transitionLabels - Array de etiquetas en formato "leer,escribir,mover"
- * @returns {EdgeTouring} - Nueva arista de Turing
+ * @returns {EdgeTuring} - Nueva arista de Turing
  */
 function createTuringEdge(fromId, toId, transitionLabels) {
     // Parsear la primera transición para los parámetros del constructor
     const firstTransition = parseTuringTransition(transitionLabels[0]);
     
     // Crear la arista con los parámetros de la primera transición
-    const turingEdge = new EdgeTouring(
+    const turingEdge = new EdgeTuring(
         fromId, 
         toId, 
         [], // transitions array se inicializa vacío
@@ -2474,7 +2474,7 @@ function mergeOrUpdateEdge(edgeToModify, newFromId, newToId, edgesToDelete, sele
  */
 function validateAndConvertEdge(edge, mode) {
     // Si la arista ya es del tipo correcto, devolverla tal como está
-    if (mode === 'turing' && edge instanceof EdgeTouring) {
+    if (mode === 'turing' && edge instanceof EdgeTuring) {
         return edge;
     }
     if (mode === 'automata' && edge instanceof EdgeAutomata) {
@@ -2482,8 +2482,8 @@ function validateAndConvertEdge(edge, mode) {
     }
 
     // Si el tipo no coincide con el modo, convertir
-    if (mode === 'turing' && !(edge instanceof EdgeTouring)) {
-        // Convertir a EdgeTouring
+    if (mode === 'turing' && !(edge instanceof EdgeTuring)) {
+        // Convertir a EdgeTuring
         const labels = edge.labels || [];
         if (labels.length > 0) {
             // Validar que las etiquetas tengan el formato correcto para Turing
@@ -2497,8 +2497,8 @@ function validateAndConvertEdge(edge, mode) {
                 return createTuringEdge(edge.from, edge.to, validLabels);
             }
         }
-        // Si no hay etiquetas válidas, crear una EdgeTouring con valores por defecto
-        const defaultEdge = new EdgeTouring(edge.from, edge.to, [], 'ε', 'ε', 'R');
+        // Si no hay etiquetas válidas, crear una EdgeTuring con valores por defecto
+        const defaultEdge = new EdgeTuring(edge.from, edge.to, [], 'ε', 'ε', 'R');
         defaultEdge.id = edge.id;
         defaultEdge.labels = edge.labels || [];
         return defaultEdge;
@@ -2561,7 +2561,7 @@ CARACTERÍSTICAS PRINCIPALES:
 
 1. VALIDACIÓN POR MODO:
    - Modo 'automata': Usa EdgeAutomata y validaciones de expresiones regulares
-   - Modo 'turing': Usa EdgeTouring y validaciones de formato "leer,escribir,mover"
+   - Modo 'turing': Usa EdgeTuring y validaciones de formato "leer,escribir,mover"
 
 2. FUNCIONES PRINCIPALES:
    
@@ -2580,7 +2580,7 @@ CARACTERÍSTICAS PRINCIPALES:
    - Controla caracteres de escape y sintaxis regex
    
    createTuringEdge(fromId, toId, transitionLabels):
-   - Crea aristas de tipo EdgeTouring con transiciones parseadas
+   - Crea aristas de tipo EdgeTuring con transiciones parseadas
    - Mantiene compatibilidad con el sistema de labels existente
    
    validateAndConvertEdge(edge, mode):

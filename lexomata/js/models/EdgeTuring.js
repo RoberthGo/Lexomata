@@ -1,4 +1,4 @@
-class EdgeTouring {
+class EdgeTuring {
     constructor(fromId, toId,  transitions= [], characterOfInput, characterOfOut, move, comment = '') {
         this.id = Date.now() + Math.random();
         this.from = fromId;
