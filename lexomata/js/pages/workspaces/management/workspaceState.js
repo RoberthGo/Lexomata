@@ -1,0 +1,15 @@
+let nodes = [];
+let edges = [];
+let nodeCounter = 0
+let selectedNodeIds = [];
+let selectedEdgeIds = [];
+let currentTool = 'select';
+let edgeCreationState = { firstNode: null };
+let isSelecting = false;
+let selectionStart = { x: 0, y: 0 };
+let selectionEnd = { x: 0, y: 0 };
+const urlParams = new URLSearchParams(window.location.search);
+const currentMode = urlParams.get('mode') || 'automata';
+const exportFormatSelect = document.getElementById('exportFormat');
+const transparentOption = document.getElementById('transparentOption');
+const exportThemeSelect = document.getElementById('exportTheme');

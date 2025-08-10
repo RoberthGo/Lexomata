@@ -594,7 +594,6 @@ function applyStringToTuringTape(inputString) {
         initializeTuringTapeWithInput(cleanString, 0);
         
         console.log(`Cadena aplicada a la cinta de Turing: "${cleanString}"`);
-        showMessage(`Cadena "${cleanString}" aplicada exitosamente a la cinta.`);
         
         // Limpiar el campo de entrada
         const input = document.getElementById('turingStringInput');
@@ -707,7 +706,6 @@ function initializeTuringTape() {
     if (stopStepButton) {
         stopStepButton.addEventListener('click', () => {
             stopTuringStepExecution();
-            showMessage("Ejecución paso a paso detenida");
             // Restablecer el botón de ejecutar
             if (executeButton) {
                 executeButton.innerHTML = '<i class="fas fa-play"></i> Ejecutar';
@@ -722,7 +720,7 @@ function initializeTuringTape() {
             if (turingTapeState.executionController) {
                 // Si ya está ejecutando, detener
                 stopTuringStepExecution();
-                showMessage("Ejecución paso a paso detenida");
+                
                 executeButton.innerHTML = '<i class="fas fa-play"></i> Ejecutar';
             } else {
                 // Iniciar ejecución paso a paso

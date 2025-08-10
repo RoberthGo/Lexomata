@@ -449,29 +449,71 @@
 
 
 
-  <script src="../js/models/State.js"></script>
-  <script src="../js/models/EdgeAutomata.js"></script>
-  <script src="../js/models/EdgeTouring.js"></script>
-  <script src="../js/utils/canvas/exportCanvasToImage.js"></script>
-  <script src="../js/pages/workspaces/workspaces.js"> </script>
-  <script src="../js/pages/workspaces/canvasSettings.js"></script>
-  <script src="../js/pages/workspaces/toolbar.js"> </script>
-  <script src="../js/utils/automataExecution/ExecutionController.js"></script>
-  <script src="../js/utils/turingExecution/TuringExecutionController.js"></script>
-  <script src="../js/utils/turingExecution/turingExecutionInterface.js"></script>
-  <script src="../js/utils/canvas/canvas.js"></script>
-  <script src="../js/utils/canvas/Node/addNode.js"></script>
-  <script src="../js/utils/canvas/addEdge.js"></script>
-  <script src="../js/utils/Draw/drawEdgeTouring.js"></script>
-  <script src="../js/utils/Draw/drawNode.js"></script>
-  <script src="../js/utils/Draw/drawEdge.js"></script>
-  <script src="../js/utils/canvas/deleteTool.js"></script>
-  <script src="../js/utils/file/jsonHandler.js"></script>
-  <script src="../js/utils/canvas/turingTape.js"></script>
-  <script src="../js/utils/canvas/stringAnalyzer.js"></script>
-  <script src="../js/utils/canvas/multipleRun.js"></script>
-  <script src="../js/utils/regexHandler.js"></script>
-  <script src="../js/utils/canvas/multipleRunDrawCanvas.js"></script>
+
+<script src="../js/models/State.js"></script>
+<script src="../js/models/EdgeAutomata.js"></script>
+<script src="../js/models/EdgeTouring.js"></script>
+
+<!-- Handlers y utilidades básicas -->
+<script src="../js/utils/regexHandler.js"></script>
+
+<!-- Controladores de ejecución -->
+<script src="../js/utils/automataExecution/ExecutionController.js"></script>
+<script src="../js/utils/turingExecution/TuringExecutionController.js"></script>
+<script src="../js/utils/turingExecution/turingExecutionInterface.js"></script>
+
+<!-- Utilidades de archivo -->
+<script src="../js/utils/file/jsonHandler.js"></script>
+
+<!-- Funciones de dibujo (deben ir antes del canvas principal) -->
+<script src="../js/utils/Draw/drawNode.js"></script>
+<script src="../js/utils/Draw/drawEdge.js"></script>
+<script src="../js/utils/Draw/drawEdgeTouring.js"></script>
+
+<!-- Canvas y herramientas -->
+ <script src="../js/utils/toolbar.js"></script>
+<script src="../js/utils/canvas/canvas.js"></script>
+<script src="../js/utils/canvas/Node/addNode.js"></script>
+<script src="../js/utils/canvas/addEdge.js"></script>
+<script src="../js/utils/canvas/deleteTool.js"></script>
+<script src="../js/pages/workspaces/edges/modal/edgeCreationModal.js"></script>
+<script src="../js/pages/workspaces/edges/modal/edgeSelectionModal.js"></script>
+
+<!-- Gestión de archivos y navegación -->
+<script src="../js/pages/workspaces/management/fileManagament.js"></script>
+<script src="../js/pages/workspaces/management/history.js"></script>
+<script src="../js/pages/workspaces/canvas/navigation.js"></script>
+
+<!-- Componentes de interfaz específicos -->
+<script src="../js/utils/canvas/turingTape.js"></script>
+<script src="../js/utils/canvas/stringAnalyzer.js"></script>
+<script src="../js/utils/canvas/multipleRun.js"></script>
+<script src="../js/utils/canvas/multipleRunDrawCanvas.js"></script>
+<script src="../js/utils/canvas/exportCanvasToImage.js"></script>
+
+<!-- Configuraciones y listeners del canvas (deben ir después de las utilidades) -->
+<script src="../js/pages/workspaces/canvas/canvasSettings.js"></script>
+<script src="../js/pages/workspaces/canvas/canvasCore.js"></script>
+<script src="../js/pages/workspaces/canvas/contextMenu.js"></script>
+
+<!-- UI y componentes de interfaz -->
+<script src="../js/pages/workspaces/UI/modal.js"></script>
+<script src="../js/pages/workspaces/UI/theme.js"></script>
+<script src="../js/pages/workspaces/UI/viewControls.js"></script>
+
+<!-- Lógica de gestión de estado del workspace -->
+<script src="../js/pages/workspaces/management/workspaceState.js"></script>
+
+<!-- Otras funcionalidades de edges -->
+<script src="../js/pages/workspaces/edges/other/labelEditor.js"></script>
+<script src="../js/pages/workspaces/edges/other/notes.js"></script>
+<script src="../js/pages/workspaces/edges/other/validation.js"></script>
+<script src="../js/pages/workspaces/edges/process/edgeActions.js"></script>
+<script src="../js/pages/workspaces/edges/process/edgeDetection.js"></script>
+<script src="../js/pages/workspaces/edges/process/edgeReassignment.js"></script>
+
+<!-- Listeners globales (al final) -->
+<script src="../js/pages/workspaces/listeners/global.js"></script>
 </body>
 
 </html>

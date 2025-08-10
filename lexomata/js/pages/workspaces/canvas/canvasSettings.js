@@ -6,6 +6,7 @@ const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 6.0;
 const ZOOM_SENSITIVITY = 0.1;
 
+
 document.addEventListener('DOMContentLoaded', () => {
 
     const ctx = canvas.getContext('2d');
@@ -314,3 +315,123 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
+window.onclick = function (event) {
+    if (event.target == customAlertModal) closeMessage();
+    if (event.target == document.getElementById('edgeSelectionModal')) closeEdgeSelectionModal();
+    if (!event.target.closest('.main-menu-container')) {
+        document.querySelectorAll('.submenu').forEach(sub => sub.style.display = 'none');
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    const defaultToolButton = document.getElementById('select');
+    const menuItems = document.querySelectorAll('.main-menu-item');
+    const contextMenu = document.getElementById('canvasContextMenu');
+
+    contextMenu.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (e.target.matches('.simple-context-menu-item') && !e.target.classList.contains('disabled')) {
+            const action = e.target.dataset.action;
+
+            // Filtrar solo las aristas seleccionadas (ignorar nodos seleccionados)
+            const onlyEdgeIds = selectedEdgeIds.filter(id => {
+                return edges.some(edge => edge.id === id);
+            });
+
+            if (onlyEdgeIds.length === 0) {
+                hideCanvasContextMenu();
+                return;
+            }
+
+            switch (action) {
+                case 'invert':
+                    handleEdgeAction('invert', onlyEdgeIds);
+                    break;
+                case 'change-destination':
+                    handleEdgeAction('change-destination', onlyEdgeIds);
+                    break;
+                case 'change-origin':
+                    handleEdgeAction('change-origin', onlyEdgeIds);
+                    break;
+                case 'notes-edges':
+                    const edge = edges.find(e => String(e.id) === String(onlyEdgeIds[0]));
+                    if (edge) {
+                        showNoteEditor(edge);
+                        //console.log("Notas de la arista:", edge.note);
+                    }
+                    break;
+            }
+            hideCanvasContextMenu();
+        }
+    });
+
+    if (defaultToolButton) {
+        changeTool(defaultToolButton, 'select');
+    }
+
+    menuItems.forEach(item => {
+        item.addEventListener('click', function (event) {
+            event.stopPropagation();
+            const submenu = this.querySelector('.submenu');
+            if (submenu) {
+                const isCurrentlyOpen = submenu.style.display === 'block';
+                document.querySelectorAll('.submenu').forEach(sub => sub.style.display = 'none');
+                if (!isCurrentlyOpen) submenu.style.display = 'block';
+            }
+        });
+    });
+
+    const brandSubtitle = document.querySelector('.brand-subtitle');
+    if (currentMode === 'turing') {
+        brandSubtitle.textContent = 'Interfaz de Máquina de Turing';
+    } else {
+        brandSubtitle.textContent = 'Interfaz de Autómata Finito';
+    }
+
+    if (canvas) {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+        redrawCanvas();
+        saveState();
+    }
+
+    const storageKey = `lexomata_autosave_${currentMode}`;
+    if (localStorage.getItem(storageKey)) {
+        if (confirm("Se encontró una sesión guardada. ¿Deseas restaurarla?")) {
+            loadFromLocalStorage();
+        }
+    }
+    setInterval(autoSaveToLocalStorage, autoSaveInterval);
+
+    const confirmExportButton = document.getElementById('confirmExportButton');
+    if (confirmExportButton) {
+        confirmExportButton.addEventListener('click', exportImage);
+    }
+
+    // Actualizar la visibilidad del menú Ver según el modo actual
+    updateViewMenuVisibility();
+});
+document.addEventListener('DOMContentLoaded', function () {
+    // Esperar un poco para asegurar que todas las variables estén inicializadas
+    setTimeout(() => {
+        if (typeof currentMode !== 'undefined' && (currentMode === 'automata' || currentMode === 'turing')) {
+            initializeEdgeValidations();
+        }
+    }, 100);
+
+    const attachCheckbox = document.getElementById('attachResultsCheckbox');
+    const subOptionsContainer = document.getElementById('multiRunSubOptions');
+    const charInputs = subOptionsContainer.querySelectorAll('input');
+
+    attachCheckbox.addEventListener('change', function () {
+        const isDisabled = !this.checked;
+
+        // Activa/desactiva el contenedor visualmente
+        subOptionsContainer.classList.toggle('disabled', isDisabled);
+
+        // Activa/desactiva los inputs funcionalmente
+        charInputs.forEach(input => {
+            input.disabled = isDisabled;
+        });
+    });
+});
