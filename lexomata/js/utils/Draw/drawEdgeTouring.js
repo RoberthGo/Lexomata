@@ -94,26 +94,36 @@ function saveTuringEdgeTransitions(fromNode, toNode) {
     const validationErrors = [];
 
     allTransitionGroups.forEach((group, index) => {
-        const readChar = group.querySelector('.tm-edge-read-char').value.trim();
-        const writeChar = group.querySelector('.tm-edge-write-char').value.trim();
+        let rawRead = group.querySelector('.tm-edge-read-char').value;
+        let rawWrite = group.querySelector('.tm-edge-write-char').value;
         const moveDir = group.querySelector('.tm-edge-move-dir').value;
 
-        if (readChar && writeChar) {
-            // Formateamos la transición al formato "leer,escribir,mover"
-            const formattedLabel = `${readChar},${writeChar},${moveDir}`;
-            
-            // Validar la transición usando la función de validación de Turing
-            if (typeof validateTransitionLabel === 'function') {
-                const validation = validateTransitionLabel(formattedLabel, 'turing');
-                if (validation.isValid) {
-                    newLabels.push(formattedLabel);
-                } else {
-                    validationErrors.push(`Transición ${index + 1}: ${validation.error}`);
-                }
-            } else {
-                // Fallback si la función no está disponible
+        // Si el input está vacío, se asigna un espacio en blanco por defecto
+        if (rawRead === '') {
+            rawRead = ' ';
+        }
+        if (rawWrite === '') {
+            rawWrite = ' ';
+        }
+
+        // Convertir el espacio en blanco para mostrar ☐
+        const readChar = rawRead === ' ' ? '☐' : rawRead;
+        const writeChar = rawWrite === ' ' ? '☐' : rawWrite;
+        
+        // Formateamos la transición al formato "leer,escribir,mover"
+        const formattedLabel = `${readChar},${writeChar},${moveDir}`;
+        
+        // Validar la transición usando la función de validación de Turing
+        if (typeof validateTransitionLabel === 'function') {
+            const validation = validateTransitionLabel(formattedLabel, 'turing');
+            if (validation.isValid) {
                 newLabels.push(formattedLabel);
+            } else {
+                validationErrors.push(`Transición ${index + 1}: ${validation.error}`);
             }
+        } else {
+            // Fallback si la función no está disponible
+            newLabels.push(formattedLabel);
         }
     });
 
