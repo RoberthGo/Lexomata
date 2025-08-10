@@ -36,7 +36,7 @@ function validateTuringTransition(label) {
 
     const [readChar, writeChar, moveDir] = parts.map(part => part.trim());
 
-    // Validar carácter de lectura
+    // Validar carácter de lectura - debe ser exactamente un carácter
     if (!readChar) {
         return {
             isValid: false,
@@ -44,14 +44,14 @@ function validateTuringTransition(label) {
         };
     }
 
-    if (readChar.length > 1 && readChar !== 'ε' && readChar !== 'λ' && readChar !== '□' && readChar !== 'blank') {
+    if (readChar.length > 1) {
         return {
             isValid: false,
-            error: 'El carácter de lectura debe ser un solo carácter o un símbolo especial (ε, λ, □, blank)'
+            error: 'El carácter de lectura debe ser exactamente un solo carácter (ej: "a", "R", "1")'
         };
     }
 
-    // Validar carácter de escritura
+    // Validar carácter de escritura - debe ser exactamente un carácter
     if (!writeChar) {
         return {
             isValid: false,
@@ -59,15 +59,29 @@ function validateTuringTransition(label) {
         };
     }
 
-    if (writeChar.length > 1 && writeChar !== 'ε' && writeChar !== 'λ' && writeChar !== '□' && writeChar !== 'blank') {
+    if (writeChar.length > 1) {
         return {
             isValid: false,
-            error: 'El carácter de escritura debe ser un solo carácter o un símbolo especial (ε, λ, □, blank)'
+            error: 'El carácter de escritura debe ser exactamente un solo carácter (ej: "c", "r", "2")'
         };
     }
 
-    // Validar dirección de movimiento
+    // Validar dirección de movimiento - debe ser exactamente un carácter válido
     const validMoves = ['L', 'R', 'M', 'l', 'r', 'm', 'S', 's'];
+    if (!moveDir) {
+        return {
+            isValid: false,
+            error: 'La dirección de movimiento no puede estar vacía'
+        };
+    }
+
+    if (moveDir.length > 1) {
+        return {
+            isValid: false,
+            error: 'La dirección de movimiento debe ser exactamente un carácter: L (izquierda), R (derecha), M/S (mantener)'
+        };
+    }
+
     if (!validMoves.includes(moveDir)) {
         return {
             isValid: false,

@@ -21,6 +21,13 @@ const toolMap = {
 
 // Tools with click
 canvas.addEventListener('click', (event) => {
+    // Verificar si hay una ejecución activa
+    if (typeof isExecuting === 'function' && isExecuting()) {
+        // Mostrar mensaje informativo al usuario
+        showMessage('No se pueden realizar cambios mientras hay una ejecución activa. Detenga la ejecución primero.');
+        return;
+    }
+
     const { x, y } = getCanvasPoint(event.clientX, event.clientY);
     const clickedObject = getObjectAt(x, y);
 

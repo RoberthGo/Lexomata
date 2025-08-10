@@ -44,6 +44,11 @@ function startTuringExecution(inputString, headPosition = 0) {
     }
 
     try {
+        // Activar estado de ejecución para bloquear interacciones del canvas
+        if (typeof startExecution === 'function') {
+            startExecution();
+        }
+        
         // Crear el controlador de ejecución
         turingExecutionState.executionController = new TuringExecutionController(
             nodes, 
@@ -75,6 +80,10 @@ function startTuringExecution(inputString, headPosition = 0) {
 
         return true;
     } catch (error) {
+        // En caso de error, desactivar el estado de ejecución
+        if (typeof stopExecution === 'function') {
+            stopExecution();
+        }
         showMessage(`Error al iniciar la ejecución: ${error.message}`);
         return false;
     }
@@ -86,6 +95,11 @@ function startTuringExecution(inputString, headPosition = 0) {
 function stopTuringExecution() {
     turingExecutionState.isExecuting = false;
     turingExecutionState.executionController = null;
+    
+    // Desactivar estado de ejecución para restaurar interacciones del canvas
+    if (typeof stopExecution === 'function') {
+        stopExecution();
+    }
     
     // Limpiar highlighting
     selectedNodeIds = [];
@@ -186,15 +200,20 @@ function highlightCurrentTuringState() {
     const currentState = turingExecutionState.executionController.getCurrentState();
     if (!currentState) return;
 
-    // Limpiar selección anterior
-    selectedNodeIds = [];
-    
-    // Resaltar el nodo actual
-    if (currentState.currentNodeId) {
-        selectedNodeIds = [currentState.currentNodeId];
+    // Usar la función global para resaltar durante ejecución si está disponible
+    if (typeof highlightCurrentExecutionNode === 'function' && currentState.currentNodeId) {
+        highlightCurrentExecutionNode(currentState.currentNodeId);
+    } else {
+        // Fallback al método anterior
+        selectedNodeIds = [];
+        
+        // Resaltar el nodo actual
+        if (currentState.currentNodeId) {
+            selectedNodeIds = [currentState.currentNodeId];
+        }
+        
+        redrawCanvas();
     }
-    
-    redrawCanvas();
 }
 
 /**
@@ -267,6 +286,7 @@ function validateTuringTransitions() {
 function resetTuringExecution() {
     if (!turingExecutionState.executionController) return;
 
+    // Si estamos reiniciando, mantener el estado de ejecución activo
     turingExecutionState.executionController.reset();
     updateTuringTapeFromExecution();
     highlightCurrentTuringState();

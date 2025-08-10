@@ -21,6 +21,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let objectClickedOnMouseDown = null;
 
     canvas.addEventListener('mousedown', (e) => {
+        // Verificar si hay una ejecución activa
+        if (typeof isExecuting === 'function' && isExecuting()) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+
         e.preventDefault();
         hasDragged = false;
         objectClickedOnMouseDown = null;
@@ -48,11 +55,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     canvas.addEventListener('contextmenu', (e) => {
+        // Verificar si hay una ejecución activa
+        if (typeof isExecuting === 'function' && isExecuting()) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+
         e.preventDefault();
         showCanvasContextMenu(e.clientX, e.clientY);
     });
 
     window.addEventListener('mousemove', (e) => {
+        // Verificar si hay una ejecución activa
+        if (typeof isExecuting === 'function' && isExecuting()) {
+            return;
+        }
 
         if (isSelecting) {
             e.preventDefault();
@@ -111,6 +129,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     window.addEventListener('mouseup', (e) => {
+        // Verificar si hay una ejecución activa
+        if (typeof isExecuting === 'function' && isExecuting()) {
+            return;
+        }
+
         const contextMenu = document.getElementById('canvasContextMenu');
 
         if (contextMenu && contextMenu.contains(e.target)) {

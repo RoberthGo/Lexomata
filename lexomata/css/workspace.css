@@ -3859,3 +3859,79 @@ body.dark .checkbox-group label {
     grid-column: 1 / -1;
     margin: 0.7rem auto 0;
 }
+
+/* ======================================================================================== */
+/* ESTADO DE EJECUCIÓN - BLOQUEO DE CANVAS */
+/* ======================================================================================== */
+
+/* Estilos para el canvas cuando hay una ejecución activa */
+#canvas.execution-active {
+    cursor: not-allowed !important;
+    opacity: 0.8;
+    position: relative;
+}
+
+/* Overlay para indicar que el canvas está bloqueado */
+#canvas.execution-active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.1);
+    pointer-events: none;
+    z-index: 9999;
+}
+
+/* Mensaje informativo para el estado de ejecución */
+.execution-indicator {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: var(--color-warning);
+    color: white;
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 10000;
+    display: none;
+}
+
+.execution-indicator.active {
+    display: block;
+    animation: fadeInDown 0.3s ease-out;
+}
+
+/* Resaltado especial para nodos durante ejecución */
+.execution-active .node.selected {
+    filter: drop-shadow(0 0 8px var(--color-primary)) 
+            drop-shadow(0 0 4px var(--color-primary-dark));
+    animation: executionPulse 2s ease-in-out infinite;
+}
+
+/* Animación de pulso para el nodo actual durante ejecución */
+@keyframes executionPulse {
+    0%, 100% {
+        filter: drop-shadow(0 0 8px var(--color-primary)) 
+                drop-shadow(0 0 4px var(--color-primary-dark));
+    }
+    50% {
+        filter: drop-shadow(0 0 12px var(--color-primary)) 
+                drop-shadow(0 0 8px var(--color-primary-dark))
+                drop-shadow(0 0 4px rgba(255, 255, 255, 0.8));
+    }
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

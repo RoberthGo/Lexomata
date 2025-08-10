@@ -61,6 +61,11 @@ function stepForward() {
         updateFromExecutionState(nextState);
         updateStepButtons();
         showAvailableTransitions();
+        
+        // Resaltar el nodo actual durante la ejecución
+        if (nextState && nextState.currentNodeId && typeof highlightCurrentExecutionNode === 'function') {
+            highlightCurrentExecutionNode(nextState.currentNodeId);
+        }
     }
 }
 
@@ -70,6 +75,11 @@ function stepBackward() {
         updateFromExecutionState(prevState);
         updateStepButtons();
         showAvailableTransitions();
+        
+        // Resaltar el nodo actual durante la ejecución
+        if (prevState && prevState.currentNodeId && typeof highlightCurrentExecutionNode === 'function') {
+            highlightCurrentExecutionNode(prevState.currentNodeId);
+        }
     }
 }
 
@@ -255,6 +265,11 @@ function startAutomataAnalysis() {
     }
     
     try {
+        // Activar estado de ejecución para bloquear interacciones del canvas
+        if (typeof startExecution === 'function') {
+            startExecution();
+        }
+        
         // Crear una nueva instancia del ExecutionController
         const controller = new ExecutionController(nodes, edges, stringAnalyzerState.inputString.trim());
         
@@ -272,6 +287,10 @@ function startAutomataAnalysis() {
         showStringAnalyzer();
         
     } catch (error) {
+        // En caso de error, desactivar el estado de ejecución
+        if (typeof stopExecution === 'function') {
+            stopExecution();
+        }
         showMessage('Error al iniciar el análisis:', error);
     }
 }
@@ -304,6 +323,12 @@ function setExecutionController(controller) {
         setAnalyzerString(controller.inputString);
         updateFromExecutionState(controller.getCurrentState());
         showAvailableTransitions();
+        
+        // Resaltar el nodo inicial al establecer el controlador
+        const currentState = controller.getCurrentState();
+        if (currentState && currentState.currentNodeId && typeof highlightCurrentExecutionNode === 'function') {
+            highlightCurrentExecutionNode(currentState.currentNodeId);
+        }
     }
     updateStepButtons();
     updateStartButton();
@@ -322,6 +347,12 @@ function resetStringAnalyzer() {
     stringAnalyzerState.currentPosition = 0;
     stringAnalyzerState.isAnalyzing = false;
     stringAnalyzerState.executionController = null;
+    
+    // Desactivar estado de ejecución para restaurar interacciones del canvas
+    if (typeof stopExecution === 'function') {
+        stopExecution();
+    }
+    
     updateStringDisplay();
     updateStepButtons();
     updateStartButton();
@@ -333,6 +364,11 @@ function clearStringAnalyzer() {
     stringAnalyzerState.currentPosition = 0;
     stringAnalyzerState.isAnalyzing = false;
     stringAnalyzerState.executionController = null;
+    
+    // Desactivar estado de ejecución para restaurar interacciones del canvas
+    if (typeof stopExecution === 'function') {
+        stopExecution();
+    }
     
     const stringInput = document.getElementById('stringInput');
     if (stringInput) {

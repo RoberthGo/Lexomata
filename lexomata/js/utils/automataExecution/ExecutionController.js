@@ -11,10 +11,8 @@ class ExecutionController {
         this.inputString = inputString;
         this.history = []; // Almacenará cada paso de la ejecución
         this.currentStep = 0; // Puntero al paso actual en el historial
-
         this.initialize();
     }
-
     /**
      * Busca una transición que coincida con el inicio de la cadena de entrada.
      * Prioriza las transiciones más largas (greedy matching).

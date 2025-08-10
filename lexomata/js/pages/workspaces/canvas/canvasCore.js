@@ -63,4 +63,9 @@ function drawSelectionBox(ctx) {
     ctx.restore();
 }
 
+// Hacer función disponible globalmente
+if (typeof window !== 'undefined') {
+    window.redrawCanvas = redrawCanvas;
+}
+
 

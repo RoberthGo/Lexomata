@@ -21,6 +21,7 @@
 //    - Indicadores visuales del estado de ejecución
 //    - Integración bidireccional con el motor de ejecución
 //    - Funciones de reinicio y limpieza
+//    - Bloqueo automático del canvas durante la ejecución
 //
 // 4. FUNCIONES PRINCIPALES:
 //    - applyStringToTuringTape(cadena): Aplica una cadena a la cinta
@@ -33,6 +34,8 @@
 //    - Notificaciones de inicio y fin de ejecución
 //    - Soporte para ejecución automática y manual
 //    - Compatibilidad con todas las funciones de testing
+//    - Resaltado automático del nodo actual durante la ejecución
+//    - Bloqueo de interacciones del canvas durante la ejecución
 //
 // ---------------------------------------------------------------------------------
 
@@ -319,7 +322,6 @@ function stepForwardTuring() {
         const nextState = turingTapeState.executionController.stepForward();
         updateFromTuringExecutionState(nextState);
         updateTuringStepButtons();
-        showTuringTransitions();
     }
 }
 
@@ -331,7 +333,6 @@ function stepBackwardTuring() {
         const prevState = turingTapeState.executionController.stepBackward();
         updateFromTuringExecutionState(prevState);
         updateTuringStepButtons();
-        showTuringTransitions();
     }
 }
 
@@ -345,10 +346,22 @@ function updateFromTuringExecutionState(executionState) {
     // Actualizar la cinta con el estado actual
     updateTuringTapeFromState(executionState.tapeState);
     
-    // Mostrar información del estado actual
-    updateTuringExecutionStatus(executionState);
-    
     console.log('Estado Turing:', executionState.message);
+    
+    // Resaltar el nodo actual durante la ejecución
+    let nodeToHighlight = executionState.currentNodeId;
+    
+    // Si no hay currentNodeId, buscar el nodo inicial como fallback
+    if (!nodeToHighlight && typeof nodes !== 'undefined') {
+        const startNode = nodes.find(node => node.IsStart);
+        if (startNode) {
+            nodeToHighlight = startNode.id;
+        }
+    }
+    
+    if (nodeToHighlight && typeof highlightCurrentExecutionNode === 'function') {
+        highlightCurrentExecutionNode(nodeToHighlight);
+    }
 }
 
 /**
@@ -378,87 +391,9 @@ function updateTuringStepButtons() {
     }
 }
 
-/**
- * Muestra las transiciones disponibles desde el estado actual
- */
-function showTuringTransitions() {
-    if (!turingTapeState.executionController) return;
-    
-    const transitionsInfo = document.getElementById('turingTransitionsInfo');
-    if (!transitionsInfo) return;
-    
-    const availableTransitions = turingTapeState.executionController.getAvailableTransitions();
-    
-    if (availableTransitions.length === 0) {
-        transitionsInfo.innerHTML = '<div class="no-transitions">No hay transiciones disponibles</div>';
-        return;
-    }
-    
-    let html = '<div class="transitions-header">Transiciones disponibles:</div>';
-    html += '<div class="transitions-list">';
-    
-    availableTransitions.forEach(transition => {
-        const targetLabel = transition.targetNode ? transition.targetNode.label : 'Desconocido';
-        
-        transition.allLabelsInfo.forEach(labelInfo => {
-            const isMatching = labelInfo.isMatching;
-            const className = isMatching ? 'transition-item matching' : 'transition-item';
-            
-            html += `<div class="${className}">
-                        <div class="transition-main-info">
-                            <span class="transition-label">${labelInfo.label}</span>
-                            <span class="transition-arrow">→</span>
-                            <span class="transition-target">${targetLabel}</span>
-                            ${isMatching ? '<span class="match-indicator">✓</span>' : ''}
-                        </div>
-                        <div class="transition-details">
-                            <div class="label-description">${labelInfo.description}</div>
-                        </div>
-                     </div>`;
-        });
-    });
-    
-    html += '</div>';
-    transitionsInfo.innerHTML = html;
-}
 
-/**
- * Actualiza el estado de ejecución en la interfaz
- * @param {Object} executionState - Estado actual de la ejecución
- */
-function updateTuringExecutionStatus(executionState) {
-    const statusElement = document.getElementById('turingExecutionStatus');
-    if (!statusElement) return;
-    
-    let statusClass = 'status-running';
-    let statusText = 'Ejecutando...';
-    
-    switch (executionState.status) {
-        case 'ACCEPTED':
-            statusClass = 'status-accepted';
-            statusText = 'ACEPTADA';
-            break;
-        case 'REJECTED':
-            statusClass = 'status-rejected';
-            statusText = 'RECHAZADA';
-            break;
-        case 'TIMEOUT':
-            statusClass = 'status-timeout';
-            statusText = 'TIMEOUT';
-            break;
-        case 'RUNNING':
-            statusClass = 'status-running';
-            statusText = 'EJECUTANDO';
-            break;
-    }
-    
-    statusElement.className = `execution-status ${statusClass}`;
-    statusElement.innerHTML = `
-        <div class="status-indicator">${statusText}</div>
-        <div class="status-message">${executionState.message}</div>
-        <div class="status-step">Paso: ${executionState.step}</div>
-    `;
-}
+
+
 
 /**
  * Inicia la ejecución paso a paso
@@ -467,11 +402,32 @@ function updateTuringExecutionStatus(executionState) {
 function startTuringStepExecution(controller) {
     turingTapeState.executionController = controller;
     
+    // Activar el estado de ejecución y bloquear el canvas
+    if (typeof startExecution === 'function') {
+        startExecution();
+    }
+    
     // Mostrar el primer estado
     const initialState = controller.getCurrentState();
     updateFromTuringExecutionState(initialState);
     updateTuringStepButtons();
-    showTuringTransitions();
+    
+    // Asegurar que el nodo inicial se resalte
+    setTimeout(() => {
+        let nodeToHighlight = initialState.currentNodeId;
+        
+        // Si no hay currentNodeId, buscar el nodo inicial
+        if (!nodeToHighlight && typeof nodes !== 'undefined') {
+            const startNode = nodes.find(node => node.IsStart);
+            if (startNode) {
+                nodeToHighlight = startNode.id;
+            }
+        }
+        
+        if (nodeToHighlight && typeof highlightCurrentExecutionNode === 'function') {
+            highlightCurrentExecutionNode(nodeToHighlight);
+        }
+    }, 100);
     
     // Activar modo de ejecución paso a paso
     setTuringTapeStepMode(true);
@@ -484,16 +440,9 @@ function stopTuringStepExecution() {
     turingTapeState.executionController = null;
     setTuringTapeStepMode(false);
     
-    // Limpiar información de transiciones
-    const transitionsInfo = document.getElementById('turingTransitionsInfo');
-    if (transitionsInfo) {
-        transitionsInfo.innerHTML = '';
-    }
-    
-    // Limpiar estado de ejecución
-    const statusElement = document.getElementById('turingExecutionStatus');
-    if (statusElement) {
-        statusElement.innerHTML = '';
+    // Desactivar el estado de ejecución y desbloquear el canvas
+    if (typeof stopExecution === 'function') {
+        stopExecution();
     }
     
     // Restablecer el botón de ejecutar
@@ -737,6 +686,11 @@ function initializeTuringTape() {
         closeButton.addEventListener('click', () => {
             const tapeContainer = document.querySelector('.turing-tape-container');
             const stringContainer = document.querySelector('.string-analyzer-container');
+            
+            // Si hay una ejecución activa, detenerla antes de cerrar
+            if (turingTapeState.executionController) {
+                stopTuringStepExecution();
+            }
             
             tapeContainer.style.display = 'none';
             tapeContainer.classList.remove('with-string-analyzer');
