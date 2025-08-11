@@ -134,6 +134,9 @@
               <button class="turing-tape-button" id="executeTuringButton">
                 <i class="fas fa-play"></i> Ejecutar
               </button>
+              <button class="turing-tape-button" id="autoExecuteTuringButton">
+                <i class="fas fa-forward"></i> Auto
+              </button>
               <button class="turing-tape-button" id="resetTapeButton">
                 <i class="fas fa-undo"></i> Reiniciar
               </button>
@@ -201,6 +204,9 @@
               <button class="string-analyzer-button" id="startAutomata">
                 <i class="fas fa-play"></i> Iniciar Análisis
               </button>
+              <button class="string-analyzer-button" id="autoExecuteButton" title="Ejecución Automática">
+                <i class="fas fa-play"></i> Auto
+              </button>
               <button class="string-analyzer-button" id="toggleStringButton">
                 <i class="fas fa-chevron-down"></i>
               </button>
@@ -265,6 +271,48 @@
         <div class="modal-actions">
           <button id="confirmStringButton" class="modal-button">Aplicar Cadena</button>
           <button onclick="closeStringInputModal()" class="modal-button secondary">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para configurar la velocidad de ejecución automática -->
+  <div id="autoExecutionSpeedModal" class="custom-modal">
+    <div class="custom-modal-content">
+      <span class="close-button" onclick="closeAutoExecutionSpeedModal()">&times;</span>
+      <h3>Configurar Ejecución Automática</h3>
+      <div class="auto-execution-modal-container">
+        <p>Seleccione la velocidad de ejecución automática:</p>
+        
+        <div class="speed-options">
+          <div class="speed-option">
+            <input type="radio" id="speed1000" name="executionSpeed" value="1000" checked>
+            <label for="speed1000">Lenta (1 segundo)</label>
+          </div>
+          <div class="speed-option">
+            <input type="radio" id="speed500" name="executionSpeed" value="500">
+            <label for="speed500">Normal (0.5 segundos)</label>
+          </div>
+          <div class="speed-option">
+            <input type="radio" id="speed250" name="executionSpeed" value="250">
+            <label for="speed250">Rápida (0.25 segundos)</label>
+          </div>
+          <div class="speed-option">
+            <input type="radio" id="speedCustom" name="executionSpeed" value="custom">
+            <label for="speedCustom">Personalizada:</label>
+            <input type="number" id="customSpeedInput" class="custom-speed-input" 
+                   min="100" max="10000" step="50" value="1000" placeholder="ms">
+            <span class="speed-unit">ms</span>
+          </div>
+        </div>
+        
+        <div class="speed-info">
+          <small>Rango permitido: 100ms - 10000ms (0.1 - 10 segundos)</small>
+        </div>
+        
+        <div class="modal-actions">
+          <button id="startAutoExecutionButton" class="modal-button">Iniciar Ejecución Automática</button>
+          <button onclick="closeAutoExecutionSpeedModal()" class="modal-button secondary">Cancelar</button>
         </div>
       </div>
     </div>
