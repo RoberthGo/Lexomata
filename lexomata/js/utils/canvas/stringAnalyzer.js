@@ -9,7 +9,10 @@ let stringAnalyzerState = {
     isAnalyzing: false,
     characters: [],
     maxVisibleChars: 15,
-    executionController: null // Referencia al controlador de ejecución
+    executionController: null, // Referencia al controlador de ejecución
+    autoExecutionTimer: null, // Timer para la ejecución automática
+    isAutoExecuting: false, // Flag para indicar si está en modo automático
+    autoExecutionSpeed: 1000 // Velocidad por defecto en milisegundos
 };
 
 // --- FUNCIONES DE CONTROL DEL PANEL ---
@@ -230,6 +233,174 @@ function showRegexValidationErrors(errors) {
         message += 'Y muchos más...\n';
     }*/
     showMessage(message);
+}
+
+// --- FUNCIONES DE EJECUCIÓN AUTOMÁTICA ---
+
+/**
+ * Inicia la ejecución automática del análisis de autómatas finitos
+ * @param {number} intervalMs - Intervalo en milisegundos entre cada paso
+ */
+function startAutomataAutoExecution(intervalMs = 1000) {
+    // Validar el intervalo
+    if (intervalMs < 100) {
+        console.warn("El intervalo mínimo es de 100ms");
+        intervalMs = 100;
+    }
+    
+    if (intervalMs > 10000) {
+        console.warn("El intervalo máximo es de 10000ms (10 segundos)");
+        intervalMs = 10000;
+    }
+    
+    // Verificar que hay un controlador de ejecución activo
+    if (!stringAnalyzerState.executionController) {
+        console.error("No hay un controlador de ejecución activo");
+        return false;
+    }
+    
+    // Si ya está ejecutando automáticamente, detener primero
+    if (stringAnalyzerState.isAutoExecuting) {
+        stopAutomataAutoExecution();
+    }
+    
+    stringAnalyzerState.autoExecutionSpeed = intervalMs;
+    stringAnalyzerState.isAutoExecuting = true;
+    
+    // Función recursiva para ejecutar pasos automáticamente
+    function executeAutoStep() {
+        if (!stringAnalyzerState.isAutoExecuting || !stringAnalyzerState.executionController) {
+            return;
+        }
+        
+        // Verificar si la ejecución ha terminado
+        const controller = stringAnalyzerState.executionController;
+        const history = controller.getHistory();
+        const currentStep = controller.currentStep;
+        
+        // Si ya llegamos al final, detener la ejecución automática
+        if (currentStep >= history.length - 1) {
+            console.log("Ejecución automática completada");
+            stopAutomataAutoExecution();
+            return;
+        }
+        
+        // Ejecutar el siguiente paso
+        stepForward();
+        
+        // Programar el siguiente paso
+        stringAnalyzerState.autoExecutionTimer = setTimeout(executeAutoStep, stringAnalyzerState.autoExecutionSpeed);
+    }
+    
+    // Iniciar la ejecución automática
+    stringAnalyzerState.autoExecutionTimer = setTimeout(executeAutoStep, stringAnalyzerState.autoExecutionSpeed);
+    
+    console.log(`Ejecución automática de autómata iniciada con intervalo de ${intervalMs}ms`);
+    return true;
+}
+
+/**
+ * Detiene la ejecución automática del análisis de autómatas finitos
+ */
+function stopAutomataAutoExecution() {
+    if (stringAnalyzerState.autoExecutionTimer) {
+        clearTimeout(stringAnalyzerState.autoExecutionTimer);
+        stringAnalyzerState.autoExecutionTimer = null;
+    }
+    
+    stringAnalyzerState.isAutoExecuting = false;
+    console.log("Ejecución automática detenida");
+}
+
+/**
+ * Cambia la velocidad de la ejecución automática
+ * @param {number} newIntervalMs - Nuevo intervalo en milisegundos
+ */
+function changeAutomataAutoExecutionSpeed(newIntervalMs) {
+    if (newIntervalMs < 100) {
+        console.warn("El intervalo mínimo es de 100ms");
+        newIntervalMs = 100;
+    }
+    
+    if (newIntervalMs > 10000) {
+        console.warn("El intervalo máximo es de 10000ms (10 segundos)");
+        newIntervalMs = 10000;
+    }
+    
+    stringAnalyzerState.autoExecutionSpeed = newIntervalMs;
+    
+    // Si está ejecutando automáticamente, reiniciar con la nueva velocidad
+    if (stringAnalyzerState.isAutoExecuting) {
+        stopAutomataAutoExecution();
+        startAutomataAutoExecution(newIntervalMs);
+    }
+    
+    console.log(`Velocidad de ejecución automática cambiada a ${newIntervalMs}ms`);
+}
+
+/**
+ * Verifica si la ejecución automática está activa
+ * @returns {boolean} True si está ejecutando automáticamente
+ */
+function isAutomataAutoExecuting() {
+    return stringAnalyzerState.isAutoExecuting;
+}
+
+/**
+ * Inicia la ejecución automática desde la configuración del modal
+ * @param {number} intervalMs - Intervalo en milisegundos entre cada paso
+ * @returns {boolean} True si se inició correctamente, false si hubo error
+ */
+function startAutomataAutoExecutionFromInput(intervalMs = 1000) {
+    try {
+        // Verificar que hay un controlador de ejecución válido
+        if (!stringAnalyzerState.executionController) {
+            showMessage("Error: No hay análisis iniciado. Primero debe iniciar el análisis paso a paso.");
+            return false;
+        }
+        
+        // Iniciar la ejecución automática
+        const success = startAutomataAutoExecution(intervalMs);
+        
+        if (success) {
+            // Actualizar la interfaz para mostrar que está en modo automático
+            updateAutomataExecutionButtons(true);
+            return true;
+        } else {
+            return false;
+        }
+        
+    } catch (error) {
+        console.error("Error al iniciar la ejecución automática:", error);
+        showMessage("Error al iniciar la ejecución automática del autómata.");
+        return false;
+    }
+}
+
+/**
+ * Actualiza los botones de ejecución según el estado del modo automático
+ * @param {boolean} isAutoExecuting - Si está ejecutando automáticamente
+ */
+function updateAutomataExecutionButtons(isAutoExecuting) {
+    const autoButton = document.getElementById('autoExecuteButton');
+    const startButton = document.getElementById('startAutomata');
+    
+    if (autoButton) {
+        if (isAutoExecuting) {
+            autoButton.innerHTML = '<i class="fas fa-stop"></i> Auto';
+            autoButton.classList.add('auto-executing');
+        } else {
+            autoButton.innerHTML = '<i class="fas fa-play"></i> Auto';
+            autoButton.classList.remove('auto-executing');
+        }
+    }
+    
+    if (startButton && isAutoExecuting) {
+        startButton.innerHTML = '<i class="fas fa-stop"></i> Detener';
+    } else if (startButton && !isAutoExecuting) {
+        // Restaurar el estado normal del botón de inicio
+        updateStartButton();
+    }
 }
 
 // --- FUNCIONES DE INTEGRACIÓN CON EXECUTION CONTROLLER ---
@@ -692,7 +863,36 @@ function initializeStringAnalyzer() {
     }
     
     if (startAutomataBtn) {
-        startAutomataBtn.addEventListener('click', startAutomataAnalysis);
+        startAutomataBtn.addEventListener('click', () => {
+            // Si está ejecutando automáticamente, detener
+            if (stringAnalyzerState.isAutoExecuting) {
+                stopAutomataAutoExecution();
+                updateAutomataExecutionButtons(false);
+            } else {
+                // Ejecutar análisis normal
+                startAutomataAnalysis();
+            }
+        });
+    }
+    
+    // Event listener para el botón de ejecución automática
+    const autoExecuteBtn = document.getElementById('autoExecuteButton');
+    if (autoExecuteBtn) {
+        autoExecuteBtn.addEventListener('click', () => {
+            // Si ya está ejecutando automáticamente, detener
+            if (stringAnalyzerState.isAutoExecuting) {
+                stopAutomataAutoExecution();
+                updateAutomataExecutionButtons(false);
+            } else {
+                // Si no hay controlador de ejecución, mostrar mensaje
+                if (!stringAnalyzerState.executionController) {
+                    showMessage('Debe iniciar el análisis paso a paso antes de usar el modo automático.');
+                    return;
+                }
+                // Abrir el modal de configuración de velocidad
+                openAutoExecutionSpeedModal();
+            }
+        });
     }
     
     if (stringInput) {
@@ -745,6 +945,96 @@ function initializeStringAnalyzer() {
     updateStartButton(); // Inicializar botón de inicio
 }
 
+// --- FUNCIONES DEL MODAL DE VELOCIDAD DE EJECUCIÓN AUTOMÁTICA ---
+
+/**
+ * Abre el modal de configuración de velocidad de ejecución automática
+ */
+function openAutoExecutionSpeedModal() {
+    const modal = document.getElementById('autoExecutionSpeedModal');
+    if (modal) {
+        modal.style.display = 'block';
+        
+        // Restablecer la selección por defecto
+        const defaultRadio = document.getElementById('speed1000');
+        if (defaultRadio) {
+            defaultRadio.checked = true;
+        }
+        
+        // Limpiar el campo personalizado
+        const customInput = document.getElementById('customSpeedInput');
+        if (customInput) {
+            customInput.value = '1000';
+        }
+        
+        // Configurar el event listener para el botón de inicio si no existe
+        const startButton = document.getElementById('startAutoExecutionButton');
+        if (startButton) {
+            // Remover event listeners previos para evitar duplicados
+            startButton.removeEventListener('click', handleStartAutoExecution);
+            startButton.addEventListener('click', handleStartAutoExecution);
+        }
+    }
+}
+
+/**
+ * Cierra el modal de configuración de velocidad
+ */
+function closeAutoExecutionSpeedModal() {
+    const modal = document.getElementById('autoExecutionSpeedModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+/**
+ * Obtiene la velocidad seleccionada del modal
+ * @returns {number} Velocidad en milisegundos
+ */
+function getSelectedExecutionSpeed() {
+    const selectedRadio = document.querySelector('input[name="executionSpeed"]:checked');
+    
+    if (!selectedRadio) {
+        return 1000; // Valor por defecto
+    }
+    
+    if (selectedRadio.value === 'custom') {
+        const customInput = document.getElementById('customSpeedInput');
+        if (customInput) {
+            let customValue = parseInt(customInput.value);
+            
+            // Validar el rango
+            if (isNaN(customValue) || customValue < 100) {
+                customValue = 100;
+            } else if (customValue > 10000) {
+                customValue = 10000;
+            }
+            
+            return customValue;
+        }
+        return 1000;
+    }
+    
+    return parseInt(selectedRadio.value);
+}
+
+/**
+ * Maneja el inicio de la ejecución automática desde el modal
+ */
+function handleStartAutoExecution() {
+    const speed = getSelectedExecutionSpeed();
+    
+    // Cerrar el modal
+    closeAutoExecutionSpeedModal();
+    
+    // Iniciar la ejecución automática
+    const success = startAutomataAutoExecutionFromInput(speed);
+    
+    if (success) {
+        console.log(`Ejecución automática de autómata iniciada con velocidad de ${speed}ms`);
+    }
+}
+
 // --- FUNCIONES PÚBLICAS PARA INTEGRACIÓN CON AUTÓMATAS ---
 
 // Estas funciones pueden ser llamadas desde el motor de autómatas
@@ -764,6 +1054,12 @@ function advanceStringAnalysis() {
 
 function stopStringAnalysis() {
     stringAnalyzerState.isAnalyzing = false;
+    
+    // También detener la ejecución automática si está activa
+    if (stringAnalyzerState.isAutoExecuting) {
+        stopAutomataAutoExecution();
+        updateAutomataExecutionButtons(false);
+    }
 }
 
 function getStringAnalyzerInfo() {
@@ -806,9 +1102,21 @@ window.stringAnalyzer = {
     highlightConsumedSequence: highlightConsumedSequence,
     updateAnalysisStatus: updateAnalysisStatus,
     validateAutomataRegexTransitions: validateAutomataRegexTransitions,
-    showRegexValidationErrors: showRegexValidationErrors
+    showRegexValidationErrors: showRegexValidationErrors,
+    // Funciones de ejecución automática
+    startAutoExecution: startAutomataAutoExecution,
+    stopAutoExecution: stopAutomataAutoExecution,
+    changeAutoExecutionSpeed: changeAutomataAutoExecutionSpeed,
+    isAutoExecuting: isAutomataAutoExecuting,
+    startAutoExecutionFromInput: startAutomataAutoExecutionFromInput,
+    updateExecutionButtons: updateAutomataExecutionButtons
 };
 
 // Exponer funciones del modal globalmente
 window.closeStringInputModal = closeStringInputModal;
 window.showStringAnalyzer = showStringAnalyzer;
+// Funciones del modal de velocidad para autómatas finitos
+window.openAutoExecutionSpeedModal = openAutoExecutionSpeedModal;
+window.closeAutoExecutionSpeedModal = closeAutoExecutionSpeedModal;
+window.getSelectedExecutionSpeed = getSelectedExecutionSpeed;
+window.handleStartAutoExecution = handleStartAutoExecution;

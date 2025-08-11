@@ -2578,7 +2578,8 @@ body.dark .speed-info small {
 }
 
 /* Estilo especial para el botón de auto ejecución cuando está activo */
-.turing-tape-button.auto-executing {
+.turing-tape-button.auto-executing,
+.string-analyzer-button.auto-executing {
     background-color: var(--color-warning) !important;
     color: white !important;
     animation: pulse-auto 2s infinite;
