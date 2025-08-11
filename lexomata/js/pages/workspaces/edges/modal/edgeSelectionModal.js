@@ -127,12 +127,10 @@ function generateEdgeSelectionHTML(edgeGroups) {
         html += `</div>`;
         html += `<div class="node-pair-labels expanded" id="${groupId}">`;
 
-        group.labels.forEach((labelInfo, index) => {
+        group.labels.forEach(labelInfo => {
             html += `<div class="edge-item">`;
             html += `<input type="checkbox" class="edge-checkbox" value="${labelInfo.uniqueId}" checked>`;
-            html += `<div class="edge-labels">`;
             html += `<span class="edge-label-tag">${labelInfo.labelText}</span>`;
-            html += `</div>`;
             html += `</div>`;
         });
 
