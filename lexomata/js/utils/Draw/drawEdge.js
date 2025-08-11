@@ -257,6 +257,11 @@ function drawEdgeLabel(ctx, fromNode, toNode, edge, isSelected, theme, isCurved,
             labelObj.y = currentY - (textHeight / 2);
             labelObj.width = textWidth;
             labelObj.height = textHeight;
+            // Ajustar hitbox vertical para el modo edición
+            if (hasEditState && labelEditState.isActive && labelEditState.edge === edge && labelEditState.labelIndex === index) {
+                labelObj.y -= 8;
+            }
+
         });
 
     } else {
@@ -283,9 +288,9 @@ function drawEdgeLabel(ctx, fromNode, toNode, edge, isSelected, theme, isCurved,
 
             const metrics = ctx.measureText(labelObj.text);
             const textWidth = metrics.width + 10;
-            const textHeight = 18;
+            const textHeight = 15;
             labelObj.x = labelX - textWidth / 2;
-            labelObj.y = currentY - textHeight / 2;
+            labelObj.y = currentY - textHeight / 2 - 7;
             labelObj.width = textWidth;
             labelObj.height = textHeight;
         });
