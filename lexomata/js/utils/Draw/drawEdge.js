@@ -194,23 +194,23 @@ function drawSelfLoop(ctx, node, edge, isSelected, theme, drawCount) {
 // Función para dibujar la etiqueta de la arista
 function drawEdgeLabel(ctx, fromNode, toNode, edge, isSelected, theme, isCurved, perpX, perpY) {
     if (fromNode.id === toNode.id) return;
-    
+
     const worldOffset = 12;
     const lineHeight = 15;
     let labelX, labelY;
-    
+
     ctx.font = '14px Arial';
     ctx.textAlign = 'center';
-    
+
     // Verificar si labelEditState está disponible
     const hasEditState = typeof labelEditState !== 'undefined';
-    
+
     // Nos aseguramos de tener un arreglo de objetos para los labels.
     // Si el label es un string, lo convertimos.
     const rawLabels = edge.labels || [edge.label];
     // Actualizamos edge.labels para que cada label sea un objeto con su propiedad text.
     edge.labels = rawLabels.map(label => (typeof label === 'object' ? label : { text: label }));
-    
+
     if (isCurved) {
         const dx = toNode.x - fromNode.x;
         const dy = toNode.y - fromNode.y;
@@ -221,24 +221,24 @@ function drawEdgeLabel(ctx, fromNode, toNode, edge, isSelected, theme, isCurved,
         const controlY = (fromNode.y + toNode.y) / 2 + perpY * curvature;
         const midCurveX = 0.25 * fromNode.x + 0.5 * controlX + 0.25 * toNode.x;
         const midCurveY = 0.25 * fromNode.y + 0.5 * controlY + 0.25 * toNode.y;
-    
+
         labelX = midCurveX + perpX * worldOffset;
         labelY = midCurveY + perpY * worldOffset;
-    
+
         // Ajusta el baseline según la dirección vertical
         ctx.textBaseline = (perpY < 0 ? 'bottom' : 'top');
-    
+
         edge.labels.forEach((labelObj, index) => {
             const stackOffsetX = index * lineHeight * perpX;
             const stackOffsetY = index * lineHeight * perpY;
             const currentX = labelX + stackOffsetX;
             const currentY = labelY + stackOffsetY;
-            
+
             // Verificar si esta etiqueta está siendo editada
-            const isBeingEdited = hasEditState && labelEditState.isActive && 
-                                 labelEditState.edge === edge && 
-                                 labelEditState.labelIndex === index;
-            
+            const isBeingEdited = hasEditState && labelEditState.isActive &&
+                labelEditState.edge === edge &&
+                labelEditState.labelIndex === index;
+
             if (isBeingEdited) {
                 // Dibujar con efecto de edición
                 drawEditingLabel(ctx, labelObj.text, currentX, currentY, theme);
@@ -247,7 +247,7 @@ function drawEdgeLabel(ctx, fromNode, toNode, edge, isSelected, theme, isCurved,
                 ctx.fillStyle = isSelected ? theme.selectedEdge : theme.edgeText;
                 ctx.fillText(labelObj.text, currentX, currentY);
             }
-    
+
             // Medir el texto para obtener el cuadro de colisión (hitbox)
             const metrics = ctx.measureText(labelObj.text);
             const textWidth = metrics.width + 10; // margen extra
@@ -258,20 +258,20 @@ function drawEdgeLabel(ctx, fromNode, toNode, edge, isSelected, theme, isCurved,
             labelObj.width = textWidth;
             labelObj.height = textHeight;
         });
-    
+
     } else {
         labelX = (fromNode.x + toNode.x) / 2;
         labelY = (fromNode.y + toNode.y) / 2 - worldOffset;
         ctx.textBaseline = 'bottom';
-    
+
         edge.labels.forEach((labelObj, index) => {
             const currentY = labelY - (index * lineHeight);
-            
+
             // Verificar si esta etiqueta está siendo editada
-            const isBeingEdited = hasEditState && labelEditState.isActive && 
-                                 labelEditState.edge === edge && 
-                                 labelEditState.labelIndex === index;
-            
+            const isBeingEdited = hasEditState && labelEditState.isActive &&
+                labelEditState.edge === edge &&
+                labelEditState.labelIndex === index;
+
             if (isBeingEdited) {
                 // Dibujar con efecto de edición
                 drawEditingLabel(ctx, labelObj.text, labelX, currentY, theme);
@@ -280,7 +280,7 @@ function drawEdgeLabel(ctx, fromNode, toNode, edge, isSelected, theme, isCurved,
                 ctx.fillStyle = isSelected ? theme.selectedEdge : theme.edgeText;
                 ctx.fillText(labelObj.text, labelX, currentY);
             }
-    
+
             const metrics = ctx.measureText(labelObj.text);
             const textWidth = metrics.width + 10;
             const textHeight = 18;
@@ -290,7 +290,7 @@ function drawEdgeLabel(ctx, fromNode, toNode, edge, isSelected, theme, isCurved,
             labelObj.height = textHeight;
         });
     }
-    
+
     // Resetear baseline
     ctx.textBaseline = 'alphabetic';
 }
@@ -305,40 +305,53 @@ function drawEdgeLabel(ctx, fromNode, toNode, edge, isSelected, theme, isCurved,
  */
 function drawEditingLabel(ctx, text, x, y, theme) {
     ctx.save();
-    
-    // Fondo semi-transparente para destacar la edición
+
+    // Fondo semi-transparent para destacar la edición
     const metrics = ctx.measureText(text || '');
     const padding = 4;
     const backgroundWidth = Math.max(metrics.width + padding * 2, 20); // Mínimo ancho para cursor
-    const backgroundHeight = 20;
-    
+    const backgroundHeight = 17;
+    // Ajuste vertical para centrar el cuadrado azul
+    const verticalOffset = 8;
+
     ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-    ctx.fillRect(x - backgroundWidth / 2, y - backgroundHeight / 2, backgroundWidth, backgroundHeight);
-    
+    ctx.fillRect(
+        x - backgroundWidth / 2,
+        y - backgroundHeight / 2 - verticalOffset,
+        backgroundWidth,
+        backgroundHeight
+    );
+
     // Borde para el área de edición
     ctx.strokeStyle = '#007acc';
     ctx.lineWidth = 2;
-    ctx.strokeRect(x - backgroundWidth / 2, y - backgroundHeight / 2, backgroundWidth, backgroundHeight);
-    
+    ctx.strokeRect(
+        x - backgroundWidth / 2,
+        y - backgroundHeight / 2 - verticalOffset,
+        backgroundWidth,
+        backgroundHeight
+    );
+
     // Texto de la etiqueta
     ctx.fillStyle = '#000000';
     if (text) {
         ctx.fillText(text, x, y);
     }
-    
+
     // Cursor parpadeante (solo si labelEditState está disponible)
     if (typeof labelEditState !== 'undefined' && labelEditState.showCursor) {
         const textBeforeCursor = (text || '').substring(0, labelEditState.cursorPosition);
         const cursorX = x - (metrics.width / 2) + ctx.measureText(textBeforeCursor).width;
-        
+
         ctx.strokeStyle = '#000000';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(cursorX, y - 8);
-        ctx.lineTo(cursorX, y + 8);
+        // Ajuste vertical para centrar cursor dentro del recuadro
+        ctx.moveTo(cursorX, y - 6 - verticalOffset);
+        ctx.lineTo(cursorX, y + 6 - verticalOffset);
         ctx.stroke();
     }
-    
+
     ctx.restore();
 }
 
