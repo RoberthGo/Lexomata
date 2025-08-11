@@ -45,8 +45,104 @@ let turingTapeState = {
     headPosition: 0,
     cellWidth: 55,
     totalCells: 20,
-    executionController: null // Referencia al controlador de ejecución de Turing
+    executionController: null, // Referencia al controlador de ejecución de Turing
+    autoExecutionTimer: null, // Timer para la ejecución automática
+    isAutoExecuting: false, // Flag para indicar si está en modo automático
+    autoExecutionSpeed: 1000 // Velocidad por defecto en milisegundos
 };
+
+// --- FUNCIONES DE CONTROL DEL MODAL DE VELOCIDAD ---
+
+/**
+ * Abre el modal de configuración de velocidad de ejecución automática
+ */
+function openAutoExecutionSpeedModal() {
+    const modal = document.getElementById('autoExecutionSpeedModal');
+    if (modal) {
+        modal.style.display = 'block';
+        
+        // Restablecer la selección por defecto
+        const defaultRadio = document.getElementById('speed1000');
+        if (defaultRadio) {
+            defaultRadio.checked = true;
+        }
+        
+        // Limpiar el campo personalizado
+        const customInput = document.getElementById('customSpeedInput');
+        if (customInput) {
+            customInput.value = '1000';
+        }
+    }
+}
+
+/**
+ * Cierra el modal de configuración de velocidad
+ */
+function closeAutoExecutionSpeedModal() {
+    const modal = document.getElementById('autoExecutionSpeedModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+/**
+ * Obtiene la velocidad seleccionada del modal
+ * @returns {number} Velocidad en milisegundos
+ */
+function getSelectedExecutionSpeed() {
+    const selectedRadio = document.querySelector('input[name="executionSpeed"]:checked');
+    
+    if (!selectedRadio) {
+        return 1000; // Valor por defecto
+    }
+    
+    if (selectedRadio.value === 'custom') {
+        const customInput = document.getElementById('customSpeedInput');
+        if (customInput) {
+            let customValue = parseInt(customInput.value);
+            
+            // Validar el rango
+            if (isNaN(customValue) || customValue < 100) {
+                customValue = 100;
+            } else if (customValue > 10000) {
+                customValue = 10000;
+            }
+            
+            return customValue;
+        }
+        return 1000;
+    }
+    
+    return parseInt(selectedRadio.value);
+}
+
+/**
+ * Maneja el inicio de la ejecución automática desde el modal
+ */
+function handleStartAutoExecution() {
+    const speed = getSelectedExecutionSpeed();
+    
+    // Cerrar el modal
+    closeAutoExecutionSpeedModal();
+    
+    // Iniciar la ejecución automática
+    const success = startTuringAutoExecutionFromInput(speed);
+    
+    if (success) {
+        // Cambiar el botón de auto ejecución para mostrar que está activo
+        const autoButton = document.getElementById('autoExecuteTuringButton');
+        if (autoButton) {
+            autoButton.innerHTML = '<i class="fas fa-stop"></i> Auto';
+            autoButton.classList.add('auto-executing');
+        }
+        
+        // También cambiar el botón de ejecutar
+        const executeButton = document.getElementById('executeTuringButton');
+        if (executeButton) {
+            executeButton.innerHTML = '<i class="fas fa-stop"></i> Detener';
+        }
+    }
+}
 
 // --- FUNCIONES DE CONTROL DEL PANEL ---
 
@@ -391,9 +487,161 @@ function updateTuringStepButtons() {
     }
 }
 
+// --- FUNCIONES DE EJECUCIÓN AUTOMÁTICA ---
 
+/**
+ * Inicia la ejecución automática de la máquina de Turing
+ * @param {number} intervalMs - Intervalo en milisegundos entre cada paso
+ */
+function startTuringAutoExecution(intervalMs = 1000) {
+    // Validar el intervalo
+    if (intervalMs < 100) {
+        console.warn("El intervalo mínimo es de 100ms");
+        intervalMs = 100;
+    }
+    
+    if (intervalMs > 10000) {
+        console.warn("El intervalo máximo es de 10000ms (10 segundos)");
+        intervalMs = 10000;
+    }
+    
+    // Verificar que hay un controlador de ejecución activo
+    if (!turingTapeState.executionController) {
+        console.error("No hay un controlador de ejecución activo");
+        return false;
+    }
+    
+    // Si ya está ejecutando automáticamente, detener primero
+    if (turingTapeState.isAutoExecuting) {
+        stopTuringAutoExecution();
+    }
+    
+    turingTapeState.autoExecutionSpeed = intervalMs;
+    turingTapeState.isAutoExecuting = true;
+    
+    // Función recursiva para ejecutar pasos automáticamente
+    function executeAutoStep() {
+        if (!turingTapeState.isAutoExecuting || !turingTapeState.executionController) {
+            return;
+        }
+        
+        // Verificar si la ejecución ha terminado
+        const controller = turingTapeState.executionController;
+        const history = controller.getHistory();
+        const currentStep = controller.currentStep;
+        
+        // Si ya llegamos al final, detener la ejecución automática
+        if (currentStep >= history.length - 1) {
+            console.log("Ejecución automática completada");
+            stopTuringAutoExecution();
+            return;
+        }
+        
+        // Ejecutar el siguiente paso
+        stepForwardTuring();
+        
+        // Programar el siguiente paso
+        turingTapeState.autoExecutionTimer = setTimeout(executeAutoStep, turingTapeState.autoExecutionSpeed);
+    }
+    
+    // Iniciar la ejecución automática
+    turingTapeState.autoExecutionTimer = setTimeout(executeAutoStep, turingTapeState.autoExecutionSpeed);
+    
+    console.log(`Ejecución automática iniciada con intervalo de ${intervalMs}ms`);
+    return true;
+}
 
+/**
+ * Detiene la ejecución automática de la máquina de Turing
+ */
+function stopTuringAutoExecution() {
+    if (turingTapeState.autoExecutionTimer) {
+        clearTimeout(turingTapeState.autoExecutionTimer);
+        turingTapeState.autoExecutionTimer = null;
+    }
+    
+    turingTapeState.isAutoExecuting = false;
+    console.log("Ejecución automática detenida");
+}
 
+/**
+ * Cambia la velocidad de la ejecución automática
+ * @param {number} newIntervalMs - Nuevo intervalo en milisegundos
+ */
+function changeTuringAutoExecutionSpeed(newIntervalMs) {
+    if (newIntervalMs < 100) {
+        console.warn("El intervalo mínimo es de 100ms");
+        newIntervalMs = 100;
+    }
+    
+    if (newIntervalMs > 10000) {
+        console.warn("El intervalo máximo es de 10000ms (10 segundos)");
+        newIntervalMs = 10000;
+    }
+    
+    turingTapeState.autoExecutionSpeed = newIntervalMs;
+    
+    // Si está ejecutando automáticamente, reiniciar con la nueva velocidad
+    if (turingTapeState.isAutoExecuting) {
+        stopTuringAutoExecution();
+        startTuringAutoExecution(newIntervalMs);
+    }
+    
+    console.log(`Velocidad de ejecución automática cambiada a ${newIntervalMs}ms`);
+}
+
+/**
+ * Verifica si la ejecución automática está activa
+ * @returns {boolean} True si está ejecutando automáticamente
+ */
+function isTuringAutoExecuting() {
+    return turingTapeState.isAutoExecuting;
+}
+
+/**
+ * Inicia la ejecución automática desde la entrada de la cinta
+ * @param {number} intervalMs - Intervalo en milisegundos entre cada paso
+ * @returns {boolean} True si se inició correctamente, false si hubo error
+ */
+function startTuringAutoExecutionFromInput(intervalMs = 1000) {
+    // Verificar que hay un autómata de Turing válido
+    if (typeof nodes === 'undefined' || !nodes || nodes.length === 0) {
+        showMessage("No hay estados definidos en el autómata.");
+        return false;
+    }
+    
+    if (typeof edges === 'undefined' || !edges || edges.length === 0) {
+        showMessage("No hay transiciones definidas en el autómata.");
+        return false;
+    }
+    
+    // Obtener la cadena inicial de la cinta
+    const inputString = getTuringTapeContent() || '';
+    
+    try {
+        // Crear el controlador de ejecución
+        const controller = new TuringExecutionController(nodes, edges, inputString, 0);
+        
+        // Iniciar la ejecución paso a paso
+        startTuringStepExecution(controller);
+        
+        // Luego iniciar la ejecución automática
+        const success = startTuringAutoExecution(intervalMs);
+        
+        if (success) {
+            return true;
+        } else {
+            // Si falló la ejecución automática, detener la ejecución paso a paso
+            stopTuringStepExecution();
+            return false;
+        }
+        
+    } catch (error) {
+        console.error("Error al iniciar la ejecución automática:", error);
+        showMessage("Error al iniciar la ejecución automática de la máquina de Turing.");
+        return false;
+    }
+}
 
 /**
  * Inicia la ejecución paso a paso
@@ -437,6 +685,11 @@ function startTuringStepExecution(controller) {
  * Detiene la ejecución paso a paso
  */
 function stopTuringStepExecution() {
+    // Detener la ejecución automática si está activa
+    if (turingTapeState.isAutoExecuting) {
+        stopTuringAutoExecution();
+    }
+    
     turingTapeState.executionController = null;
     setTuringTapeStepMode(false);
     
@@ -449,6 +702,13 @@ function stopTuringStepExecution() {
     const executeButton = document.getElementById('executeTuringButton');
     if (executeButton) {
         executeButton.innerHTML = '<i class="fas fa-play"></i> Ejecutar';
+    }
+    
+    // Restablecer el botón de auto ejecución
+    const autoButton = document.getElementById('autoExecuteTuringButton');
+    if (autoButton) {
+        autoButton.innerHTML = '<i class="fas fa-forward"></i> Auto';
+        autoButton.classList.remove('auto-executing');
     }
 }
 
@@ -494,10 +754,6 @@ function startTuringStepExecutionFromInput() {
         
         // Iniciar la ejecución paso a paso
         startTuringStepExecution(controller);
-        
-        console.log(`Iniciando ejecución paso a paso con cadena: "${inputString}"`);
-        showMessage(`Ejecución paso a paso iniciada con cadena: "${inputString}"`);
-        
         return true;
         
     } catch (error) {
@@ -628,11 +884,17 @@ function initializeTuringTape() {
     const applyStringButton = document.getElementById('applyTuringStringButton');
     const stringInput = document.getElementById('turingStringInput');
     const executeButton = document.getElementById('executeTuringButton');
+    const autoExecuteButton = document.getElementById('autoExecuteTuringButton');
     
     // Botones de navegación paso a paso
     const stepForwardButton = document.getElementById('turingStepForwardButton');
     const stepBackwardButton = document.getElementById('turingStepBackwardButton');
     const stopStepButton = document.getElementById('turingStopStepButton');
+    
+    // Elementos del modal de velocidad
+    const startAutoExecutionButton = document.getElementById('startAutoExecutionButton');
+    const customSpeedRadio = document.getElementById('speedCustom');
+    const customSpeedInput = document.getElementById('customSpeedInput');
 
     if (toggleButton) toggleButton.addEventListener('click', toggleTuringTape);
     if (resetButton) resetButton.addEventListener('click', resetTuringTape);
@@ -641,6 +903,37 @@ function initializeTuringTape() {
     // Event listeners para la entrada de cadena
     if (applyStringButton) applyStringButton.addEventListener('click', handleApplyTuringString);
     if (stringInput) stringInput.addEventListener('keydown', handleTuringStringInputKeydown);
+    
+    // Event listener para el botón de auto ejecución
+    if (autoExecuteButton) {
+        autoExecuteButton.addEventListener('click', () => {
+            // Si ya está ejecutando automáticamente, detener
+            if (turingTapeState.isAutoExecuting) {
+                stopTuringStepExecution();
+            } else {
+                // Abrir el modal de configuración de velocidad
+                openAutoExecutionSpeedModal();
+            }
+        });
+    }
+    
+    // Event listener para el botón de iniciar auto ejecución del modal
+    if (startAutoExecutionButton) {
+        startAutoExecutionButton.addEventListener('click', handleStartAutoExecution);
+    }
+    
+    // Event listener para habilitar el input personalizado cuando se selecciona la opción
+    if (customSpeedRadio && customSpeedInput) {
+        customSpeedRadio.addEventListener('change', () => {
+            if (customSpeedRadio.checked) {
+                customSpeedInput.focus();
+            }
+        });
+        
+        customSpeedInput.addEventListener('focus', () => {
+            customSpeedRadio.checked = true;
+        });
+    }
     
     // Event listeners para navegación paso a paso
     if (stepForwardButton) {
@@ -728,4 +1021,17 @@ if (typeof window !== 'undefined') {
     window.stopTuringStepExecution = stopTuringStepExecution;
     window.setTuringTapeStepMode = setTuringTapeStepMode;
     window.updateFromTuringExecutionState = updateFromTuringExecutionState;
+    
+    // Funciones de ejecución automática
+    window.startTuringAutoExecution = startTuringAutoExecution;
+    window.stopTuringAutoExecution = stopTuringAutoExecution;
+    window.changeTuringAutoExecutionSpeed = changeTuringAutoExecutionSpeed;
+    window.isTuringAutoExecuting = isTuringAutoExecuting;
+    window.startTuringAutoExecutionFromInput = startTuringAutoExecutionFromInput;
+    
+    // Funciones del modal de velocidad
+    window.openAutoExecutionSpeedModal = openAutoExecutionSpeedModal;
+    window.closeAutoExecutionSpeedModal = closeAutoExecutionSpeedModal;
+    window.getSelectedExecutionSpeed = getSelectedExecutionSpeed;
+    window.handleStartAutoExecution = handleStartAutoExecution;
 }
