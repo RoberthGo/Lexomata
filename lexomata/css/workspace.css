@@ -2026,15 +2026,17 @@ body.dark .transition-item.matching {
 #edgeSelectionModal .expand-icon {
     transition: transform var(--transition-base);
 }
+/* Edge selection labels container (hidden by default) */
 #edgeSelectionModal .node-pair-labels {
-    overflow: hidden;
-    max-height: 0;
-    transition: max-height 0.3s ease;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.15s ease-in-out;
     margin: 0;
     padding: 0;
 }
 #edgeSelectionModal .node-pair-labels.expanded {
-    max-height: 500px;
+    display: block;
+    opacity: 1;
     margin-top: var(--spacing-sm);
 }
 #edgeSelectionModal .edge-item {
@@ -2056,6 +2058,23 @@ body.dark .transition-item.matching {
 }
 #edgeSelectionModal .select-all-checkbox {
     margin-right: var(--spacing-sm);
+}
+
+/* Edge Selection Modal Scrollbars */
+#edgeSelectionModal .custom-modal-content {
+    display: flex;
+    flex-direction: column;
+    max-height: 80vh;
+}
+#edgeSelectionModal .edge-selection-content {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: var(--spacing-sm);
+}
+#edgeSelectionModal .node-pair-labels.expanded {
+    /* limit height of expanded group and enable internal scroll */
+    max-height: 200px;
+    overflow-y: auto;
 }
 
 .no-transitions {
