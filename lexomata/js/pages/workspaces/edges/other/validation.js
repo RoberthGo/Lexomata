@@ -36,33 +36,19 @@ function validateTuringTransition(label) {
 
     const [readChar, writeChar, moveDir] = parts.map(part => part.trim());
 
-    // Validar carácter de lectura - debe ser exactamente un carácter
-    if (!readChar) {
-        return {
-            isValid: false,
-            error: 'El carácter de lectura no puede estar vacío'
-        };
-    }
-
+    // Validar carácter de lectura - opcional pero a lo sumo un carácter
     if (readChar.length > 1) {
         return {
             isValid: false,
-            error: 'El carácter de lectura debe ser exactamente un solo carácter (ej: "a", "R", "1")'
+            error: 'El carácter de lectura debe ser como mucho un solo carácter (ej: "a", "R", "1" o vacío para blanco)'
         };
     }
 
-    // Validar carácter de escritura - debe ser exactamente un carácter
-    if (!writeChar) {
-        return {
-            isValid: false,
-            error: 'El carácter de escritura no puede estar vacío'
-        };
-    }
-
+    // Validar carácter de escritura - opcional pero a lo sumo un carácter
     if (writeChar.length > 1) {
         return {
             isValid: false,
-            error: 'El carácter de escritura debe ser exactamente un solo carácter (ej: "c", "r", "2")'
+            error: 'El carácter de escritura debe ser como mucho un solo carácter (ej: "c", "r", "2" o vacío para blanco)'
         };
     }
 

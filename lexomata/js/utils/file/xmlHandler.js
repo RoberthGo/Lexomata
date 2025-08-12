@@ -40,23 +40,37 @@ function parseAndLoadJFF(fileContent) {
     });
     nodeCounter = maxId + 1;
 
-    // Parse transitions according to machine type
+    // Parse transitions agrupando por origen-destino para evitar duplicados y undefined
     const transElems = automaton.querySelectorAll('transition');
-    edges = [];
+    const edgeMap = {};
     transElems.forEach(elem => {
         const from = parseInt(elem.querySelector('from').textContent, 10);
         const to = parseInt(elem.querySelector('to').textContent, 10);
+        const key = `${from}-${to}`;
+        if (!edgeMap[key]) edgeMap[key] = { from, to, labels: [] };
         if (isTuring) {
             const readVal = elem.querySelector('read')?.textContent || '';
             const writeVal = elem.querySelector('write')?.textContent || '';
             const moveDir = elem.querySelector('move')?.textContent || '';
-            edges.push(new EdgeTuring(from, to, [], readVal, writeVal, moveDir));
+            // Formato 'leer,escribir,mover'
+            edgeMap[key].labels.push(`${readVal},${writeVal},${moveDir}`);
         } else {
-            const readNode = elem.querySelector('read');
-            const symbol = readNode ? readNode.textContent : '';
-            // Labels array of objects
-            const labels = symbol.split('').map(ch => ({ text: ch }));
-            edges.push(new EdgeAutomata(from, to, labels));
+            const symbol = elem.querySelector('read')?.textContent || '';
+            // Cada carácter es una etiqueta
+            symbol.split('').forEach(ch => edgeMap[key].labels.push(ch));
+        }
+    });
+    // Construir objetos de arista finales
+    edges = Object.values(edgeMap).map(item => {
+        if (isTuring) {
+            // Usa el helper de creación para manejar múltiples transiciones
+            return typeof createTuringEdge === 'function'
+                ? createTuringEdge(item.from, item.to, item.labels)
+                : new EdgeTuring(item.from, item.to, [], item.labels[0]?.split(',')[0] || '', item.labels[0]?.split(',')[1] || '', item.labels[0]?.split(',')[2] || '');
+        } else {
+            // Convierte etiquetas simples a objetos para dibujado
+            const labels = item.labels.map(ch => ({ text: ch }));
+            return new EdgeAutomata(item.from, item.to, labels);
         }
     });
 
@@ -67,6 +81,10 @@ function parseAndLoadJFF(fileContent) {
     historyIndex = -1;
     saveState();
     redrawCanvas();
+    // Inicializar validaciones para crear hitboxes de etiquetas
+    if (typeof initializeEdgeValidations === 'function') {
+        initializeEdgeValidations();
+    }
 }
 
 // Expose for file management
