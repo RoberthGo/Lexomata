@@ -166,6 +166,8 @@ document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('keydown', (e) => {
         // Solo actuar si el modal está visible
         if (modal.style.display !== 'flex') return;
+        // Si un input está enfocado, permitir la escritura y no hacer zoom
+        if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
 
         // Zoom In con '+'
         if (e.key === '+' || e.key === '=') {
