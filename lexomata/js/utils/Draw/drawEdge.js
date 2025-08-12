@@ -171,23 +171,37 @@ function drawSelfLoop(ctx, node, edge, isSelected, theme, drawCount) {
     const arrowAngle = Math.atan2(endY - controlY, endX - controlX);
     drawArrowHead(ctx, endX, endY, arrowAngle, color, lineWidth);
 
-    // --- 5. Dibujar la etiqueta ---
-    // Esta sección ahora maneja el dibujado de la etiqueta directamente,
-    // usando el punto de control como ancla para el texto.
-    const rawLabels = edge.labels || [edge.label];
-    // Asegurar que cada label sea un objeto con propiedad text
-    const labels = rawLabels.map(label => (typeof label === 'object' ? label : { text: label }));
-    const lineHeight = 15; // Espacio vertical entre cada etiqueta
-
+    // --- 5. Dibujar y habilitar edición de etiquetas de self-loop ---
+    // Ajuste vertical de etiquetas en self-loop (modificar según necesidad)
+    const selfLoopLabelYOffset = 32;
+    // Aseguramos que edge.labels sea un arreglo de objetos con propiedad text
+    const rawLabelsLoop = edge.labels || [edge.label];
+    edge.labels = rawLabelsLoop.map(l => (typeof l === 'object' ? l : { text: l }));
+    const loopLineHeight = 15;
     ctx.font = '14px Arial';
     ctx.textAlign = 'center';
-    ctx.fillStyle = isSelected ? theme.selectedEdge : theme.edgeText;
-
-    // Apilamos las etiquetas hacia arriba desde el punto de control de la curva.
-    labels.forEach((labelObj, index) => {
-        // Se dibuja cada etiqueta, con un desplazamiento vertical para apilarlas.
-        // Un pequeño offset adicional (5px) las separa de la línea.
-        ctx.fillText(labelObj.text, controlX, controlY - (index * lineHeight) + 32);
+    const hasEditState = typeof labelEditState !== 'undefined';
+    // Dibujar cada etiqueta, soportando modo edición y calculando hitbox
+    edge.labels.forEach((labelObj, index) => {
+        const x = controlX;
+        // Usamos la constante para ajustar la altura
+        const y = controlY - (index * loopLineHeight) + selfLoopLabelYOffset;
+        const isBeingEdited = hasEditState && labelEditState.isActive &&
+            labelEditState.edge === edge && labelEditState.labelIndex === index;
+        if (isBeingEdited) {
+            drawEditingLabel(ctx, labelObj.text, x, y, theme);
+        } else {
+            ctx.fillStyle = isSelected ? theme.selectedEdge : theme.edgeText;
+            ctx.fillText(labelObj.text, x, y);
+        }
+        // Calcular hitbox para detección de clics y edición
+        const metrics = ctx.measureText(labelObj.text);
+        const textW = metrics.width + 10;
+        const textH = 15;
+        labelObj.x = x - textW / 2;
+        labelObj.y = y - textH / 2;
+        labelObj.width = textW;
+        labelObj.height = textH;
     });
 }
 
@@ -311,18 +325,21 @@ function drawEdgeLabel(ctx, fromNode, toNode, edge, isSelected, theme, isCurved,
 function drawEditingLabel(ctx, text, x, y, theme) {
     ctx.save();
 
-    // Fondo semi-transparent para destacar la edición
+    // Ajustes de caja de edición (modificar según necesidad)
+    const editBoxPadding = 4;
+    const editBoxMinWidth = 20;
+    const editBoxHeight = 18;
+    const editBoxYOffset = 5;
+    // Fondo semi-transparente para destacar la edición
     const metrics = ctx.measureText(text || '');
-    const padding = 4;
-    const backgroundWidth = Math.max(metrics.width + padding * 2, 20); // Mínimo ancho para cursor
-    const backgroundHeight = 17;
-    // Ajuste vertical para centrar el cuadrado azul
-    const verticalOffset = 8;
+    const padding = editBoxPadding;
+    const backgroundWidth = Math.max(metrics.width + padding * 2, editBoxMinWidth);
+    const backgroundHeight = editBoxHeight;
 
     ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
     ctx.fillRect(
         x - backgroundWidth / 2,
-        y - backgroundHeight / 2 - verticalOffset,
+        y - backgroundHeight / 2 - editBoxYOffset,
         backgroundWidth,
         backgroundHeight
     );
@@ -332,7 +349,7 @@ function drawEditingLabel(ctx, text, x, y, theme) {
     ctx.lineWidth = 2;
     ctx.strokeRect(
         x - backgroundWidth / 2,
-        y - backgroundHeight / 2 - verticalOffset,
+        y - backgroundHeight / 2 - editBoxYOffset,
         backgroundWidth,
         backgroundHeight
     );
@@ -352,8 +369,8 @@ function drawEditingLabel(ctx, text, x, y, theme) {
         ctx.lineWidth = 1;
         ctx.beginPath();
         // Ajuste vertical para centrar cursor dentro del recuadro
-        ctx.moveTo(cursorX, y - 6 - verticalOffset);
-        ctx.lineTo(cursorX, y + 6 - verticalOffset);
+        ctx.moveTo(cursorX, y - 6 - editBoxYOffset);
+        ctx.lineTo(cursorX, y + 6 - editBoxYOffset);
         ctx.stroke();
     }
 
