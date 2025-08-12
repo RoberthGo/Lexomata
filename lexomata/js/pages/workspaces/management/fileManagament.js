@@ -24,7 +24,7 @@ function openFile() {
 
                 parseAndLoadJSON(fileContent);
             } else if (fileName.endsWith('.jff')) {
-
+                parseAndLoadJFF(fileContent);
             } else {
                 alert("Tipo de archivo no soportado.");
             }
