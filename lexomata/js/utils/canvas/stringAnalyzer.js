@@ -277,9 +277,13 @@ function startAutomataAutoExecution(intervalMs = 1000) {
         const controller = stringAnalyzerState.executionController;
         const history = controller.getHistory();
         const currentStep = controller.currentStep;
+        const currentState = controller.getCurrentState();
         
-        // Si ya llegamos al final, detener la ejecución automática
-        if (currentStep >= history.length - 1) {
+        // Si ya llegamos al final o el estado indica que terminó, detener la ejecución automática
+        if (currentStep >= history.length - 1 || 
+            (currentState && (currentState.status === 'ACCEPTED' || 
+                             currentState.status === 'REJECTED' || 
+                             currentState.status === 'TIMEOUT'))) {
             console.log("Ejecución automática completada");
             stopAutomataAutoExecution();
             return;
@@ -287,6 +291,16 @@ function startAutomataAutoExecution(intervalMs = 1000) {
         
         // Ejecutar el siguiente paso
         stepForward();
+        
+        // Verificar nuevamente el estado después del paso (por si terminó)
+        const newCurrentState = controller.getCurrentState();
+        if (newCurrentState && (newCurrentState.status === 'ACCEPTED' || 
+                               newCurrentState.status === 'REJECTED' || 
+                               newCurrentState.status === 'TIMEOUT')) {
+            console.log("Ejecución automática completada - estado final alcanzado");
+            stopAutomataAutoExecution();
+            return;
+        }
         
         // Programar el siguiente paso
         stringAnalyzerState.autoExecutionTimer = setTimeout(executeAutoStep, stringAnalyzerState.autoExecutionSpeed);
@@ -309,6 +323,10 @@ function stopAutomataAutoExecution() {
     }
     
     stringAnalyzerState.isAutoExecuting = false;
+    
+    // Actualizar la interfaz para mostrar que ya no está en modo automático
+    updateAutomataExecutionButtons(false);
+    
     console.log("Ejecución automática detenida");
 }
 
@@ -519,6 +537,11 @@ function resetStringAnalyzer() {
     stringAnalyzerState.isAnalyzing = false;
     stringAnalyzerState.executionController = null;
     
+    // Detener la ejecución automática si está activa
+    if (stringAnalyzerState.isAutoExecuting) {
+        stopAutomataAutoExecution();
+    }
+    
     // Desactivar estado de ejecución para restaurar interacciones del canvas
     if (typeof stopExecution === 'function') {
         stopExecution();
@@ -535,6 +558,11 @@ function clearStringAnalyzer() {
     stringAnalyzerState.currentPosition = 0;
     stringAnalyzerState.isAnalyzing = false;
     stringAnalyzerState.executionController = null;
+    
+    // Detener la ejecución automática si está activa
+    if (stringAnalyzerState.isAutoExecuting) {
+        stopAutomataAutoExecution();
+    }
     
     // Desactivar estado de ejecución para restaurar interacciones del canvas
     if (typeof stopExecution === 'function') {
@@ -1058,7 +1086,6 @@ function stopStringAnalysis() {
     // También detener la ejecución automática si está activa
     if (stringAnalyzerState.isAutoExecuting) {
         stopAutomataAutoExecution();
-        updateAutomataExecutionButtons(false);
     }
 }
 

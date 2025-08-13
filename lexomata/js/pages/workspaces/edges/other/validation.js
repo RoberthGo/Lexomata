@@ -2,7 +2,7 @@
  * Valida una etiqueta de transición para asegurar que no contenga caracteres de escape inválidos
  * @param {string} label - La etiqueta a validar
  * @param {string} mode - Modo actual ('automata' o 'turing')
- * @returns {object} - Objeto con isValid (boolean) y error (string)
+ * @returns {object} - Objeto con isValid (boolean), error (string), y normalizedLabel (string)
  */
 function validateTransitionLabel(label, mode = 'automata') {
     if (!label || typeof label !== 'string') {
@@ -11,7 +11,15 @@ function validateTransitionLabel(label, mode = 'automata') {
 
     // Validaciones específicas para máquina de Turing
     if (mode === 'turing') {
-        return validateTuringTransition(label);
+        // Normalizar la etiqueta reemplazando espacios vacíos con '□'
+        const normalizedLabel = normalizeTuringLabel(label);
+        const validation = validateTuringTransition(normalizedLabel);
+        
+        // Retornar la validación con la etiqueta normalizada
+        return {
+            ...validation,
+            normalizedLabel: normalizedLabel
+        };
     }
 
     // Validaciones para autómata (código original)
@@ -25,30 +33,37 @@ function validateTransitionLabel(label, mode = 'automata') {
  */
 function validateTuringTransition(label) {
     // Verificar formato básico "a,b,c"
-    const parts = label.split(',');
+    let parts = label.split(',');
 
     if (parts.length !== 3) {
         return {
             isValid: false,
-            error: 'Formato inválido. Use: "leer,escribir,mover" (ej: "a,b,R")'
+            error: 'Formato inválido. Debe tener exactamente 3 partes separadas por comas: "leer,escribir,mover"'
         };
     }
 
-    const [readChar, writeChar, moveDir] = parts.map(part => part.trim());
+    // Procesar cada parte y reemplazar espacios vacíos con '□'
+    parts = parts.map(part => {
+        const trimmed = part.trim();
+        // Si la parte está vacía o contiene solo espacios, reemplazar con '□'
+        return trimmed === '' || /^\s*$/.test(part) ? '□' : trimmed;
+    });
+
+    const [readChar, writeChar, moveDir] = parts;
 
     // Validar carácter de lectura - opcional pero a lo sumo un carácter
-    if (readChar.length > 1) {
+    if (readChar.length > 1 && readChar !== '□') {
         return {
             isValid: false,
-            error: 'El carácter de lectura debe ser como mucho un solo carácter (ej: "a", "R", "1" o vacío para blanco)'
+            error: 'El carácter de lectura debe ser como mucho un solo carácter (ej: "a", "R", "1", "□" para blanco, o vacío)'
         };
     }
 
     // Validar carácter de escritura - opcional pero a lo sumo un carácter
-    if (writeChar.length > 1) {
+    if (writeChar.length > 1 && writeChar !== '□') {
         return {
             isValid: false,
-            error: 'El carácter de escritura debe ser como mucho un solo carácter (ej: "c", "r", "2" o vacío para blanco)'
+            error: 'El carácter de escritura debe ser como mucho un solo carácter (ej: "c", "r", "2", "□" para blanco, o vacío)'
         };
     }
 
@@ -77,6 +92,34 @@ function validateTuringTransition(label) {
 
     return { isValid: true, error: null };
 }
+
+/**
+ * Normaliza una etiqueta de Turing reemplazando espacios vacíos con el símbolo '□'
+ * @param {string} label - Etiqueta en formato "leer,escribir,mover"
+ * @returns {string} - Etiqueta normalizada
+ */
+function normalizeTuringLabel(label) {
+    if (!label || typeof label !== 'string') {
+        return label;
+    }
+
+    const parts = label.split(',');
+    
+    // Si no tiene el formato correcto, devolver tal como está
+    if (parts.length !== 3) {
+        return label;
+    }
+
+    // Procesar cada parte y reemplazar espacios vacíos con '□'
+    const normalizedParts = parts.map(part => {
+        const trimmed = part.trim();
+        // Si la parte está vacía o contiene solo espacios, reemplazar con '□'
+        return trimmed === '' || /^\s*$/.test(part) ? '□' : trimmed;
+    });
+
+    return normalizedParts.join(',');
+}
+
 /**
  * Valida una transición de autómata (función original)
  * @param {string} label - Etiqueta de la transición

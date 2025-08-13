@@ -325,18 +325,34 @@ function drawEdgeLabel(ctx, fromNode, toNode, edge, isSelected, theme, isCurved,
 function drawEditingLabel(ctx, text, x, y, theme) {
     ctx.save();
 
+    // Obtener el texto a mostrar (original o preview normalizado)
+    let displayText = text;
+    let showPreview = false;
+    
+    // Si estamos en modo Turing y hay funciones de normalización disponibles
+    if (typeof currentMode !== 'undefined' && currentMode === 'turing' && 
+        typeof normalizeTuringLabel === 'function') {
+        const normalizedText = normalizeTuringLabel(text || '');
+        // Solo mostrar preview si el texto normalizado es diferente al original
+        if (normalizedText !== text) {
+            displayText = normalizedText;
+            showPreview = true;
+        }
+    }
+
     // Ajustes de caja de edición (modificar según necesidad)
     const editBoxPadding = 4;
     const editBoxMinWidth = 20;
     const editBoxHeight = 18;
     const editBoxYOffset = 5;
     // Fondo semi-transparente para destacar la edición
-    const metrics = ctx.measureText(text || '');
+    const metrics = ctx.measureText(displayText || '');
     const padding = editBoxPadding;
     const backgroundWidth = Math.max(metrics.width + padding * 2, editBoxMinWidth);
     const backgroundHeight = editBoxHeight;
 
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    // Color de fondo diferente si es preview
+    ctx.fillStyle = showPreview ? 'rgba(230, 255, 230, 0.9)' : 'rgba(255, 255, 255, 0.9)';
     ctx.fillRect(
         x - backgroundWidth / 2,
         y - backgroundHeight / 2 - editBoxYOffset,
@@ -344,8 +360,8 @@ function drawEditingLabel(ctx, text, x, y, theme) {
         backgroundHeight
     );
 
-    // Borde para el área de edición
-    ctx.strokeStyle = '#007acc';
+    // Borde para el área de edición (color diferente si es preview)
+    ctx.strokeStyle = showPreview ? '#28a745' : '#007acc';
     ctx.lineWidth = 2;
     ctx.strokeRect(
         x - backgroundWidth / 2,
@@ -355,17 +371,19 @@ function drawEditingLabel(ctx, text, x, y, theme) {
     );
 
     // Texto de la etiqueta
-    ctx.fillStyle = '#000000';
-    if (text) {
-        ctx.fillText(text, x, y);
+    ctx.fillStyle = showPreview ? '#155724' : '#000000';
+    if (displayText) {
+        ctx.fillText(displayText, x, y);
     }
 
     // Cursor parpadeante (solo si labelEditState está disponible)
     if (typeof labelEditState !== 'undefined' && labelEditState.showCursor) {
+        // Para el cursor, usamos el texto original, no el preview
+        const originalMetrics = ctx.measureText(text || '');
         const textBeforeCursor = (text || '').substring(0, labelEditState.cursorPosition);
-        const cursorX = x - (metrics.width / 2) + ctx.measureText(textBeforeCursor).width;
+        const cursorX = x - (originalMetrics.width / 2) + ctx.measureText(textBeforeCursor).width;
 
-        ctx.strokeStyle = '#000000';
+        ctx.strokeStyle = showPreview ? '#155724' : '#000000';
         ctx.lineWidth = 1;
         ctx.beginPath();
         // Ajuste vertical para centrar cursor dentro del recuadro
