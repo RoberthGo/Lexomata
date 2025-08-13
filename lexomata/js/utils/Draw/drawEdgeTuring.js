@@ -117,7 +117,9 @@ function saveTuringEdgeTransitions(fromNode, toNode) {
         if (typeof validateTransitionLabel === 'function') {
             const validation = validateTransitionLabel(formattedLabel, 'turing');
             if (validation.isValid) {
-                newLabels.push(formattedLabel);
+                // Usar la etiqueta normalizada si está disponible
+                const finalLabel = validation.normalizedLabel || formattedLabel;
+                newLabels.push(finalLabel);
             } else {
                 validationErrors.push(`Transición ${index + 1}: ${validation.error}`);
             }

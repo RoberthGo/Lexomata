@@ -187,6 +187,26 @@ function getCurrentLabelText() {
 }
 
 /**
+ * Obtiene una preview del texto normalizado para mostrar al usuario (solo para Turing)
+ * @returns {string} - Texto con preview de normalización
+ */
+function getPreviewText() {
+    const currentText = getCurrentLabelText();
+    
+    // Solo aplicar preview para modo Turing
+    if (currentMode !== 'turing') {
+        return currentText;
+    }
+    
+    // Si la función de normalización está disponible, usarla
+    if (typeof normalizeTuringLabel === 'function') {
+        return normalizeTuringLabel(currentText);
+    }
+    
+    return currentText;
+}
+
+/**
  * Actualiza el texto de la etiqueta en edición
  * @param {string} newText - Nuevo texto para la etiqueta
  */
@@ -228,8 +248,16 @@ function finishLabelEdit() {
         return;
     }
 
+    // Si es modo Turing y hay una etiqueta normalizada, usarla
+    let finalText = newText;
+    if (currentMode === 'turing' && validation.normalizedLabel) {
+        finalText = validation.normalizedLabel;
+        // Actualizar la etiqueta con el texto normalizado
+        updateLabelText(finalText);
+    }
+
     // Guardar estado si el texto cambió
-    if (newText !== labelEditState.originalText) {
+    if (finalText !== labelEditState.originalText) {
         saveState();
     }
 
