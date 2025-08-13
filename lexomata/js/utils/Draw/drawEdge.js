@@ -329,7 +329,7 @@ function drawEditingLabel(ctx, text, x, y, theme) {
     const editBoxPadding = 4;
     const editBoxMinWidth = 20;
     const editBoxHeight = 18;
-    const editBoxYOffset = 5;
+    const editBoxYOffset = 8;
     // Fondo semi-transparente para destacar la edición
     const metrics = ctx.measureText(text || '');
     const padding = editBoxPadding;
