@@ -49,9 +49,12 @@ function parseAndLoadJFF(fileContent) {
         const key = `${from}-${to}`;
         if (!edgeMap[key]) edgeMap[key] = { from, to, labels: [] };
         if (isTuring) {
-            const readVal = elem.querySelector('read')?.textContent || '';
-            const writeVal = elem.querySelector('write')?.textContent || '';
-            const moveDir = elem.querySelector('move')?.textContent || '';
+            // Map empty cells in JFF to blank symbol '□' for consistent matching
+            let readVal = elem.querySelector('read')?.textContent || '';
+            readVal = readVal.trim() === '' ? '□' : readVal.trim();
+            let writeVal = elem.querySelector('write')?.textContent || '';
+            writeVal = writeVal.trim() === '' ? '□' : writeVal.trim();
+            const moveDir = (elem.querySelector('move')?.textContent || '').trim();
             // Formato 'leer,escribir,mover'
             edgeMap[key].labels.push(`${readVal},${writeVal},${moveDir}`);
         } else {

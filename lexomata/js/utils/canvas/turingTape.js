@@ -942,14 +942,15 @@ function initializeTuringTape() {
     if (executeButton) {
         executeButton.addEventListener('click', () => {
             // Verificar si ya está en modo paso a paso
-            const input = document.getElementById('turingStringInput');
             if (turingTapeState.executionController) {
+                const input = document.getElementById('turingStringInput');
                 // Si ya está ejecutando, detener
                 handleApplyTuringString();
                 stopTuringStepExecution();
                 if (input) input.readOnly = false;
                 executeButton.innerHTML = '<i class="fas fa-play"></i> Ejecutar';
             } else {
+                const input = document.getElementById('turingStringInput');
                 // Iniciar ejecución paso a paso
                 const assignationString = handleApplyTuringString();
                 if (!assignationString) return;

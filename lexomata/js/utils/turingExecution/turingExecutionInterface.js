@@ -37,8 +37,8 @@ function startTuringExecution(inputString, headPosition = 0) {
     // Validar transiciones
     const validation = validateTuringTransitions();
     if (!validation.valid) {
-        const errorMessage = "Error en las transiciones de la máquina de Turing:\n" + 
-                           validation.errors.map(e => `• ${e.error}`).join('\n');
+        const errorMessage = "Error en las transiciones de la máquina de Turing:\n" +
+            validation.errors.map(e => `• ${e.error}`).join('\n');
         showMessage(errorMessage);
         return false;
     }
@@ -48,25 +48,25 @@ function startTuringExecution(inputString, headPosition = 0) {
         if (typeof startExecution === 'function') {
             startExecution();
         }
-        
+
         // Crear el controlador de ejecución
         turingExecutionState.executionController = new TuringExecutionController(
-            nodes, 
-            edges, 
-            inputString, 
+            nodes,
+            edges,
+            inputString,
             headPosition
         );
-        
+
         turingExecutionState.isExecuting = true;
         turingExecutionState.inputString = inputString;
         turingExecutionState.headPosition = headPosition;
 
         // Actualizar la visualización de la cinta
         updateTuringTapeFromExecution();
-        
+
         // Highlighting del estado inicial
         highlightCurrentTuringState();
-        
+
         console.log("Ejecución de máquina de Turing iniciada:", {
             inputString: inputString,
             headPosition: headPosition,
@@ -95,21 +95,21 @@ function startTuringExecution(inputString, headPosition = 0) {
 function stopTuringExecution() {
     turingExecutionState.isExecuting = false;
     turingExecutionState.executionController = null;
-    
+
     // Desactivar estado de ejecución para restaurar interacciones del canvas
     if (typeof stopExecution === 'function') {
         stopExecution();
     }
-    
+
     // Limpiar highlighting
     selectedNodeIds = [];
     redrawCanvas();
-    
+
     // Notificar a la interfaz de la cinta que la ejecución ha terminado
     if (typeof setTuringTapeExecutionMode === 'function') {
         setTuringTapeExecutionMode(false);
     }
-    
+
     console.log("Ejecución de máquina de Turing detenida");
 }
 
@@ -127,7 +127,7 @@ function stepForwardTuring() {
         updateTuringTapeFromExecution();
         highlightCurrentTuringState();
         showCurrentTuringTransition();
-        
+
         console.log("Paso adelante:", nextState.message);
     } else {
         console.log("No hay más pasos disponibles");
@@ -148,7 +148,7 @@ function stepBackwardTuring() {
         updateTuringTapeFromExecution();
         highlightCurrentTuringState();
         showCurrentTuringTransition();
-        
+
         console.log("Paso atrás:", prevState.message);
     } else {
         console.log("Ya está en el paso inicial");
@@ -171,18 +171,18 @@ function updateTuringTapeFromExecution() {
         // Fallback: actualizar manualmente si la función no está disponible
         if (typeof turingTapeState !== 'undefined') {
             const tapeState = currentState.tapeState;
-            
+
             // Convertir el objeto de cinta a array para la visualización
             const start = Math.min(tapeState.leftmost, tapeState.headPosition - 10);
             const end = Math.max(tapeState.rightmost, tapeState.headPosition + 10);
-            
+
             turingTapeState.cells = [];
             for (let i = start; i <= end; i++) {
                 turingTapeState.cells.push(tapeState.tape[i] || '□');
             }
-            
+
             turingTapeState.headPosition = tapeState.headPosition - start; // Ajustar posición relativa
-            
+
             // Redibujar la cinta si está visible
             if (typeof drawTuringTape === 'function') {
                 drawTuringTape();
@@ -206,12 +206,12 @@ function highlightCurrentTuringState() {
     } else {
         // Fallback al método anterior
         selectedNodeIds = [];
-        
+
         // Resaltar el nodo actual
         if (currentState.currentNodeId) {
             selectedNodeIds = [currentState.currentNodeId];
         }
-        
+
         redrawCanvas();
     }
 }
@@ -244,7 +244,7 @@ function showCurrentTuringTransition() {
  */
 function validateTuringTransitions() {
     const errors = [];
-    
+
     edges.forEach((edge, edgeIndex) => {
         if (!edge.labels || !Array.isArray(edge.labels)) {
             errors.push({
@@ -257,11 +257,11 @@ function validateTuringTransitions() {
         edge.labels.forEach((label, labelIndex) => {
             const labelText = typeof label === 'object' ? label.text : label;
             const validation = validateTuringTransition(labelText);
-            
+
             if (!validation.isValid) {
                 const fromNode = nodes.find(n => n.id === edge.from);
                 const toNode = nodes.find(n => n.id === edge.to);
-                
+
                 errors.push({
                     edgeIndex: edgeIndex,
                     labelIndex: labelIndex,
@@ -290,7 +290,7 @@ function resetTuringExecution() {
     turingExecutionState.executionController.reset();
     updateTuringTapeFromExecution();
     highlightCurrentTuringState();
-    
+
     console.log("Ejecución reiniciada al estado inicial");
 }
 
@@ -300,7 +300,7 @@ function resetTuringExecution() {
  */
 function getCurrentTuringExecutionState() {
     if (!turingExecutionState.executionController) return null;
-    
+
     return {
         isExecuting: turingExecutionState.isExecuting,
         currentState: turingExecutionState.executionController.getCurrentState(),
@@ -322,22 +322,22 @@ function runTuringToCompletion(maxSteps = 100) {
 
     let steps = 0;
     const controller = turingExecutionState.executionController;
-    
+
     // Avanzar hasta el final o hasta el límite de pasos
     while (steps < maxSteps && controller.currentStep < controller.getHistory().length - 1) {
         controller.stepForward();
         steps++;
     }
-    
+
     // Actualizar visualización
     updateTuringTapeFromExecution();
     highlightCurrentTuringState();
     showCurrentTuringTransition();
-    
+
     const finalState = controller.getCurrentState();
     if (finalState) {
         console.log(`Ejecución completada en ${steps} pasos:`, finalState.message);
-        
+
         // Mostrar resultado final
         if (finalState.status === 'ACCEPTED') {
             console.log("✅ Cadena ACEPTADA por la máquina de Turing");
@@ -346,7 +346,7 @@ function runTuringToCompletion(maxSteps = 100) {
         } else if (finalState.status === 'TIMEOUT') {
             console.log("⏰ Ejecución detenida por límite de tiempo");
         }
-        
+
         // Si la ejecución se completó, notificar a la interfaz
         if (finalState.status === 'ACCEPTED' || finalState.status === 'REJECTED' || finalState.status === 'TIMEOUT') {
             if (typeof setTuringTapeExecutionMode === 'function') {
@@ -378,7 +378,7 @@ function startTuringExecutionFromInput(stepByStep = false) {
     }
 
     console.log(`🎯 Ejecutando máquina de Turing desde entrada de cinta: "${inputString}"`);
-    
+
     // Aplicar la cadena a la cinta visual primero
     if (typeof applyStringToTuringTape === 'function') {
         applyStringToTuringTape(inputString);
@@ -435,7 +435,7 @@ function testTuringMachine(inputString, stepByStep = false) {
     }
 
     console.log(`🔧 Probando máquina de Turing con entrada: "${inputString}"`);
-    
+
     const success = startTuringExecution(inputString);
     if (!success) {
         console.error("❌ No se pudo iniciar la ejecución");
@@ -462,13 +462,13 @@ function showTuringExecutionInfo() {
 
     const state = getCurrentTuringExecutionState();
     const currentState = state.currentState;
-    
+
     console.log("📊 INFORMACIÓN DE EJECUCIÓN DE MÁQUINA DE TURING");
     console.log("================================================");
     console.log(`📍 Paso actual: ${state.currentStep + 1} de ${state.totalSteps}`);
     console.log(`📝 Estado: ${currentState.status}`);
     console.log(`💬 Mensaje: ${currentState.message}`);
-    
+
     if (currentState.tapeState) {
         const tapeState = currentState.tapeState;
         const controller = turingExecutionState.executionController;
@@ -476,12 +476,12 @@ function showTuringExecutionInfo() {
         console.log(`📖 Carácter actual: '${controller.readTape(tapeState)}'`);
         console.log(`📼 Contenido de la cinta: ${controller.tapeToString(tapeState)}`);
     }
-    
+
     if (currentState.transition) {
         const t = currentState.transition;
         console.log(`🔄 Última transición: ${t.matchedLabel}`);
     }
-    
+
     // Mostrar transiciones disponibles
     const availableTransitions = turingExecutionState.executionController.getAvailableTransitions();
     if (availableTransitions.length > 0) {
@@ -497,7 +497,7 @@ function showTuringExecutionInfo() {
     } else {
         console.log("\n❌ No hay transiciones disponibles desde el estado actual");
     }
-    
+
     console.log("================================================");
 }
 
@@ -577,7 +577,7 @@ if (typeof window !== 'undefined') {
     window.stopTuringExecution = stopTuringExecution;
     window.runTuringToCompletion = runTuringToCompletion;
     window.getCurrentTuringExecutionState = getCurrentTuringExecutionState;
-    
+
     // Funciones de integración con la interfaz
     window.startTuringExecutionFromInput = startTuringExecutionFromInput;
     window.getTuringInputString = getTuringInputString;

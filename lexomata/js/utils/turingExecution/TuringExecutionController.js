@@ -30,12 +30,12 @@ class TuringExecutionController {
      */
     initializeTape(inputString, headPosition) {
         const tape = {};
-        
+
         // Llenar la cinta con la cadena de entrada
         for (let i = 0; i < inputString.length; i++) {
             tape[i] = inputString[i];
         }
-        
+
         return {
             tape: tape,
             headPosition: headPosition,
@@ -65,7 +65,7 @@ class TuringExecutionController {
             delete tapeState.tape[tapeState.headPosition];
         } else {
             tapeState.tape[tapeState.headPosition] = char;
-            
+
             // Actualizar límites de la cinta
             tapeState.leftmost = Math.min(tapeState.leftmost, tapeState.headPosition);
             tapeState.rightmost = Math.max(tapeState.rightmost, tapeState.headPosition);
@@ -106,17 +106,17 @@ class TuringExecutionController {
      */
     findMatchingTransition(currentNodeId, currentChar) {
         const possibleTransitions = this.edges.filter(edge => edge.from === currentNodeId);
-        
+
         for (const transition of possibleTransitions) {
             // Verificar cada etiqueta de la transición
             for (const label of transition.labels) {
                 const labelText = typeof label === 'object' ? label.text : label;
                 const parts = labelText.split(',');
-                
+
                 if (parts.length !== 3) continue; // Formato inválido
-                
+
                 const readChar = parts[0].trim();
-                
+
                 // Verificar coincidencia con el carácter actual
                 if (this.matchesCharacter(readChar, currentChar)) {
                     return {
@@ -129,7 +129,7 @@ class TuringExecutionController {
                 }
             }
         }
-        
+
         return null;
     }
 
@@ -147,7 +147,7 @@ class TuringExecutionController {
         if (readChar === 'ε' || readChar === 'λ') {
             return currentChar === '□'; // Épsilon equivale a celda vacía
         }
-        
+
         return readChar === currentChar;
     }
 
@@ -160,7 +160,7 @@ class TuringExecutionController {
         let result = '';
         const start = Math.min(tapeState.leftmost, tapeState.headPosition - 5);
         const end = Math.max(tapeState.rightmost, tapeState.headPosition + 5);
-        
+
         for (let i = start; i <= end; i++) {
             const char = tapeState.tape[i] || '□';
             if (i === tapeState.headPosition) {
@@ -169,7 +169,7 @@ class TuringExecutionController {
                 result += ` ${char} `;
             }
         }
-        
+
         return result.trim();
     }
 
@@ -204,7 +204,7 @@ class TuringExecutionController {
         // Estado inicial (Paso 0)
         const initialTapeState = this.initializeTape(this.inputString, this.initialHeadPosition);
         const currentChar = this.readTape(initialTapeState);
-        
+
         this.history.push({
             currentNodeId: startNode.id,
             tapeState: JSON.parse(JSON.stringify(initialTapeState)), // Copia profunda
@@ -228,20 +228,20 @@ class TuringExecutionController {
         while (currentState.status === 'RUNNING' && stepCount <= this.maxSteps) {
             const currentTapeState = JSON.parse(JSON.stringify(currentState.tapeState));
             const currentChar = this.readTape(currentTapeState);
-            
+
             // Buscar transición aplicable
             const transition = this.findMatchingTransition(currentState.currentNodeId, currentChar);
-            
+
             if (!transition) {
                 // No hay transición aplicable - máquina se detiene
                 const currentNode = this.nodes.find(n => n.id === currentState.currentNodeId);
                 const isAccepted = currentNode && currentNode.IsEnd;
-                
+
                 this.history.push({
                     currentNodeId: currentState.currentNodeId,
                     tapeState: currentTapeState,
                     status: isAccepted ? 'ACCEPTED' : 'REJECTED',
-                    message: isAccepted 
+                    message: isAccepted
                         ? `La máquina se detiene en estado final ${currentNode.label}. Cadena ACEPTADA.`
                         : `La máquina se detiene en estado no final. Cadena RECHAZADA.`,
                     step: stepCount,
@@ -253,10 +253,10 @@ class TuringExecutionController {
             // Aplicar la transición
             this.writeTape(currentTapeState, transition.writeChar);
             this.moveHead(currentTapeState, transition.moveDirection);
-            
+
             const newChar = this.readTape(currentTapeState);
             const targetNode = this.nodes.find(n => n.id === transition.to);
-            
+
             const newState = {
                 currentNodeId: transition.to,
                 tapeState: currentTapeState,
@@ -356,24 +356,24 @@ class TuringExecutionController {
 
         const currentChar = this.readTape(currentState.tapeState);
         const possibleTransitions = this.edges.filter(edge => edge.from === currentState.currentNodeId);
-        
+
         const transitionsInfo = [];
-        
+
         for (const transition of possibleTransitions) {
             const targetNode = this.nodes.find(n => n.id === transition.to);
             const allLabelsInfo = [];
-            
+
             for (const label of transition.labels) {
                 const labelText = typeof label === 'object' ? label.text : label;
                 const parts = labelText.split(',');
-                
+
                 if (parts.length === 3) {
                     const readChar = parts[0].trim();
                     const writeChar = parts[1].trim();
                     const moveDir = parts[2].trim();
-                    
+
                     const isMatching = this.matchesCharacter(readChar, currentChar);
-                    
+
                     allLabelsInfo.push({
                         label: labelText,
                         readChar: readChar,
@@ -384,7 +384,7 @@ class TuringExecutionController {
                     });
                 }
             }
-            
+
             if (allLabelsInfo.length > 0) {
                 transitionsInfo.push({
                     edge: transition,
@@ -394,7 +394,7 @@ class TuringExecutionController {
                 });
             }
         }
-        
+
         return transitionsInfo;
     }
 }
