@@ -107,12 +107,12 @@ function saveTuringEdgeTransitions(fromNode, toNode) {
         }
 
         // Convertir el espacio en blanco para mostrar ☐
-        const readChar = rawRead === ' ' ? '☐' : rawRead;
-        const writeChar = rawWrite === ' ' ? '☐' : rawWrite;
-        
+        const readChar = rawRead;
+        const writeChar = rawWrite;
+
         // Formateamos la transición al formato "leer,escribir,mover"
         const formattedLabel = `${readChar},${writeChar},${moveDir}`;
-        
+
         // Validar la transición usando la función de validación de Turing
         if (typeof validateTransitionLabel === 'function') {
             const validation = validateTransitionLabel(formattedLabel, 'turing');
@@ -168,20 +168,20 @@ function saveTuringEdgeTransitions(fromNode, toNode) {
             // Fallback: crear EdgeTuring directamente
             const firstTransition = newLabels[0].split(',');
             newEdge = new EdgeTuring(
-                fromNode.id, 
-                toNode.id, 
-                [], 
-                firstTransition[0] || '', 
-                firstTransition[1] || '', 
+                fromNode.id,
+                toNode.id,
+                [],
+                firstTransition[0] || '',
+                firstTransition[1] || '',
                 firstTransition[2] || 'R'
             );
             newEdge.labels = newLabels;
         }
         edges.push(newEdge);
     }
-    
+
     console.log("Transiciones de Turing guardadas:", newLabels);
-    
+
     redrawCanvas();
     saveState();
     closeMessage('customEdgeModal');

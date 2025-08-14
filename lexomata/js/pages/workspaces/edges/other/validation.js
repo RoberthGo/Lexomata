@@ -14,7 +14,7 @@ function validateTransitionLabel(label, mode = 'automata') {
         // Normalizar la etiqueta reemplazando espacios vacíos con '□'
         const normalizedLabel = normalizeTuringLabel(label);
         const validation = validateTuringTransition(normalizedLabel);
-        
+
         // Retornar la validación con la etiqueta normalizada
         return {
             ...validation,
@@ -104,7 +104,7 @@ function normalizeTuringLabel(label) {
     }
 
     const parts = label.split(',');
-    
+
     // Si no tiene el formato correcto, devolver tal como está
     if (parts.length !== 3) {
         return label;

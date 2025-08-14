@@ -137,9 +137,6 @@
               <button class="turing-tape-button" id="autoExecuteTuringButton">
                 <i class="fas fa-forward"></i> Auto
               </button>
-              <button class="turing-tape-button" id="resetTapeButton">
-                <i class="fas fa-undo"></i> Reiniciar
-              </button>
               <button class="turing-tape-button" id="clearTapeButton">
                 <i class="fas fa-eraser"></i> Limpiar
               </button>
@@ -155,9 +152,6 @@
           <div class="turing-tape-input-section">
             <input type="text" id="turingStringInput" class="turing-string-input"
               placeholder="Ingrese la cadena inicial para la cinta..." maxlength="50">
-            <button id="applyTuringStringButton" class="apply-turing-string-button">
-              <i class="fas fa-check"></i> Aplicar a Cinta
-            </button>
           </div>
 
           <!-- Controles de navegación paso a paso -->
@@ -283,7 +277,7 @@
       <h3>Configurar Ejecución Automática</h3>
       <div class="auto-execution-modal-container">
         <p>Seleccione la velocidad de ejecución automática:</p>
-        
+
         <div class="speed-options">
           <div class="speed-option">
             <input type="radio" id="speed1000" name="executionSpeed" value="1000" checked>
@@ -300,16 +294,16 @@
           <div class="speed-option">
             <input type="radio" id="speedCustom" name="executionSpeed" value="custom">
             <label for="speedCustom">Personalizada:</label>
-            <input type="number" id="customSpeedInput" class="custom-speed-input" 
-                   min="100" max="10000" step="50" value="1000" placeholder="ms">
+            <input type="number" id="customSpeedInput" class="custom-speed-input" min="100" max="10000" step="50"
+              value="1000" placeholder="ms">
             <span class="speed-unit">ms</span>
           </div>
         </div>
-        
+
         <div class="speed-info">
           <small>Rango permitido: 100ms - 10000ms (0.1 - 10 segundos)</small>
         </div>
-        
+
         <div class="modal-actions">
           <button id="startAutoExecutionButton" class="modal-button">Iniciar Ejecución Automática</button>
           <button onclick="closeAutoExecutionSpeedModal()" class="modal-button secondary">Cancelar</button>
@@ -493,71 +487,71 @@
 
 
 
-<script src="../js/models/State.js"></script>
-<script src="../js/models/EdgeAutomata.js"></script>
-<script src="../js/models/EdgeTuring.js"></script>
+  <script src="../js/models/State.js"></script>
+  <script src="../js/models/EdgeAutomata.js"></script>
+  <script src="../js/models/EdgeTuring.js"></script>
 
-<!-- Handlers y utilidades básicas -->
-<script src="../js/utils/regexHandler.js"></script>
+  <!-- Handlers y utilidades básicas -->
+  <script src="../js/utils/regexHandler.js"></script>
 
-<!-- Controladores de ejecución -->
-<script src="../js/utils/automataExecution/ExecutionController.js"></script>
-<script src="../js/utils/turingExecution/TuringExecutionController.js"></script>
-<script src="../js/utils/turingExecution/turingExecutionInterface.js"></script>
+  <!-- Controladores de ejecución -->
+  <script src="../js/utils/automataExecution/ExecutionController.js"></script>
+  <script src="../js/utils/turingExecution/TuringExecutionController.js"></script>
+  <script src="../js/utils/turingExecution/turingExecutionInterface.js"></script>
 
-<!-- Utilidades de archivo -->
-<script src="../js/utils/file/jsonHandler.js"></script>
-<script src="../js/utils/file/xmlHandler.js"></script>
+  <!-- Utilidades de archivo -->
+  <script src="../js/utils/file/jsonHandler.js"></script>
+  <script src="../js/utils/file/xmlHandler.js"></script>
 
-<!-- Funciones de dibujo (deben ir antes del canvas principal) -->
-<script src="../js/utils/Draw/drawNode.js"></script>
-<script src="../js/utils/Draw/drawEdge.js"></script>
-<script src="../js/utils/Draw/drawEdgeTuring.js"></script>
+  <!-- Funciones de dibujo (deben ir antes del canvas principal) -->
+  <script src="../js/utils/Draw/drawNode.js"></script>
+  <script src="../js/utils/Draw/drawEdge.js"></script>
+  <script src="../js/utils/Draw/drawEdgeTuring.js"></script>
 
-<!-- Canvas y herramientas -->
- <script src="../js/utils/toolbar.js"></script>
-<script src="../js/utils/canvas/canvas.js"></script>
-<script src="../js/utils/canvas/Node/addNode.js"></script>
-<script src="../js/utils/canvas/addEdge.js"></script>
-<script src="../js/utils/canvas/deleteTool.js"></script>
-<script src="../js/pages/workspaces/edges/modal/edgeCreationModal.js"></script>
-<script src="../js/pages/workspaces/edges/modal/edgeSelectionModal.js"></script>
+  <!-- Canvas y herramientas -->
+  <script src="../js/utils/toolbar.js"></script>
+  <script src="../js/utils/canvas/canvas.js"></script>
+  <script src="../js/utils/canvas/Node/addNode.js"></script>
+  <script src="../js/utils/canvas/addEdge.js"></script>
+  <script src="../js/utils/canvas/deleteTool.js"></script>
+  <script src="../js/pages/workspaces/edges/modal/edgeCreationModal.js"></script>
+  <script src="../js/pages/workspaces/edges/modal/edgeSelectionModal.js"></script>
 
-<!-- Gestión de archivos y navegación -->
-<script src="../js/pages/workspaces/management/fileManagament.js"></script>
-<script src="../js/pages/workspaces/management/history.js"></script>
-<script src="../js/pages/workspaces/canvas/navigation.js"></script>
+  <!-- Gestión de archivos y navegación -->
+  <script src="../js/pages/workspaces/management/fileManagament.js"></script>
+  <script src="../js/pages/workspaces/management/history.js"></script>
+  <script src="../js/pages/workspaces/canvas/navigation.js"></script>
 
-<!-- Componentes de interfaz específicos -->
-<script src="../js/utils/canvas/turingTape.js"></script>
-<script src="../js/utils/canvas/stringAnalyzer.js"></script>
-<script src="../js/utils/canvas/multipleRun.js"></script>
-<script src="../js/utils/canvas/multipleRunDrawCanvas.js"></script>
-<script src="../js/utils/canvas/exportCanvasToImage.js"></script>
+  <!-- Componentes de interfaz específicos -->
+  <script src="../js/utils/canvas/turingTape.js"></script>
+  <script src="../js/utils/canvas/stringAnalyzer.js"></script>
+  <script src="../js/utils/canvas/multipleRun.js"></script>
+  <script src="../js/utils/canvas/multipleRunDrawCanvas.js"></script>
+  <script src="../js/utils/canvas/exportCanvasToImage.js"></script>
 
-<!-- Configuraciones y listeners del canvas (deben ir después de las utilidades) -->
-<script src="../js/pages/workspaces/canvas/canvasSettings.js"></script>
-<script src="../js/pages/workspaces/canvas/canvasCore.js"></script>
-<script src="../js/pages/workspaces/canvas/contextMenu.js"></script>
+  <!-- Configuraciones y listeners del canvas (deben ir después de las utilidades) -->
+  <script src="../js/pages/workspaces/canvas/canvasSettings.js"></script>
+  <script src="../js/pages/workspaces/canvas/canvasCore.js"></script>
+  <script src="../js/pages/workspaces/canvas/contextMenu.js"></script>
 
-<!-- UI y componentes de interfaz -->
-<script src="../js/pages/workspaces/UI/modal.js"></script>
-<script src="../js/pages/workspaces/UI/theme.js"></script>
-<script src="../js/pages/workspaces/UI/viewControls.js"></script>
+  <!-- UI y componentes de interfaz -->
+  <script src="../js/pages/workspaces/UI/modal.js"></script>
+  <script src="../js/pages/workspaces/UI/theme.js"></script>
+  <script src="../js/pages/workspaces/UI/viewControls.js"></script>
 
-<!-- Lógica de gestión de estado del workspace -->
-<script src="../js/pages/workspaces/management/workspaceState.js"></script>
+  <!-- Lógica de gestión de estado del workspace -->
+  <script src="../js/pages/workspaces/management/workspaceState.js"></script>
 
-<!-- Otras funcionalidades de edges -->
-<script src="../js/pages/workspaces/edges/other/labelEditor.js"></script>
-<script src="../js/pages/workspaces/edges/other/notes.js"></script>
-<script src="../js/pages/workspaces/edges/other/validation.js"></script>
-<script src="../js/pages/workspaces/edges/process/edgeActions.js"></script>
-<script src="../js/pages/workspaces/edges/process/edgeDetection.js"></script>
-<script src="../js/pages/workspaces/edges/process/edgeReassignment.js"></script>
+  <!-- Otras funcionalidades de edges -->
+  <script src="../js/pages/workspaces/edges/other/labelEditor.js"></script>
+  <script src="../js/pages/workspaces/edges/other/notes.js"></script>
+  <script src="../js/pages/workspaces/edges/other/validation.js"></script>
+  <script src="../js/pages/workspaces/edges/process/edgeActions.js"></script>
+  <script src="../js/pages/workspaces/edges/process/edgeDetection.js"></script>
+  <script src="../js/pages/workspaces/edges/process/edgeReassignment.js"></script>
 
-<!-- Listeners globales (al final) -->
-<script src="../js/pages/workspaces/listeners/global.js"></script>
+  <!-- Listeners globales (al final) -->
+  <script src="../js/pages/workspaces/listeners/global.js"></script>
 </body>
 
 </html>

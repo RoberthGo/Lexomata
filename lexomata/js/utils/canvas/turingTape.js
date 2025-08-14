@@ -60,13 +60,13 @@ function openAutoExecutionSpeedModal() {
     const modal = document.getElementById('autoExecutionSpeedModal');
     if (modal) {
         modal.style.display = 'block';
-        
+
         // Restablecer la selección por defecto
         const defaultRadio = document.getElementById('speed1000');
         if (defaultRadio) {
             defaultRadio.checked = true;
         }
-        
+
         // Limpiar el campo personalizado
         const customInput = document.getElementById('customSpeedInput');
         if (customInput) {
@@ -91,28 +91,28 @@ function closeAutoExecutionSpeedModal() {
  */
 function getSelectedExecutionSpeed() {
     const selectedRadio = document.querySelector('input[name="executionSpeed"]:checked');
-    
+
     if (!selectedRadio) {
         return 1000; // Valor por defecto
     }
-    
+
     if (selectedRadio.value === 'custom') {
         const customInput = document.getElementById('customSpeedInput');
         if (customInput) {
             let customValue = parseInt(customInput.value);
-            
+
             // Validar el rango
             if (isNaN(customValue) || customValue < 100) {
                 customValue = 100;
             } else if (customValue > 10000) {
                 customValue = 10000;
             }
-            
+
             return customValue;
         }
         return 1000;
     }
-    
+
     return parseInt(selectedRadio.value);
 }
 
@@ -121,13 +121,13 @@ function getSelectedExecutionSpeed() {
  */
 function handleStartAutoExecution() {
     const speed = getSelectedExecutionSpeed();
-    
+
     // Cerrar el modal
     closeAutoExecutionSpeedModal();
-    
+
     // Iniciar la ejecución automática
     const success = startTuringAutoExecutionFromInput(speed);
-    
+
     if (success) {
         // Cambiar el botón de auto ejecución para mostrar que está activo
         const autoButton = document.getElementById('autoExecuteTuringButton');
@@ -135,7 +135,7 @@ function handleStartAutoExecution() {
             autoButton.innerHTML = '<i class="fas fa-stop"></i> Auto';
             autoButton.classList.add('auto-executing');
         }
-        
+
         // También cambiar el botón de ejecutar
         const executeButton = document.getElementById('executeTuringButton');
         if (executeButton) {
@@ -149,16 +149,16 @@ function handleStartAutoExecution() {
 function showTuringTape() {
     const tapeContainer = document.querySelector('.turing-tape-container');
     const stringContainer = document.querySelector('.string-analyzer-container');
-    
+
     if (tapeContainer) {
         tapeContainer.style.display = 'block';
-        
+
         // Coordinar con el analizador de cadenas si está visible
         if (stringContainer && stringContainer.style.display === 'block') {
             tapeContainer.classList.add('with-string-analyzer');
             stringContainer.classList.add('with-turing-tape');
         }
-        
+
         resizeTuringCanvas();
     }
 }
@@ -201,11 +201,11 @@ function drawTuringTape(ctx, canvasCssWidth, canvasCssHeight) {
         ctx = turingCanvas.getContext('2d');
         if (!ctx) return;
     }
-    
+
     if (!canvasCssWidth || !canvasCssHeight) {
         const container = turingCanvas.parentElement;
         if (!container) return;
-        
+
         canvasCssWidth = container.clientWidth > 40 ? container.clientWidth - 40 : 0;
         canvasCssHeight = 80;
     }
@@ -265,14 +265,12 @@ function drawTuringTape(ctx, canvasCssWidth, canvasCssHeight) {
 
 // --- FUNCIONES DE MANIPULACIÓN DE LA CINTA ---
 
-function resetTuringTape() {
-    turingTapeState.cells = [];
-    turingTapeState.headPosition = 0;
-    resizeTuringCanvas();
-}
-
 function clearTuringTape() {
     turingTapeState.cells = [];
+    const input = document.getElementById('turingStringInput');
+    if (input) {
+        input.value = '';
+    }
     resizeTuringCanvas();
 }
 
@@ -280,7 +278,7 @@ function writeTuringCell(symbol) {
     while (turingTapeState.cells.length <= turingTapeState.headPosition) {
         turingTapeState.cells.push('');
     }
-    turingTapeState.cells [turingTapeState.headPosition] = symbol;
+    turingTapeState.cells[turingTapeState.headPosition] = symbol;
     resizeTuringCanvas();
 }
 
@@ -319,7 +317,7 @@ function writeTuringCell(char) {
  */
 function moveTuringHead(direction) {
     const dir = direction.toUpperCase();
-    
+
     switch (dir) {
         case 'L': // Izquierda
             if (turingTapeState.headPosition > 0) {
@@ -330,7 +328,7 @@ function moveTuringHead(direction) {
                 // La posición del cabezal se mantiene en 0
             }
             break;
-            
+
         case 'R': // Derecha
             turingTapeState.headPosition++;
             // Expandir la cinta si es necesario
@@ -338,17 +336,17 @@ function moveTuringHead(direction) {
                 turingTapeState.cells.push('□');
             }
             break;
-            
+
         case 'M': // Mantener
         case 'S': // Stay
             // No mover el cabezal
             break;
-            
+
         default:
             console.warn(`Dirección de movimiento desconocida: ${direction}`);
             break;
     }
-    
+
     drawTuringTape();
 }
 
@@ -359,20 +357,20 @@ function moveTuringHead(direction) {
  */
 function initializeTuringTapeWithInput(inputString, headPosition = 0) {
     turingTapeState.cells = [];
-    
+
     // Añadir la cadena de entrada directamente desde la posición 0
     for (let i = 0; i < inputString.length; i++) {
         turingTapeState.cells.push(inputString[i]);
     }
-    
+
     // Añadir algunas celdas vacías al final
     for (let i = 0; i < 10; i++) {
         turingTapeState.cells.push('□');
     }
-    
+
     // Establecer la posición del cabezal en la posición especificada (por defecto 0)
     turingTapeState.headPosition = Math.max(0, headPosition);
-    
+
     drawTuringTape();
 }
 
@@ -390,21 +388,21 @@ function getTuringTapeContent() {
  */
 function updateTuringTapeFromState(tapeState) {
     if (!tapeState) return;
-    
+
     // Determinar el rango de celdas a mostrar
     const padding = 10;
     const start = Math.min(tapeState.leftmost, tapeState.headPosition - padding);
     const end = Math.max(tapeState.rightmost, tapeState.headPosition + padding);
-    
+
     // Reconstruir el array de celdas
     turingTapeState.cells = [];
     for (let i = start; i <= end; i++) {
         turingTapeState.cells.push(tapeState.tape[i] || '□');
     }
-    
+
     // Ajustar la posición del cabezal al nuevo índice
     turingTapeState.headPosition = tapeState.headPosition - start;
-    
+
     drawTuringTape();
 }
 
@@ -438,15 +436,15 @@ function stepBackwardTuring() {
  */
 function updateFromTuringExecutionState(executionState) {
     if (!executionState) return;
-    
+
     // Actualizar la cinta con el estado actual
     updateTuringTapeFromState(executionState.tapeState);
-    
+
     console.log('Estado Turing:', executionState.message);
-    
+
     // Resaltar el nodo actual durante la ejecución
     let nodeToHighlight = executionState.currentNodeId;
-    
+
     // Si no hay currentNodeId, buscar el nodo inicial como fallback
     if (!nodeToHighlight && typeof nodes !== 'undefined') {
         const startNode = nodes.find(node => node.IsStart);
@@ -454,7 +452,7 @@ function updateFromTuringExecutionState(executionState) {
             nodeToHighlight = startNode.id;
         }
     }
-    
+
     if (nodeToHighlight && typeof highlightCurrentExecutionNode === 'function') {
         highlightCurrentExecutionNode(nodeToHighlight);
     }
@@ -466,22 +464,22 @@ function updateFromTuringExecutionState(executionState) {
 function updateTuringStepButtons() {
     const forwardButton = document.getElementById('turingStepForwardButton');
     const backwardButton = document.getElementById('turingStepBackwardButton');
-    
+
     if (!turingTapeState.executionController) {
         if (forwardButton) forwardButton.disabled = true;
         if (backwardButton) backwardButton.disabled = true;
         return;
     }
-    
+
     const controller = turingTapeState.executionController;
     const history = controller.getHistory();
     const currentStep = controller.currentStep;
-    
+
     // Habilitar/deshabilitar botones según la posición en el historial
     if (forwardButton) {
         forwardButton.disabled = currentStep >= history.length - 1;
     }
-    
+
     if (backwardButton) {
         backwardButton.disabled = currentStep <= 0;
     }
@@ -499,54 +497,54 @@ function startTuringAutoExecution(intervalMs = 1000) {
         console.warn("El intervalo mínimo es de 100ms");
         intervalMs = 100;
     }
-    
+
     if (intervalMs > 10000) {
         console.warn("El intervalo máximo es de 10000ms (10 segundos)");
         intervalMs = 10000;
     }
-    
+
     // Verificar que hay un controlador de ejecución activo
     if (!turingTapeState.executionController) {
         console.error("No hay un controlador de ejecución activo");
         return false;
     }
-    
+
     // Si ya está ejecutando automáticamente, detener primero
     if (turingTapeState.isAutoExecuting) {
         stopTuringAutoExecution();
     }
-    
+
     turingTapeState.autoExecutionSpeed = intervalMs;
     turingTapeState.isAutoExecuting = true;
-    
+
     // Función recursiva para ejecutar pasos automáticamente
     function executeAutoStep() {
         if (!turingTapeState.isAutoExecuting || !turingTapeState.executionController) {
             return;
         }
-        
+
         // Verificar si la ejecución ha terminado
         const controller = turingTapeState.executionController;
         const history = controller.getHistory();
         const currentStep = controller.currentStep;
-        
+
         // Si ya llegamos al final, detener la ejecución automática
         if (currentStep >= history.length - 1) {
             console.log("Ejecución automática completada");
             stopTuringAutoExecution();
             return;
         }
-        
+
         // Ejecutar el siguiente paso
         stepForwardTuring();
-        
+
         // Programar el siguiente paso
         turingTapeState.autoExecutionTimer = setTimeout(executeAutoStep, turingTapeState.autoExecutionSpeed);
     }
-    
+
     // Iniciar la ejecución automática
     turingTapeState.autoExecutionTimer = setTimeout(executeAutoStep, turingTapeState.autoExecutionSpeed);
-    
+
     console.log(`Ejecución automática iniciada con intervalo de ${intervalMs}ms`);
     return true;
 }
@@ -559,7 +557,7 @@ function stopTuringAutoExecution() {
         clearTimeout(turingTapeState.autoExecutionTimer);
         turingTapeState.autoExecutionTimer = null;
     }
-    
+
     turingTapeState.isAutoExecuting = false;
     console.log("Ejecución automática detenida");
 }
@@ -573,20 +571,20 @@ function changeTuringAutoExecutionSpeed(newIntervalMs) {
         console.warn("El intervalo mínimo es de 100ms");
         newIntervalMs = 100;
     }
-    
+
     if (newIntervalMs > 10000) {
         console.warn("El intervalo máximo es de 10000ms (10 segundos)");
         newIntervalMs = 10000;
     }
-    
+
     turingTapeState.autoExecutionSpeed = newIntervalMs;
-    
+
     // Si está ejecutando automáticamente, reiniciar con la nueva velocidad
     if (turingTapeState.isAutoExecuting) {
         stopTuringAutoExecution();
         startTuringAutoExecution(newIntervalMs);
     }
-    
+
     console.log(`Velocidad de ejecución automática cambiada a ${newIntervalMs}ms`);
 }
 
@@ -609,25 +607,25 @@ function startTuringAutoExecutionFromInput(intervalMs = 1000) {
         showMessage("No hay estados definidos en el autómata.");
         return false;
     }
-    
+
     if (typeof edges === 'undefined' || !edges || edges.length === 0) {
         showMessage("No hay transiciones definidas en el autómata.");
         return false;
     }
-    
+
     // Obtener la cadena inicial de la cinta
     const inputString = getTuringTapeContent() || '';
-    
+
     try {
         // Crear el controlador de ejecución
         const controller = new TuringExecutionController(nodes, edges, inputString, 0);
-        
+
         // Iniciar la ejecución paso a paso
         startTuringStepExecution(controller);
-        
+
         // Luego iniciar la ejecución automática
         const success = startTuringAutoExecution(intervalMs);
-        
+
         if (success) {
             return true;
         } else {
@@ -635,7 +633,7 @@ function startTuringAutoExecutionFromInput(intervalMs = 1000) {
             stopTuringStepExecution();
             return false;
         }
-        
+
     } catch (error) {
         console.error("Error al iniciar la ejecución automática:", error);
         showMessage("Error al iniciar la ejecución automática de la máquina de Turing.");
@@ -649,21 +647,21 @@ function startTuringAutoExecutionFromInput(intervalMs = 1000) {
  */
 function startTuringStepExecution(controller) {
     turingTapeState.executionController = controller;
-    
+
     // Activar el estado de ejecución y bloquear el canvas
     if (typeof startExecution === 'function') {
         startExecution();
     }
-    
+
     // Mostrar el primer estado
     const initialState = controller.getCurrentState();
     updateFromTuringExecutionState(initialState);
     updateTuringStepButtons();
-    
+
     // Asegurar que el nodo inicial se resalte
     setTimeout(() => {
         let nodeToHighlight = initialState.currentNodeId;
-        
+
         // Si no hay currentNodeId, buscar el nodo inicial
         if (!nodeToHighlight && typeof nodes !== 'undefined') {
             const startNode = nodes.find(node => node.IsStart);
@@ -671,12 +669,12 @@ function startTuringStepExecution(controller) {
                 nodeToHighlight = startNode.id;
             }
         }
-        
+
         if (nodeToHighlight && typeof highlightCurrentExecutionNode === 'function') {
             highlightCurrentExecutionNode(nodeToHighlight);
         }
     }, 100);
-    
+
     // Activar modo de ejecución paso a paso
     setTuringTapeStepMode(true);
 }
@@ -689,21 +687,21 @@ function stopTuringStepExecution() {
     if (turingTapeState.isAutoExecuting) {
         stopTuringAutoExecution();
     }
-    
+
     turingTapeState.executionController = null;
     setTuringTapeStepMode(false);
-    
+
     // Desactivar el estado de ejecución y desbloquear el canvas
     if (typeof stopExecution === 'function') {
         stopExecution();
     }
-    
+
     // Restablecer el botón de ejecutar
     const executeButton = document.getElementById('executeTuringButton');
     if (executeButton) {
         executeButton.innerHTML = '<i class="fas fa-play"></i> Ejecutar';
     }
-    
+
     // Restablecer el botón de auto ejecución
     const autoButton = document.getElementById('autoExecuteTuringButton');
     if (autoButton) {
@@ -719,11 +717,11 @@ function stopTuringStepExecution() {
 function setTuringTapeStepMode(isStepMode) {
     const stepControls = document.querySelector('.turing-step-controls');
     const executionInfo = document.querySelector('.turing-execution-info');
-    
+
     if (stepControls) {
         stepControls.style.display = isStepMode ? 'block' : 'none';
     }
-    
+
     if (executionInfo) {
         executionInfo.style.display = isStepMode ? 'block' : 'none';
     }
@@ -739,23 +737,23 @@ function startTuringStepExecutionFromInput() {
         showMessage("No hay estados definidos en el autómata.");
         return false;
     }
-    
+
     if (typeof edges === 'undefined' || !edges || edges.length === 0) {
         showMessage("No hay transiciones definidas en el autómata.");
         return false;
     }
-    
+
     // Obtener la cadena inicial de la cinta
     const inputString = getTuringTapeContent() || '';
-    
+
     try {
         // Crear el controlador de ejecución
         const controller = new TuringExecutionController(nodes, edges, inputString, 0);
-        
+
         // Iniciar la ejecución paso a paso
         startTuringStepExecution(controller);
         return true;
-        
+
     } catch (error) {
         console.error("Error al iniciar la ejecución paso a paso:", error);
         showMessage("Error al iniciar la ejecución paso a paso de la máquina de Turing.");
@@ -772,43 +770,32 @@ function startTuringStepExecutionFromInput() {
 function applyStringToTuringTape(inputString) {
     if (!inputString || typeof inputString !== 'string') {
         showMessage("Por favor, ingrese una cadena válida.");
-        return;
+        return false;
     }
 
     // Limpiar y validar la cadena
     const cleanString = inputString.trim();
     if (cleanString.length === 0) {
         showMessage("La cadena no puede estar vacía.");
-        return;
-    }
-
-    if (cleanString.length > 50) {
-        showMessage("La cadena no puede tener más de 50 caracteres.");
-        return;
+        return false;
     }
 
     // Validar caracteres permitidos (letras, números, algunos símbolos)
     const validChars = /^[a-zA-Z0-9\s.,;:!?()[\]{}_\-+=*\/#$%&@^~`|\\<>'"]+$/;
     if (!validChars.test(cleanString)) {
         showMessage("La cadena contiene caracteres no permitidos. Use solo letras, números y símbolos básicos.");
-        return;
+        return false;
     }
 
     try {
         // Inicializar la cinta con la cadena
         initializeTuringTapeWithInput(cleanString, 0);
-        
+        return true;
         console.log(`Cadena aplicada a la cinta de Turing: "${cleanString}"`);
-        
-        // Limpiar el campo de entrada
-        const input = document.getElementById('turingStringInput');
-        if (input) {
-            input.value = '';
-        }
-        
     } catch (error) {
         console.error("Error al aplicar la cadena a la cinta:", error);
         showMessage("Error al aplicar la cadena a la cinta de Turing.");
+        return false;
     }
 }
 
@@ -818,9 +805,9 @@ function applyStringToTuringTape(inputString) {
 function handleApplyTuringString() {
     const input = document.getElementById('turingStringInput');
     if (!input) return;
-    
+
     const inputString = input.value;
-    applyStringToTuringTape(inputString);
+    return applyStringToTuringTape(inputString);
 }
 
 /**
@@ -842,7 +829,7 @@ function handleTuringStringInputKeydown(event) {
 function setTuringTapeExecutionMode(isExecuting) {
     const inputSection = document.querySelector('.turing-tape-input-section');
     const executeButton = document.getElementById('executeTuringButton');
-    
+
     if (inputSection) {
         if (isExecuting) {
             inputSection.classList.add('execution-mode');
@@ -850,7 +837,7 @@ function setTuringTapeExecutionMode(isExecuting) {
             inputSection.classList.remove('execution-mode');
         }
     }
-    
+
     if (executeButton) {
         if (isExecuting) {
             executeButton.innerHTML = '<i class="fas fa-stop"></i> Detener';
@@ -878,32 +865,28 @@ function setTuringTapeExecutionMode(isExecuting) {
 
 function initializeTuringTape() {
     const toggleButton = document.getElementById('toggleTapeButton');
-    const resetButton = document.getElementById('resetTapeButton');
     const clearButton = document.getElementById('clearTapeButton');
     const closeButton = document.getElementById('closeTapeContainerBtn');
-    const applyStringButton = document.getElementById('applyTuringStringButton');
     const stringInput = document.getElementById('turingStringInput');
     const executeButton = document.getElementById('executeTuringButton');
     const autoExecuteButton = document.getElementById('autoExecuteTuringButton');
-    
+
     // Botones de navegación paso a paso
     const stepForwardButton = document.getElementById('turingStepForwardButton');
     const stepBackwardButton = document.getElementById('turingStepBackwardButton');
     const stopStepButton = document.getElementById('turingStopStepButton');
-    
+
     // Elementos del modal de velocidad
     const startAutoExecutionButton = document.getElementById('startAutoExecutionButton');
     const customSpeedRadio = document.getElementById('speedCustom');
     const customSpeedInput = document.getElementById('customSpeedInput');
 
     if (toggleButton) toggleButton.addEventListener('click', toggleTuringTape);
-    if (resetButton) resetButton.addEventListener('click', resetTuringTape);
     if (clearButton) clearButton.addEventListener('click', clearTuringTape);
-    
+
     // Event listeners para la entrada de cadena
-    if (applyStringButton) applyStringButton.addEventListener('click', handleApplyTuringString);
     if (stringInput) stringInput.addEventListener('keydown', handleTuringStringInputKeydown);
-    
+
     // Event listener para el botón de auto ejecución
     if (autoExecuteButton) {
         autoExecuteButton.addEventListener('click', () => {
@@ -916,12 +899,12 @@ function initializeTuringTape() {
             }
         });
     }
-    
+
     // Event listener para el botón de iniciar auto ejecución del modal
     if (startAutoExecutionButton) {
         startAutoExecutionButton.addEventListener('click', handleStartAutoExecution);
     }
-    
+
     // Event listener para habilitar el input personalizado cuando se selecciona la opción
     if (customSpeedRadio && customSpeedInput) {
         customSpeedRadio.addEventListener('change', () => {
@@ -929,21 +912,21 @@ function initializeTuringTape() {
                 customSpeedInput.focus();
             }
         });
-        
+
         customSpeedInput.addEventListener('focus', () => {
             customSpeedRadio.checked = true;
         });
     }
-    
+
     // Event listeners para navegación paso a paso
     if (stepForwardButton) {
         stepForwardButton.addEventListener('click', stepForwardTuring);
     }
-    
+
     if (stepBackwardButton) {
         stepBackwardButton.addEventListener('click', stepBackwardTuring);
     }
-    
+
     // Event listener para detener ejecución paso a paso
     if (stopStepButton) {
         stopStepButton.addEventListener('click', () => {
@@ -954,40 +937,46 @@ function initializeTuringTape() {
             }
         });
     }
-    
+
     // Event listener para el botón de ejecutar (ahora ejecuta paso a paso)
     if (executeButton) {
         executeButton.addEventListener('click', () => {
             // Verificar si ya está en modo paso a paso
+            const input = document.getElementById('turingStringInput');
             if (turingTapeState.executionController) {
                 // Si ya está ejecutando, detener
+                handleApplyTuringString();
                 stopTuringStepExecution();
-                
+                if (input) input.readOnly = false;
                 executeButton.innerHTML = '<i class="fas fa-play"></i> Ejecutar';
             } else {
                 // Iniciar ejecución paso a paso
+                const assignationString = handleApplyTuringString();
+                if (!assignationString) return;
+
                 const success = startTuringStepExecutionFromInput();
                 if (success) {
+                    if (input) input.readOnly = true;
                     executeButton.innerHTML = '<i class="fas fa-stop"></i> Detener';
                     console.log("Ejecución paso a paso iniciada correctamente");
                 }
             }
         });
     }
-    
+
     if (closeButton) {
         closeButton.addEventListener('click', () => {
             const tapeContainer = document.querySelector('.turing-tape-container');
             const stringContainer = document.querySelector('.string-analyzer-container');
-            
+
             // Si hay una ejecución activa, detenerla antes de cerrar
             if (turingTapeState.executionController) {
                 stopTuringStepExecution();
             }
-            
+
             tapeContainer.style.display = 'none';
             tapeContainer.classList.remove('with-string-analyzer');
-            
+
             // Limpiar clases de coordinación del analizador de cadenas
             if (stringContainer) {
                 stringContainer.classList.remove('with-turing-tape');
@@ -1007,12 +996,11 @@ if (typeof window !== 'undefined') {
     window.applyStringToTuringTape = applyStringToTuringTape;
     window.handleApplyTuringString = handleApplyTuringString;
     window.showTuringTape = showTuringTape;
-    window.resetTuringTape = resetTuringTape;
     window.clearTuringTape = clearTuringTape;
     window.initializeTuringTapeWithInput = initializeTuringTapeWithInput;
     window.getTuringTapeContent = getTuringTapeContent;
     window.setTuringTapeExecutionMode = setTuringTapeExecutionMode;
-    
+
     // Funciones de navegación paso a paso
     window.stepForwardTuring = stepForwardTuring;
     window.stepBackwardTuring = stepBackwardTuring;
@@ -1021,14 +1009,14 @@ if (typeof window !== 'undefined') {
     window.stopTuringStepExecution = stopTuringStepExecution;
     window.setTuringTapeStepMode = setTuringTapeStepMode;
     window.updateFromTuringExecutionState = updateFromTuringExecutionState;
-    
+
     // Funciones de ejecución automática
     window.startTuringAutoExecution = startTuringAutoExecution;
     window.stopTuringAutoExecution = stopTuringAutoExecution;
     window.changeTuringAutoExecutionSpeed = changeTuringAutoExecutionSpeed;
     window.isTuringAutoExecuting = isTuringAutoExecuting;
     window.startTuringAutoExecutionFromInput = startTuringAutoExecutionFromInput;
-    
+
     // Funciones del modal de velocidad
     window.openAutoExecutionSpeedModal = openAutoExecutionSpeedModal;
     window.closeAutoExecutionSpeedModal = closeAutoExecutionSpeedModal;
