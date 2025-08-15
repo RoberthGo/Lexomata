@@ -667,10 +667,16 @@ function updateAnalysisStatus(executionState) {
         case 'ACCEPTED':
             statusText = 'Cadena Aceptada ✓';
             statusClass = 'status-accepted';
+            if (typeof stopExecution === 'function') {
+                stopExecution();
+            }
             break;
         case 'REJECTED':
             statusText = 'Cadena Rechazada ✗';
             statusClass = 'status-rejected';
+            if (typeof stopExecution === 'function') {
+                stopExecution();
+            }
             break;
         default:
             statusText = 'Preparado';
