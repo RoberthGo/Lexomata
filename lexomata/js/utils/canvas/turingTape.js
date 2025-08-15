@@ -275,7 +275,7 @@ function drawTuringTape(ctx, canvasCssWidth, canvasCssHeight) {
 // --- FUNCIONES DE MANIPULACIÓN DE LA CINTA ---
 
 function clearTuringTape() {
-    if(isExecuting||isAutoExecuting)return;
+    if(isExecutionActive)return;
     turingTapeState.cells = [];
     const input = document.getElementById('turingStringInput');
     if (input) {
