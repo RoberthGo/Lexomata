@@ -21,7 +21,7 @@ const toolMap = {
     'i': { tool: 'setStart', buttonId: 'initial-state' },
     'f': { tool: 'setEnd', buttonId: 'final-state' },
     'u': { tool: 'undo', buttonId: 'undoButton' },
-    'r': { tool: 'redo', buttonId: 'redoButton' }
+    'p': { tool: 'redo', buttonId: 'redoButton' }
 };
 
 // Tools with click
