@@ -1026,7 +1026,7 @@ function initializeTuringTape() {
             if (turingTapeState.executionController) {
                 stopTuringStepExecution();
             }
-
+            stringInput.readOnly=false;
             tapeContainer.style.display = 'none';
             tapeContainer.classList.remove('with-string-analyzer');
 

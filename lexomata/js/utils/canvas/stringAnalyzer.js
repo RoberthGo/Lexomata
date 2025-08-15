@@ -1008,6 +1008,17 @@ function openAutoExecutionSpeedModal() {
             startButton.removeEventListener('click', handleStartAutoExecution);
             startButton.addEventListener('click', handleStartAutoExecution);
         }
+
+        // Evitar propagación de eventos dentro del modal
+        modal.addEventListener('wheel', function(e) {
+            e.stopPropagation();
+        });
+        modal.addEventListener('keydown', function(e) {
+            e.stopPropagation();
+        });
+        modal.addEventListener('mousedown', function(e) {
+            e.stopPropagation();
+        });
     }
 }
 
@@ -1015,42 +1026,15 @@ function openAutoExecutionSpeedModal() {
  * Cierra el modal de configuración de velocidad
  */
 function closeAutoExecutionSpeedModal() {
-    const modal = document.getElementById('autoExecutionSpeedModal');
-    if (modal) {
-        modal.style.display = 'none';
+    // Ocultar ambos modales si existen
+    const modal1 = document.getElementById('autoExecutionSpeedModal');
+    if (modal1) {
+        modal1.style.display = 'none';
     }
-}
-
-/**
- * Obtiene la velocidad seleccionada del modal
- * @returns {number} Velocidad en milisegundos
- */
-function getSelectedExecutionSpeed() {
-    const selectedRadio = document.querySelector('input[name="executionSpeed"]:checked');
-
-    if (!selectedRadio) {
-        return 1000; // Valor por defecto
+    const modal2 = document.getElementById('turingAutoExecutionSpeedModal');
+    if (modal2) {
+        modal2.style.display = 'none';
     }
-
-    if (selectedRadio.value === 'custom') {
-        const customInput = document.getElementById('customSpeedInput');
-        if (customInput) {
-            let customValue = parseInt(customInput.value);
-
-            // Validar el rango
-            if (isNaN(customValue) || customValue < 100) {
-                customValue = 100;
-            } else if (customValue > 10000) {
-                customValue = 10000;
-            }
-
-            return customValue;
-        }
-        return 1000;
-    }
-
-    return parseInt(selectedRadio.value);
-}
 
 /**
  * Maneja el inicio de la ejecución automática desde el modal
@@ -1166,3 +1150,4 @@ window.openAutoExecutionSpeedModal = openAutoExecutionSpeedModal;
 window.closeAutoExecutionSpeedModal = closeAutoExecutionSpeedModal;
 window.getSelectedExecutionSpeed = getSelectedExecutionSpeed;
 window.handleStartAutoExecution = handleStartAutoExecution;
+}
