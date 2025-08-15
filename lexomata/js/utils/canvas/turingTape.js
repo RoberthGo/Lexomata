@@ -650,32 +650,35 @@ function startTuringAutoExecutionFromInput(intervalMs = 1000) {
         return false;
     }
 
-    // Obtener la cadena inicial de la cinta
-    const inputString = getTuringTapeContent() || '';
 
-    try {
-        // Crear el controlador de ejecución
-        const controller = new TuringExecutionController(nodes, edges, inputString, 0);
+    // Si no hay controlador, aplicar el input y crear el controlador
+    if (!turingTapeState.executionController) {
+        const assigned = handleApplyTuringString();
+        if (!assigned) return false;
 
-        // Iniciar la ejecución paso a paso
-        startTuringStepExecution(controller);
+        const initInput = document.getElementById('turingStringInput');
+        if (initInput) initInput.readOnly = true;
 
-        // Luego iniciar la ejecución automática
-        const success = startTuringAutoExecution(intervalMs);
-
-        if (success) {
-            return true;
-        } else {
-            // Si falló la ejecución automática, detener la ejecución paso a paso
-            stopTuringStepExecution();
+        const inputString = getTuringTapeContent() || '';
+        try {
+            const controller = new TuringExecutionController(nodes, edges, inputString, 0);
+            startTuringStepExecution(controller);
+        } catch (error) {
+            console.error("Error al crear controlador de Turing:", error);
+            showMessage("Error al iniciar la ejecución automática de la máquina de Turing.");
             return false;
         }
-
-    } catch (error) {
-        console.error("Error al iniciar la ejecución automática:", error);
-        showMessage("Error al iniciar la ejecución automática de la máquina de Turing.");
-        return false;
     }
+    // Bloquear input en caso de no estar bloqueado
+    const inputElem = document.getElementById('turingStringInput');
+    if (inputElem) inputElem.readOnly = true;
+
+    // Iniciar ejecución automática
+    const autoSuccess = startTuringAutoExecution(intervalMs);
+    if (!autoSuccess) {
+        stopTuringStepExecution();
+    }
+    return autoSuccess;
 }
 
 /**
