@@ -83,6 +83,12 @@ function closeAutoExecutionSpeedModal() {
     if (modal) {
         modal.style.display = 'none';
     }
+    // Validación: desactivar ejecución y auto ejecución
+    turingTapeState.isAutoExecuting = false;
+    if (turingTapeState.autoExecutionTimer) {
+        clearTimeout(turingTapeState.autoExecutionTimer);
+        turingTapeState.autoExecutionTimer = null;
+    }
 }
 
 /**
@@ -282,6 +288,7 @@ function drawTuringTape(ctx, canvasCssWidth, canvasCssHeight) {
 // --- FUNCIONES DE MANIPULACIÓN DE LA CINTA ---
 
 function clearTuringTape() {
+    if(isExecuting||isAutoExecuting)return;
     turingTapeState.cells = [];
     const input = document.getElementById('turingStringInput');
     if (input) {
@@ -528,6 +535,7 @@ function startTuringAutoExecution(intervalMs = 1000) {
     // Si ya está ejecutando automáticamente, detener primero
     if (turingTapeState.isAutoExecuting) {
         stopTuringAutoExecution();
+        
     }
 
     turingTapeState.autoExecutionSpeed = intervalMs;
@@ -573,8 +581,9 @@ function stopTuringAutoExecution() {
         clearTimeout(turingTapeState.autoExecutionTimer);
         turingTapeState.autoExecutionTimer = null;
     }
-
     turingTapeState.isAutoExecuting = false;
+    // Validación: asegurar que cualquier otro flag de ejecución relevante esté en false
+    turingTapeState.isExecuting = false;
     console.log("Ejecución automática detenida");
 
     // Restaurar botones
@@ -727,6 +736,8 @@ function stopTuringStepExecution() {
     if (turingTapeState.isAutoExecuting) {
         stopTuringAutoExecution();
     }
+    // Validación: asegurar que cualquier otro flag de ejecución relevante esté en false
+    turingTapeState.isExecuting = false;
     if (stringInput) {
         stringInput.readOnly = false;
     }
@@ -810,6 +821,7 @@ function startTuringStepExecutionFromInput() {
  * @param {string} inputString - Cadena a aplicar
  */
 function applyStringToTuringTape(inputString) {
+    console.log("bruh");
     if (!inputString || typeof inputString !== 'string') {
         showMessage("Por favor, ingrese una cadena válida.");
         return false;
@@ -931,6 +943,32 @@ function initializeTuringTape() {
     if (toggleButton) toggleButton.addEventListener('click', toggleTuringTape);
     if (clearButton) clearButton.addEventListener('click', clearTuringTape);
 
+    // Deshabilitar el botón de limpiar si está en ejecución automática
+    function updateClearButtonState() {
+        if (clearButton) {
+            clearButton.disabled = turingTapeState.isAutoExecuting || turingTapeState.isExecuting;
+            console.log(turingTapeState.isAutoExecuting || turingTapeState.isExecuting)
+
+        }
+    }
+
+    // Actualizar estado al iniciar/detener auto ejecución
+    const origStartAuto = window.startTuringAutoExecution;
+    window.startTuringAutoExecution = function(...args) {
+        const result = origStartAuto.apply(this, args);
+        updateClearButtonState();
+        return result;
+    };
+    const origStopAuto = window.stopTuringAutoExecution;
+    window.stopTuringAutoExecution = function(...args) {
+        const result = origStopAuto.apply(this, args);
+        updateClearButtonState();
+        return result;
+    };
+
+    // También actualizar al cargar
+    updateClearButtonState();
+
     // Event listeners para la entrada de cadena
     if (stringInput) stringInput.addEventListener('keydown', handleTuringStringInputKeydown);
 
@@ -1026,7 +1064,9 @@ function initializeTuringTape() {
             if (turingTapeState.executionController) {
                 stopTuringStepExecution();
             }
+            turingTapeState.isAutoExecuting = false;
             stringInput.readOnly=false;
+            console.log("YO BIEN EXRITOR");
             tapeContainer.style.display = 'none';
             tapeContainer.classList.remove('with-string-analyzer');
 

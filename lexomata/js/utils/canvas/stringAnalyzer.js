@@ -46,6 +46,11 @@ function hideStringAnalyzer() {
         if (turingContainer) {
             turingContainer.classList.remove('with-string-analyzer');
         }
+        // Validación: desactivar ejecución y auto ejecución
+        stringAnalyzerState.isAnalyzing = false;
+        if (stringAnalyzerState.isAutoExecuting) {
+            stopAutomataAutoExecution();
+        }
     }
 }
 
@@ -452,13 +457,12 @@ function startAutomataAnalysis() {
         showRegexValidationErrors(regexValidation.errors);
         return;
     }
-
+    stringAnalyzerState.isAnalyzing=true;
     try {
         // Activar estado de ejecución para bloquear interacciones del canvas
         if (typeof startExecution === 'function') {
             startExecution();
         }
-
         // Crear una nueva instancia del ExecutionController
         const controller = new ExecutionController(nodes, edges, stringAnalyzerState.inputString.trim());
 
@@ -553,6 +557,8 @@ function resetStringAnalyzer() {
 }
 
 function clearStringAnalyzer() {
+    if(stringAnalyzerState.isAutoExecuting||stringAnalyzerState.isAnalyzing||isExecutionActive)return;
+    else console.log(stringAnalyzerState.isAutoExecuting+" "+stringAnalyzerState.isAnalyzing)
     stringAnalyzerState.inputString = '';
     stringAnalyzerState.characters = [];
     stringAnalyzerState.currentPosition = 0;
@@ -787,6 +793,7 @@ function updatePointerPosition(relativePosition) {
 // --- FUNCIONES DE EVENTOS ---
 
 function handleStringInput() {
+    if(isExecutionActive||stringAnalyzerState.isAnalyzing||stringAnalyzerState.isAutoExecuting)return;
     const stringInput = document.getElementById('stringInput');
     if (stringInput) {
         const inputValue = stringInput.value.trim();
@@ -817,6 +824,11 @@ function closeStringInputModal() {
     const modal = document.getElementById('stringInputModal');
     if (modal) {
         modal.style.display = 'none';
+    }
+    // Validación: desactivar ejecución y auto ejecución
+    stringAnalyzerState.isAnalyzing = false;
+    if (stringAnalyzerState.isAutoExecuting) {
+        stopAutomataAutoExecution();
     }
 }
 
@@ -871,6 +883,30 @@ function initializeStringAnalyzer() {
     if (clearButton) {
         clearButton.addEventListener('click', clearStringAnalyzer);
     }
+
+    // Deshabilitar el botón de limpiar si está en ejecución automática
+    function updateClearButtonState() {
+        if (clearButton) {
+            clearButton.disabled = stringAnalyzerState.isAutoExecuting || stringAnalyzerState.isAutoExecuting;
+        }
+    }
+
+    // Actualizar estado al iniciar/detener auto ejecución
+    const origStartAuto = window.startAutoExecution;
+    window.startAutoExecution = function(...args) {
+        const result = origStartAuto.apply(this, args);
+        updateClearButtonState();
+        return result;
+    };
+    const origStopAuto = window.stopAutoExecution;
+    window.stopAutoExecution = function(...args) {
+        const result = origStopAuto.apply(this, args);
+        updateClearButtonState();
+        return result;
+    };
+
+    // También actualizar al cargar
+    updateClearButtonState();
 
     if (closeButton) {
         closeButton.addEventListener('click', hideStringAnalyzer);
@@ -1035,21 +1071,35 @@ function closeAutoExecutionSpeedModal() {
     if (modal2) {
         modal2.style.display = 'none';
     }
+    // Validación: desactivar ejecución y auto ejecución
+    stringAnalyzerState.isAnalyzing = false;
+    if (stringAnalyzerState.isAutoExecuting) {
+        stopAutomataAutoExecution();
+    }
+}
 
 /**
  * Maneja el inicio de la ejecución automática desde el modal
  */
 function handleStartAutoExecution() {
     const speed = getSelectedExecutionSpeed();
-
-    // Cerrar el modal
     closeAutoExecutionSpeedModal();
 
-    // Iniciar la ejecución automática
-    const success = startTuringAutoExecutionFromInput(speed);
+    // Detectar modo actual: turing o automata
+    let isTuringMode = false;
+    if (stringAnalyzerState.executionController && stringAnalyzerState.executionController.type === 'turing') {
+        isTuringMode = true;
+    }
+
+    let success = false;
+    if (isTuringMode) {
+        success = startTuringAutoExecutionFromInput(speed);
+    } else {
+        success = startAutomataAutoExecutionFromInput(speed);
+    }
 
     if (success) {
-        console.log(`Ejecución automática de autómata iniciada con velocidad de ${speed}ms`);
+        console.log(`Ejecución automática iniciada con velocidad de ${speed}ms en modo ${isTuringMode ? 'Turing' : 'Autómata'}`);
     }
 }
 
@@ -1150,4 +1200,4 @@ window.openAutoExecutionSpeedModal = openAutoExecutionSpeedModal;
 window.closeAutoExecutionSpeedModal = closeAutoExecutionSpeedModal;
 window.getSelectedExecutionSpeed = getSelectedExecutionSpeed;
 window.handleStartAutoExecution = handleStartAutoExecution;
-}
+
