@@ -16,7 +16,9 @@ const toolMap = {
     't': { tool: 'addEdge', buttonId: 'edge' },
     'd': { tool: 'delete', buttonId: 'delete' },
     'i': { tool: 'setStart', buttonId: 'initial-state' },
-    'f': { tool: 'setEnd', buttonId: 'final-state' }
+    'f': { tool: 'setEnd', buttonId: 'final-state' },
+    'u': { tool: 'undo', buttonId: 'undoButton' },
+    'r': { tool: 'redo', buttonId: 'redoButton' }
 };
 
 // Tools with click
