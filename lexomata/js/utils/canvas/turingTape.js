@@ -125,22 +125,38 @@ function handleStartAutoExecution() {
     // Cerrar el modal
     closeAutoExecutionSpeedModal();
 
+    // Si no está ejecutando, iniciar la ejecución paso a paso primero
+    if (!turingTapeState.executionController) {
+        const assignationString = handleApplyTuringString();
+        if (!assignationString) return;
+        const started = startTuringStepExecutionFromInput();
+        if (!started) return;
+    }
+
     // Iniciar la ejecución automática
     const success = startTuringAutoExecutionFromInput(speed);
 
     if (success) {
-        // Cambiar el botón de auto ejecución para mostrar que está activo
+        // Cambiar el botón de auto ejecución para mostrar que está activo y bloquearlo
         const autoButton = document.getElementById('autoExecuteTuringButton');
         if (autoButton) {
             autoButton.innerHTML = '<i class="fas fa-stop"></i> Auto';
             autoButton.classList.add('auto-executing');
+            autoButton.disabled = true;
         }
 
-        // También cambiar el botón de ejecutar
+        // También cambiar el botón de ejecutar y bloquearlo
         const executeButton = document.getElementById('executeTuringButton');
         if (executeButton) {
             executeButton.innerHTML = '<i class="fas fa-stop"></i> Detener';
+            executeButton.disabled = true;
         }
+
+        // Bloquear los botones de paso a paso
+        const stepForwardButton = document.getElementById('turingStepForwardButton');
+        const stepBackwardButton = document.getElementById('turingStepBackwardButton');
+        if (stepForwardButton) stepForwardButton.disabled = true;
+        if (stepBackwardButton) stepBackwardButton.disabled = true;
     }
 }
 
@@ -560,6 +576,27 @@ function stopTuringAutoExecution() {
 
     turingTapeState.isAutoExecuting = false;
     console.log("Ejecución automática detenida");
+
+    // Restaurar botones
+    const autoButton = document.getElementById('autoExecuteTuringButton');
+    if (autoButton) {
+        autoButton.innerHTML = '<i class="fas fa-play"></i> Auto';
+        autoButton.classList.remove('auto-executing');
+        autoButton.disabled = false;
+    }
+
+    const executeButton = document.getElementById('executeTuringButton');
+    if (executeButton) {
+        executeButton.innerHTML = '<i class="fas fa-play"></i> Ejecutar';
+        executeButton.disabled = false;
+    }
+
+    // Habilitar los botones de paso a paso
+    const stepForwardButton = document.getElementById('turingStepForwardButton');
+    const stepBackwardButton = document.getElementById('turingStepBackwardButton');
+    if (stepForwardButton) stepForwardButton.disabled = false;
+    if (stepBackwardButton) stepBackwardButton.disabled = false;
+    updateTuringStepButtons();
 }
 
 /**

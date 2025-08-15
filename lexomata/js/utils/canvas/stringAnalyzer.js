@@ -1056,7 +1056,7 @@ function handleStartAutoExecution() {
     closeAutoExecutionSpeedModal();
 
     // Iniciar la ejecución automática
-    const success = startAutomataAutoExecutionFromInput(speed);
+    const success = startTuringAutoExecutionFromInput(speed);
 
     if (success) {
         console.log(`Ejecución automática de autómata iniciada con velocidad de ${speed}ms`);
