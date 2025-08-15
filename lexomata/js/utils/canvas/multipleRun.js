@@ -62,14 +62,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Mostrar resultado según status
         if (finalState.status === 'ACCEPTED') {
-            resultEl.textContent = 'Aceptada';
-            resultEl.classList.add('result-accept');
+            if (mode === 'turing') {
+                // Mostrar el resultado final de la cinta
+                resultEl.textContent = controller.tapeToString(finalState.tapeState);
+                resultEl.classList.add('result-accept');
+            } else {
+                resultEl.textContent = 'Aceptada';
+                resultEl.classList.add('result-accept');
+            }
         } else if (finalState.status === 'TIMEOUT') {
             resultEl.textContent = 'Timeout';
             resultEl.classList.add('result-reject');
         } else {
-            resultEl.textContent = 'Rechazado';
-            resultEl.classList.add('result-reject');
+            if (mode === 'turing') {
+                // Mostrar el resultado final de la cinta aunque sea rechazado
+                resultEl.textContent = controller.tapeToString(finalState.tapeState);
+                resultEl.classList.add('result-reject');
+            } else {
+                resultEl.textContent = 'Rechazado';
+                resultEl.classList.add('result-reject');
+            }
         }
     }
 
