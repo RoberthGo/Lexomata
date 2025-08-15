@@ -137,26 +137,13 @@ function handleStartAutoExecution() {
     const success = startTuringAutoExecutionFromInput(speed);
 
     if (success) {
-        // Cambiar el botón de auto ejecución para mostrar que está activo y bloquearlo
+        // Indicar estado activo en el botón auto
         const autoButton = document.getElementById('autoExecuteTuringButton');
         if (autoButton) {
             autoButton.innerHTML = '<i class="fas fa-stop"></i> Auto';
             autoButton.classList.add('auto-executing');
-            autoButton.disabled = true;
         }
-
-        // También cambiar el botón de ejecutar y bloquearlo
-        const executeButton = document.getElementById('executeTuringButton');
-        if (executeButton) {
-            executeButton.innerHTML = '<i class="fas fa-stop"></i> Detener';
-            executeButton.disabled = true;
-        }
-
-        // Bloquear los botones de paso a paso
-        const stepForwardButton = document.getElementById('turingStepForwardButton');
-        const stepBackwardButton = document.getElementById('turingStepBackwardButton');
-        if (stepForwardButton) stepForwardButton.disabled = true;
-        if (stepBackwardButton) stepBackwardButton.disabled = true;
+        // Note: leave other controls enabled for pause/resume
     }
 }
 
@@ -934,14 +921,20 @@ function initializeTuringTape() {
     // Event listeners para la entrada de cadena
     if (stringInput) stringInput.addEventListener('keydown', handleTuringStringInputKeydown);
 
-    // Event listener para el botón de auto ejecución
+    // Event listener para el botón de auto ejecución: pause/resume or open modal
     if (autoExecuteButton) {
         autoExecuteButton.addEventListener('click', () => {
-            // Si ya está ejecutando automáticamente, detener
             if (turingTapeState.isAutoExecuting) {
-                stopTuringStepExecution();
+                // Pausar la ejecución automática
+                stopTuringAutoExecution();
+            } else if (turingTapeState.executionController) {
+                // Reanudar la ejecución automática con la velocidad actual
+                startTuringAutoExecution(turingTapeState.autoExecutionSpeed);
+                // Actualizar el botón para indicar pausa
+                autoExecuteButton.innerHTML = '<i class="fas fa-stop"></i> Auto';
+                autoExecuteButton.classList.add('auto-executing');
             } else {
-                // Abrir el modal de configuración de velocidad
+                // Iniciar configuración de velocidad para nueva ejecución
                 openAutoExecutionSpeedModal();
             }
         });
@@ -1026,7 +1019,7 @@ function initializeTuringTape() {
             if (turingTapeState.executionController) {
                 stopTuringStepExecution();
             }
-            stringInput.readOnly=false;
+            stringInput.readOnly = false;
             tapeContainer.style.display = 'none';
             tapeContainer.classList.remove('with-string-analyzer');
 
