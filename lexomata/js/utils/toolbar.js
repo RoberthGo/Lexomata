@@ -5,7 +5,10 @@ function changeTool(clickedButton, tool) {
         button.classList.remove('active');
     });
 
-    clickedButton.classList.add('active');
+    if (!clickedButton.disabled) {
+        clickedButton.classList.add('active');
+    }
+
     currentTool = tool;
 }
 
@@ -81,5 +84,19 @@ document.addEventListener('DOMContentLoaded', () => {
         toolbarToggleButton.addEventListener('click', () => {
             toolbar.classList.toggle('collapsed');
         });
+    }
+});
+
+document.addEventListener('keydown', (event) => {
+    const key = event.key.toLowerCase();
+    const toolConfig = toolMap[key];
+
+    if (toolConfig) {
+        const button = document.getElementById(toolConfig.buttonId);
+
+        if (button && !button.disabled) {
+            const clickedButton = button;
+            changeTool(clickedButton, toolConfig.tool);
+        }
     }
 });
