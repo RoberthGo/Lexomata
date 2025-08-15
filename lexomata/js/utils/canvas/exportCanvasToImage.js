@@ -35,7 +35,7 @@ function updateExportPreview() {
         relacionDeAspecto = canvas.height / canvas.width;
     } else {
         // Para todo el contenido, calcular basándose en el bounding box
-        const padding = 50;
+        const padding = 20;
         const bounds = calculateContentBoundingBox();
         const contentWidth = (bounds.maxX - bounds.minX) + (padding * 2);
         const contentHeight = (bounds.maxY - bounds.minY) + (padding * 2);
@@ -106,7 +106,7 @@ function generateCombinedImage(targetWidth, targetHeight) {
         renderPanX = panX * scaleFactor;
         renderPanY = panY * scaleFactor;
     } else {
-        const padding = 50;
+        const padding = 20;
         const bounds = calculateContentBoundingBox();
         const contentWidth = (bounds.maxX - bounds.minX) + (padding * 2);
         renderScale = contentWidth > 0 ? targetWidth / contentWidth : 1;
@@ -297,7 +297,7 @@ function exportImage() {
     if (exportArea === 'current') {
         relacionDeAspecto = canvas.height / canvas.width;
     } else {
-        const padding = 50;
+        const padding = 20;
         const bounds = calculateContentBoundingBox();
         const contentWidth = (bounds.maxX - bounds.minX) + (padding * 2);
         const contentHeight = (bounds.maxY - bounds.minY) + (padding * 2);

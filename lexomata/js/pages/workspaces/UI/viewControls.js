@@ -1,5 +1,5 @@
 /**
- * Calcula el rectángulo que envuelve a todos los nodos.
+ * Calcula el rectángulo que envuelve a todos los nodos y aristas.
  * @returns {object} - Un objeto con minX, minY, maxX, maxY.
  */
 function calculateContentBoundingBox() {
@@ -9,11 +9,64 @@ function calculateContentBoundingBox() {
 
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
+    // 1. Incluir todos los nodos en el cálculo
     nodes.forEach(node => {
         minX = Math.min(minX, node.x - node.radius);
         minY = Math.min(minY, node.y - node.radius);
         maxX = Math.max(maxX, node.x + node.radius);
         maxY = Math.max(maxY, node.y + node.radius);
+    });
+
+    // 2. Incluir todas las aristas y sus etiquetas
+    edges.forEach(edge => {
+        const fromNode = nodes.find(n => n.id === edge.from);
+        const toNode = nodes.find(n => n.id === edge.to);
+        if (!fromNode || !toNode) return;
+
+        // A. Aristas de bucle (self-loops)
+        if (fromNode.id === toNode.id) {
+            const node = fromNode;
+            const baseAngle = -Math.PI / 2; // Simplificado para el cálculo del BBox
+            const controlPointOffset = 80.0;
+            const midX = node.x + node.radius * Math.cos(baseAngle);
+            const midY = node.y + node.radius * Math.sin(baseAngle);
+            const controlX = midX + controlPointOffset * Math.cos(baseAngle);
+            const controlY = midY + controlPointOffset * Math.sin(baseAngle);
+
+            minX = Math.min(minX, controlX);
+            minY = Math.min(minY, controlY);
+            maxX = Math.max(maxX, controlX);
+            maxY = Math.max(maxY, controlY);
+
+            // B. Aristas curvas (bidireccionales)
+        } else if (edges.some(e => e.from === edge.to && e.to === edge.from)) {
+            const dx = toNode.x - fromNode.x;
+            const dy = toNode.y - fromNode.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const perpX = -dy / distance;
+            const perpY = dx / distance;
+            const maxCurvature = 40;
+            const curvature = Math.min(maxCurvature, distance * 0.15);
+            const controlX = (fromNode.x + toNode.x) / 2 + perpX * curvature;
+            const controlY = (fromNode.y + toNode.y) / 2 + perpY * curvature;
+
+            minX = Math.min(minX, controlX);
+            minY = Math.min(minY, controlY);
+            maxX = Math.max(maxX, controlX);
+            maxY = Math.max(maxY, controlY);
+        }
+
+        // C. Incluir las etiquetas de todas las aristas
+        if (edge.labels) {
+            edge.labels.forEach(label => {
+                if (label.x !== undefined && label.y !== undefined && label.width && label.height) {
+                    minX = Math.min(minX, label.x);
+                    minY = Math.min(minY, label.y);
+                    maxX = Math.max(maxX, label.x + label.width);
+                    maxY = Math.max(maxY, label.y + label.height);
+                }
+            });
+        }
     });
 
     return { minX, minY, maxX, maxY };
