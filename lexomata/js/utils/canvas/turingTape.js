@@ -368,8 +368,8 @@ function initializeTuringTapeWithInput(inputString, headPosition = 0) {
         turingTapeState.cells.push('□');
     }
 
-    // Establecer la posición del cabezal en la posición especificada (por defecto 0)
-    turingTapeState.headPosition = Math.max(0, headPosition);
+    // Siempre reiniciar la posición del cabezal a 0 al insertar la cadena
+    turingTapeState.headPosition = 0;
 
     drawTuringTape();
 }
@@ -687,7 +687,9 @@ function stopTuringStepExecution() {
     if (turingTapeState.isAutoExecuting) {
         stopTuringAutoExecution();
     }
-
+    if (stringInput) {
+        stringInput.readOnly = false;
+    }
     turingTapeState.executionController = null;
     setTuringTapeStepMode(false);
 
@@ -829,6 +831,7 @@ function handleTuringStringInputKeydown(event) {
 function setTuringTapeExecutionMode(isExecuting) {
     const inputSection = document.querySelector('.turing-tape-input-section');
     const executeButton = document.getElementById('executeTuringButton');
+    const stringInput = document.getElementById('turingStringInput');
 
     if (inputSection) {
         if (isExecuting) {
@@ -836,6 +839,10 @@ function setTuringTapeExecutionMode(isExecuting) {
         } else {
             inputSection.classList.remove('execution-mode');
         }
+    }
+
+    if (stringInput) {
+        stringInput.readOnly = !!isExecuting;
     }
 
     if (executeButton) {
@@ -931,6 +938,9 @@ function initializeTuringTape() {
     if (stopStepButton) {
         stopStepButton.addEventListener('click', () => {
             stopTuringStepExecution();
+            if (stringInput) {
+                stringInput.readOnly = false;
+            }
             // Restablecer el botón de ejecutar
             if (executeButton) {
                 executeButton.innerHTML = '<i class="fas fa-play"></i> Ejecutar';
