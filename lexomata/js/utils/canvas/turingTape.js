@@ -934,6 +934,8 @@ function initializeTuringTape() {
             // Restablecer el botón de ejecutar
             if (executeButton) {
                 executeButton.innerHTML = '<i class="fas fa-play"></i> Ejecutar';
+                const input = document.getElementById('turingStringInput');
+                if (input) input.readOnly = false;
             }
         });
     }
@@ -992,7 +994,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(initializeTuringTape, 100);
 });
 
-// Hacer funciones disponibles globalmente
+// Hacer funciones disponibles globalmente  
 if (typeof window !== 'undefined') {
     window.applyStringToTuringTape = applyStringToTuringTape;
     window.handleApplyTuringString = handleApplyTuringString;
