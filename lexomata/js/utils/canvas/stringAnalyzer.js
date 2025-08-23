@@ -247,52 +247,61 @@ function showRegexValidationErrors(errors) {
  * @param {number} intervalMs - Intervalo en milisegundos entre cada paso
  */
 function startAutomataAutoExecution(intervalMs = 1000) {
-    // Validar el intervalo
-    if (intervalMs < 100) {
-        console.warn("El intervalo mínimo es de 100ms");
-        intervalMs = 100;
+    // Limpiar contenedor
+    container.innerHTML = '';
+
+    // Calcular rango visible
+    const maxVisible = stringAnalyzerState.maxVisibleChars;
+    let startIndex = Math.max(0, currentPos - Math.floor(maxVisible / 2));
+    let endIndex = Math.min(characters.length, startIndex + maxVisible);
+
+    // Ajustar si estamos cerca del final
+    if (endIndex - startIndex < maxVisible && startIndex > 0) {
+        startIndex = Math.max(0, endIndex - maxVisible);
     }
 
-    if (intervalMs > 10000) {
-        console.warn("El intervalo máximo es de 10000ms (10 segundos)");
-        intervalMs = 10000;
-    }
+    // Crear elementos para cada carácter visible
+    for (let i = startIndex; i < endIndex; i++) {
+        const charElement = document.createElement('div');
+        charElement.className = 'string-character';
+        charElement.textContent = characters[i];
 
-    // Verificar que hay un controlador de ejecución activo
-    if (!stringAnalyzerState.executionController) {
-        console.error("No hay un controlador de ejecución activo");
-        return false;
-    }
-
-    // Si ya está ejecutando automáticamente, detener primero
-    if (stringAnalyzerState.isAutoExecuting) {
-        stopAutomataAutoExecution();
-    }
-
-    stringAnalyzerState.autoExecutionSpeed = intervalMs;
-    stringAnalyzerState.isAutoExecuting = true;
-
-    // Función recursiva para ejecutar pasos automáticamente
-    function executeAutoStep() {
-        if (!stringAnalyzerState.isAutoExecuting || !stringAnalyzerState.executionController) {
-            return;
+        // Marcar carácter actual (siguiente a procesar)
+        if (i === currentPos) {
+            charElement.classList.add('current');
         }
 
-        // Verificar si la ejecución ha terminado
-        const controller = stringAnalyzerState.executionController;
-        const history = controller.getHistory();
-        const currentStep = controller.currentStep;
-        const currentState = controller.getCurrentState();
-
-        // Si ya llegamos al final o el estado indica que terminó, detener la ejecución automática
-        if (currentStep >= history.length - 1 ||
-            (currentState && (currentState.status === 'ACCEPTED' ||
-                currentState.status === 'REJECTED' ||
-                currentState.status === 'TIMEOUT'))) {
-            console.log("Ejecución automática completada");
-            stopAutomataAutoExecution();
-            return;
+        // Marcar caracteres ya procesados
+        if (i < currentPos) {
+            charElement.classList.add('processed');
         }
+
+        // Agregar índice
+        const indexElement = document.createElement('div');
+        indexElement.className = 'character-index';
+        indexElement.textContent = i;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'character-wrapper';
+        wrapper.appendChild(charElement);
+        wrapper.appendChild(indexElement);
+
+        container.appendChild(wrapper);
+    }
+
+    // Crear o actualizar el puntero visual (flecha)
+    let pointer = document.querySelector('.string-analyzer-pointer');
+    if (!pointer) {
+        pointer = document.createElement('div');
+        pointer.className = 'string-analyzer-pointer';
+        pointer.innerHTML = '&#8595;'; // Flecha hacia abajo
+        pointer.style.position = 'absolute';
+        pointer.style.top = '40px'; // Ajusta según el diseño
+        pointer.style.transition = 'left 0.2s';
+        container.parentElement.appendChild(pointer);
+    }
+    updatePointerPosition(currentPos - startIndex);
+            
 
         // Ejecutar el siguiente paso
         stepForward();
@@ -309,7 +318,7 @@ function startAutomataAutoExecution(intervalMs = 1000) {
 
         // Programar el siguiente paso
         stringAnalyzerState.autoExecutionTimer = setTimeout(executeAutoStep, stringAnalyzerState.autoExecutionSpeed);
-    }
+    
 
     // Iniciar la ejecución automática
     stringAnalyzerState.autoExecutionTimer = setTimeout(executeAutoStep, stringAnalyzerState.autoExecutionSpeed);
@@ -782,12 +791,23 @@ function updatePointerPosition(relativePosition) {
 
     pointer.style.display = 'block';
 
-    // Calcular posición del puntero
-    const characterWidth = 45; // Ancho de cada carácter + margen
-    const containerPadding = 20;
-    const pointerOffset = containerPadding + (relativePosition * characterWidth) + (characterWidth / 2);
-
-    pointer.style.left = `${pointerOffset}px`;
+    // Buscar el wrapper actual para centrar la flecha
+    const container = document.getElementById('stringCharacterContainer');
+    const wrappers = container ? container.querySelectorAll('.character-wrapper') : null;
+    let targetWrapper = wrappers && wrappers[relativePosition] ? wrappers[relativePosition] : null;
+    if (targetWrapper) {
+        // Centrar la flecha respecto al wrapper actual
+        const rect = targetWrapper.getBoundingClientRect();
+        const parentRect = container.parentElement.getBoundingClientRect();
+        const center = rect.left + rect.width / 2 - parentRect.left;
+        pointer.style.left = `${center}px`;
+    } else {
+        // Fallback: cálculo clásico
+        const characterWidth = 45;
+        const containerPadding = 20;
+        const pointerOffset = containerPadding + (relativePosition * characterWidth) + (characterWidth / 2);
+        pointer.style.left = `${pointerOffset}px`;
+    }
 }
 
 // --- FUNCIONES DE EVENTOS ---
