@@ -296,5 +296,5 @@ function initializeEdgeValidations() {
     // Redibuja el canvas para reflejar los cambios
     redrawCanvas();
 
-    console.log(`Validaciones inicializadas para modo: ${currentMode}`);
+    
 }

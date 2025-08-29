@@ -83,10 +83,19 @@ function handleLabelReassignmentClick(event) {
  * @param {string} newDestinationNodeId - ID del nuevo nodo destino
  */
 function reassignLabelDestinations(selectedLabels, newDestinationNodeId) {
+
     if (!selectedLabels || selectedLabels.length === 0) return;
 
+    // Depurar transiciones que ya tienen como destino el nodo seleccionado
+    const filteredLabels = selectedLabels.filter(labelInfo => {
+        const edge = edges.find(e => e.id == labelInfo.edgeId);
+        return edge && edge.to !== newDestinationNodeId;
+    });
+
+    if (filteredLabels.length === 0) return;
+
     const labelsByEdge = {};
-    selectedLabels.forEach(labelInfo => {
+    filteredLabels.forEach(labelInfo => {
         if (!labelsByEdge[labelInfo.edgeId]) {
             labelsByEdge[labelInfo.edgeId] = [];
         }
@@ -149,10 +158,19 @@ function reassignLabelDestinations(selectedLabels, newDestinationNodeId) {
  * @param {string} newOriginNodeId - ID del nuevo nodo origen
  */
 function reassignLabelOrigins(selectedLabels, newOriginNodeId) {
+
     if (!selectedLabels || selectedLabels.length === 0) return;
 
+    // Depurar transiciones que ya tienen como origen el nodo seleccionado
+    const filteredLabels = selectedLabels.filter(labelInfo => {
+        const edge = edges.find(e => e.id == labelInfo.edgeId);
+        return edge && edge.from !== newOriginNodeId;
+    });
+
+    if (filteredLabels.length === 0) return;
+
     const labelsByEdge = {};
-    selectedLabels.forEach(labelInfo => {
+    filteredLabels.forEach(labelInfo => {
         if (!labelsByEdge[labelInfo.edgeId]) {
             labelsByEdge[labelInfo.edgeId] = [];
         }
