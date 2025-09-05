@@ -1,5 +1,6 @@
 # Lexomata
 
 
+
 ## Website:
-https://roberthgo.github.io/Lexomata/
+[Lexomata](https://roberthgo.github.io/Lexomata/)
