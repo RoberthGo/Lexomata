@@ -247,70 +247,29 @@ function showRegexValidationErrors(errors) {
  * @param {number} intervalMs - Intervalo en milisegundos entre cada paso
  */
 function startAutomataAutoExecution(intervalMs = 1000) {
-    // Limpiar contenedor
-    container.innerHTML = '';
+    if (stringAnalyzerState.isAutoExecuting) return false;
 
-    // Calcular rango visible
-    const maxVisible = stringAnalyzerState.maxVisibleChars;
-    let startIndex = Math.max(0, currentPos - Math.floor(maxVisible / 2));
-    let endIndex = Math.min(characters.length, startIndex + maxVisible);
+    stringAnalyzerState.isAutoExecuting = true;
+    stringAnalyzerState.autoExecutionSpeed = intervalMs;
 
-    // Ajustar si estamos cerca del final
-    if (endIndex - startIndex < maxVisible && startIndex > 0) {
-        startIndex = Math.max(0, endIndex - maxVisible);
+    const controller = stringAnalyzerState.executionController;
+    if (!controller) {
+        console.error("No se puede iniciar la ejecución automática sin un controlador.");
+        stringAnalyzerState.isAutoExecuting = false;
+        return false;
     }
 
-    // Crear elementos para cada carácter visible
-    for (let i = startIndex; i < endIndex; i++) {
-        const charElement = document.createElement('div');
-        charElement.className = 'string-character';
-        charElement.textContent = characters[i];
-
-        // Marcar carácter actual (siguiente a procesar)
-        if (i === currentPos) {
-            charElement.classList.add('current');
-        }
-
-        // Marcar caracteres ya procesados
-        if (i < currentPos) {
-            charElement.classList.add('processed');
-        }
-
-        // Agregar índice
-        const indexElement = document.createElement('div');
-        indexElement.className = 'character-index';
-        indexElement.textContent = i;
-
-        const wrapper = document.createElement('div');
-        wrapper.className = 'character-wrapper';
-        wrapper.appendChild(charElement);
-        wrapper.appendChild(indexElement);
-
-        container.appendChild(wrapper);
-    }
-
-    // Crear o actualizar el puntero visual (flecha)
-    let pointer = document.querySelector('.string-analyzer-pointer');
-    if (!pointer) {
-        pointer = document.createElement('div');
-        pointer.className = 'string-analyzer-pointer';
-        pointer.innerHTML = '&#8595;'; // Flecha hacia abajo
-        pointer.style.position = 'absolute';
-        pointer.style.top = '40px'; // Ajusta según el diseño
-        pointer.style.transition = 'left 0.2s';
-        container.parentElement.appendChild(pointer);
-    }
-    updatePointerPosition(currentPos - startIndex);
-            
+    function executeAutoStep() {
+        if (!stringAnalyzerState.isAutoExecuting) return;
 
         // Ejecutar el siguiente paso
         stepForward();
 
-        // Verificar nuevamente el estado después del paso (por si terminó)
-        const newCurrentState = controller.getCurrentState();
-        if (newCurrentState && (newCurrentState.status === 'ACCEPTED' ||
-            newCurrentState.status === 'REJECTED' ||
-            newCurrentState.status === 'TIMEOUT')) {
+        // Verificar el estado después del paso
+        const currentState = controller.getCurrentState();
+        if (currentState && (currentState.status === 'ACCEPTED' ||
+            currentState.status === 'REJECTED' ||
+            currentState.status === 'TIMEOUT')) {
             console.log("Ejecución automática completada - estado final alcanzado");
             stopAutomataAutoExecution();
             return;
@@ -318,10 +277,10 @@ function startAutomataAutoExecution(intervalMs = 1000) {
 
         // Programar el siguiente paso
         stringAnalyzerState.autoExecutionTimer = setTimeout(executeAutoStep, stringAnalyzerState.autoExecutionSpeed);
-    
+    }
 
     // Iniciar la ejecución automática
-    stringAnalyzerState.autoExecutionTimer = setTimeout(executeAutoStep, stringAnalyzerState.autoExecutionSpeed);
+    executeAutoStep();
 
     console.log(`Ejecución automática de autómata iniciada con intervalo de ${intervalMs}ms`);
     return true;
@@ -466,7 +425,7 @@ function startAutomataAnalysis() {
         showRegexValidationErrors(regexValidation.errors);
         return;
     }
-    stringAnalyzerState.isAnalyzing=true;
+    stringAnalyzerState.isAnalyzing = true;
     try {
         // Activar estado de ejecución para bloquear interacciones del canvas
         if (typeof startExecution === 'function') {
@@ -566,8 +525,8 @@ function resetStringAnalyzer() {
 }
 
 function clearStringAnalyzer() {
-    if(stringAnalyzerState.isAutoExecuting||stringAnalyzerState.isAnalyzing||isExecutionActive)return;
-    else console.log(stringAnalyzerState.isAutoExecuting+" "+stringAnalyzerState.isAnalyzing)
+    if (stringAnalyzerState.isAutoExecuting || stringAnalyzerState.isAnalyzing || isExecutionActive) return;
+    else console.log(stringAnalyzerState.isAutoExecuting + " " + stringAnalyzerState.isAnalyzing)
     stringAnalyzerState.inputString = '';
     stringAnalyzerState.characters = [];
     stringAnalyzerState.currentPosition = 0;
@@ -813,7 +772,7 @@ function updatePointerPosition(relativePosition) {
 // --- FUNCIONES DE EVENTOS ---
 
 function handleStringInput() {
-    if(isExecutionActive||stringAnalyzerState.isAnalyzing||stringAnalyzerState.isAutoExecuting)return;
+    if (isExecutionActive || stringAnalyzerState.isAnalyzing || stringAnalyzerState.isAutoExecuting) return;
     const stringInput = document.getElementById('stringInput');
     if (stringInput) {
         const inputValue = stringInput.value.trim();
@@ -913,13 +872,13 @@ function initializeStringAnalyzer() {
 
     // Actualizar estado al iniciar/detener auto ejecución
     const origStartAuto = window.startAutoExecution;
-    window.startAutoExecution = function(...args) {
+    window.startAutoExecution = function (...args) {
         const result = origStartAuto.apply(this, args);
         updateClearButtonState();
         return result;
     };
     const origStopAuto = window.stopAutoExecution;
-    window.stopAutoExecution = function(...args) {
+    window.stopAutoExecution = function (...args) {
         const result = origStopAuto.apply(this, args);
         updateClearButtonState();
         return result;
@@ -1066,13 +1025,13 @@ function openAutoExecutionSpeedModal() {
         }
 
         // Evitar propagación de eventos dentro del modal
-        modal.addEventListener('wheel', function(e) {
+        modal.addEventListener('wheel', function (e) {
             e.stopPropagation();
         });
-        modal.addEventListener('keydown', function(e) {
+        modal.addEventListener('keydown', function (e) {
             e.stopPropagation();
         });
-        modal.addEventListener('mousedown', function(e) {
+        modal.addEventListener('mousedown', function (e) {
             e.stopPropagation();
         });
     }
