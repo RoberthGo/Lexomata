@@ -237,10 +237,14 @@ function startEdgeDestinationReassignment(edgeIds) {
     // Cambiar cursor para indicar modo de reasignación
     canvas.style.cursor = 'crosshair';
 
-    // Agregar event listeners temporales
+    // Remover preventDefault del mousemove si es que existe
     canvas.addEventListener('mousemove', handleReassignmentMouseMove);
+
+    // IMPORTANTE: Asegurarnos de usar 'mouseup' en vez de 'click' puede solucionar fallos si había conflictos de Drag & Drop
     canvas.addEventListener('click', handleReassignmentClick);
-    canvas.addEventListener('contextmenu', cancelEdgeReassignment);
+
+    // Configurar cancelamiento
+    canvas.addEventListener('contextmenu', cancelEdgeReassignmentContext);
 
     redrawCanvas();
 }
@@ -255,10 +259,9 @@ function startEdgeOriginReassignment(edgeIds) {
     // Cambiar cursor para indicar modo de reasignación
     canvas.style.cursor = 'crosshair';
 
-    // Agregar event listeners temporales
     canvas.addEventListener('mousemove', handleReassignmentMouseMove);
     canvas.addEventListener('click', handleReassignmentClick);
-    canvas.addEventListener('contextmenu', cancelEdgeReassignment);
+    canvas.addEventListener('contextmenu', cancelEdgeReassignmentContext);
 
     redrawCanvas();
 }
@@ -352,6 +355,7 @@ function cancelEdgeReassignment() {
     canvas.removeEventListener('click', handleReassignmentClick);
     canvas.removeEventListener('click', handleLabelReassignmentClick); // Remover listener de etiquetas
     canvas.removeEventListener('contextmenu', cancelEdgeReassignment);
+    canvas.removeEventListener('contextmenu', cancelEdgeReassignmentContext);
 
     redrawCanvas();
 }
@@ -441,4 +445,10 @@ function drawReassignmentLines(ctx, theme) {
     ctx.fillText(modeText, edgeReassignmentState.mouseX, edgeReassignmentState.mouseY - 15);
 
     ctx.restore();
+}
+function cancelEdgeReassignmentContext(e) {
+    if(edgeReassignmentState.isActive) {
+        e.preventDefault();
+        cancelEdgeReassignment();
+    }
 }

@@ -1057,7 +1057,14 @@ function initializeTuringTape() {
             if (turingTapeState.executionController) {
                 stopTuringStepExecution();
             }
-            stringInput.readOnly = false;
+            if (typeof stopExecution === 'function') {
+                stopExecution(); // Ensure global execution lock is released
+            }
+            turingTapeState.isExecuting = false;
+            if (stringInput) {
+                stringInput.readOnly = false;
+            }
+
             tapeContainer.style.display = 'none';
             tapeContainer.classList.remove('with-string-analyzer');
 

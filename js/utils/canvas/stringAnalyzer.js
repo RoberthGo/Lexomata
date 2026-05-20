@@ -46,8 +46,15 @@ function hideStringAnalyzer() {
         if (turingContainer) {
             turingContainer.classList.remove('with-string-analyzer');
         }
+
         // Validación: desactivar ejecución y auto ejecución
         stringAnalyzerState.isAnalyzing = false;
+        if (typeof stopExecution === 'function') {
+            stopExecution(); // Release global execution lock
+        }
+        if (typeof clearExecutionHighlight === 'function') {
+            clearExecutionHighlight();
+        }
         if (stringAnalyzerState.isAutoExecuting) {
             stopAutomataAutoExecution();
         }
