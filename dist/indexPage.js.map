@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../src/main/indexPage.js"],
+  "sourcesContent": ["// Logic for index.html (Theme, Navigation)\ndocument.addEventListener('DOMContentLoaded', () => {\n    window.redirection = (mode) => {\n        window.location.href = `pages/workspace.html?mode=${mode}`;\n    };\n\n    window.toggleTheme = () => {\n        document.body.classList.toggle('dark');\n        document.body.classList.toggle('light');\n    };\n});\n"],
+  "mappings": ";;;;;;;AAAA;AAAA;AACA,eAAS,iBAAiB,oBAAoB,MAAM;AAChD,eAAO,cAAc,CAAC,SAAS;AAC3B,iBAAO,SAAS,OAAO,6BAA6B,IAAI;AAAA,QAC5D;AAEA,eAAO,cAAc,MAAM;AACvB,mBAAS,KAAK,UAAU,OAAO,MAAM;AACrC,mBAAS,KAAK,UAAU,OAAO,OAAO;AAAA,QAC1C;AAAA,MACJ,CAAC;AAAA;AAAA;",
+  "names": []
+}
