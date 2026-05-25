@@ -37,13 +37,13 @@ function stopExecution() {
     // Limpiar resaltado de ejecución al terminar
     selectedNodeIds = [];
     selectedEdgeIds = [];
-    
+
     // Restaurar mensaje original del indicador
     const indicator = document.getElementById('execution-indicator');
     if (indicator) {
         indicator.innerHTML = '<i class="fas fa-play"></i> Ejecución activa - Canvas bloqueado';
     }
-    
+
     updateCanvasInteractionState();
     redrawCanvas();
 }
@@ -64,7 +64,7 @@ function highlightCurrentExecutionNode(nodeId) {
     if (isExecutionActive && nodeId) {
         selectedNodeIds = [nodeId];
         redrawCanvas();
-        
+
         // Opcionalmente mostrar información del nodo actual
         showCurrentNodeInfo(nodeId);
     }
@@ -76,14 +76,14 @@ function highlightCurrentExecutionNode(nodeId) {
  */
 function showCurrentNodeInfo(nodeId) {
     if (typeof nodes === 'undefined') return;
-    
+
     const currentNode = nodes.find(node => node.id === nodeId);
     if (!currentNode) return;
-    
+
     // Actualizar el indicador de ejecución con información del nodo
     const indicator = document.getElementById('execution-indicator');
     if (indicator) {
-        const nodeType = currentNode.IsStart ? 'inicial' : 
+        const nodeType = currentNode.IsStart ? 'inicial' :
                         currentNode.IsEnd ? 'final' : 'normal';
         indicator.innerHTML = `<i class="fas fa-play"></i> Ejecutando - Estado: ${currentNode.label} (${nodeType})`;
     }
@@ -96,7 +96,7 @@ function clearExecutionHighlight() {
     if (isExecutionActive) {
         selectedNodeIds = [];
         redrawCanvas();
-        
+
         // Restaurar mensaje original del indicador
         const indicator = document.getElementById('execution-indicator');
         if (indicator) {

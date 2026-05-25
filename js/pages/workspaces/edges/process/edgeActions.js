@@ -167,7 +167,7 @@ function reverseMultipleLabels(selectedLabels) {
 /**
  * Crea una nueva arista o fusiona con una existente
  * @param {string} fromId - ID del nodo origen
- * @param {string} toId - ID del nodo destino  
+ * @param {string} toId - ID del nodo destino
  * @param {Array} labelsToAdd - Etiquetas a agregar
  * @returns {Object|null} La arista creada o null si se fusionó con una existente
  */
@@ -314,5 +314,3 @@ function executeEdgeAction(action, selectedLabels) {
             break;
     }
 }
-
-

@@ -192,17 +192,17 @@ function getCurrentLabelText() {
  */
 function getPreviewText() {
     const currentText = getCurrentLabelText();
-    
+
     // Solo aplicar preview para modo Turing
     if (currentMode !== 'turing') {
         return currentText;
     }
-    
+
     // Si la función de normalización está disponible, usarla
     if (typeof normalizeTuringLabel === 'function') {
         return normalizeTuringLabel(currentText);
     }
-    
+
     return currentText;
 }
 

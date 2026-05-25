@@ -23,14 +23,14 @@ class ExecutionController {
      */
     findMatchingTransition(currentNodeId, remainingInput) {
         const possibleTransitions = this.edges.filter(edge => edge.from === currentNodeId);
-        
+
         let bestMatch = null;
         let longestMatch = 0;
 
         for (const transition of possibleTransitions) {
             // Usar RegexHandler para encontrar todas las coincidencias
             const matches = RegexHandler.findAllMatches(transition.labels, remainingInput);
-            
+
             // Tomar la coincidencia más larga
             for (const matchInfo of matches) {
                 if (matchInfo.length > longestMatch) {
@@ -192,13 +192,13 @@ class ExecutionController {
 
         const currentNodeId = currentState.currentNodeId;
         const remainingInput = currentState.remainingInput;
-        
+
         const availableTransitions = this.edges.filter(edge => edge.from === currentNodeId);
-        
+
         return availableTransitions.map(transition => {
             const targetNode = this.nodes.find(n => n.id === transition.to);
             const matchingInfo = [];
-            
+
             // Verificar cada etiqueta para coincidencias
             for (const label of transition.labels) {
                 const match = RegexHandler.findMatch(label, remainingInput);
@@ -211,7 +211,7 @@ class ExecutionController {
                     });
                 }
             }
-            
+
             return {
                 ...transition,
                 targetNode: targetNode,

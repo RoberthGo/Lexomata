@@ -157,11 +157,11 @@ function validateAutomataTransition(label) {
         const uniqueInvalidEscapes = [...new Set(invalidEscapes)];
         return {
             isValid: false,
-            error: `Secuencias de escape inválidas: ${uniqueInvalidEscapes.join(', ')}. 
+            error: `Secuencias de escape inválidas: ${uniqueInvalidEscapes.join(', ')}.
 
 Caracteres de escape válidos:
 • \\d - dígitos (0-9)
-• \\w - alfanuméricos (a-z, A-Z, 0-9, _)  
+• \\w - alfanuméricos (a-z, A-Z, 0-9, _)
 • \\s - espacios en blanco
 • \\n - nueva línea
 • \\t - tabulación
@@ -296,5 +296,5 @@ function initializeEdgeValidations() {
     // Redibuja el canvas para reflejar los cambios
     redrawCanvas();
 
-    
+
 }

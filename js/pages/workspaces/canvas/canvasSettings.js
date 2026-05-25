@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
         hasDragged = false;
         objectClickedOnMouseDown = null;
 
-        // 1. Lógica de Paneo 
+        // 1. Lógica de Paneo
         if (e.button === 1 || (isSpacePressed && e.button === 0)) {
             isPanning = true;
             panStart = { x: e.clientX, y: e.clientY };
@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         hasDragged = true
 
-        // Lógica de paneo 
+        // Lógica de paneo
         if (isPanning) {
             const dx = e.clientX - panStart.x;
             const dy = e.clientY - panStart.y;
@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Lógica de arrastre 
+        // Lógica de arrastre
         if (draggingNode) {
             // Si estamos arrastrando un nodo que no estaba seleccionado,
             // lo seleccionamos ahora, en el primer instante del movimiento.
@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // PRIMERO: Verificar si se hizo clic en una etiqueta (máxima prioridad)
                 const worldCoords = getCanvasPoint(e.clientX, e.clientY);
                 const labelInfo = detectLabelClick(worldCoords.x, worldCoords.y);
-                
+
                 if (labelInfo) {
                     // Si se hizo clic en una etiqueta, entrar en modo de edición y salir inmediatamente
                     e.preventDefault();

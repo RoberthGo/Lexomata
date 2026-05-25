@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------------
 //
 // Este archivo implementa la funcionalidad completa de la cinta de Turing, incluyendo:
-// 
+//
 // 1. VISUALIZACIÓN DE LA CINTA:
 //    - Dibujo interactivo de celdas con contenido
 //    - Posicionamiento del cabezal de lectura/escritura
@@ -522,7 +522,7 @@ function startTuringAutoExecution(intervalMs = 1000) {
     // Si ya está ejecutando automáticamente, detener primero
     if (turingTapeState.isAutoExecuting) {
         stopTuringAutoExecution();
-        
+
     }
 
     turingTapeState.autoExecutionSpeed = intervalMs;
@@ -1057,7 +1057,14 @@ function initializeTuringTape() {
             if (turingTapeState.executionController) {
                 stopTuringStepExecution();
             }
-            stringInput.readOnly = false;
+            if (typeof stopExecution === 'function') {
+                stopExecution(); // Ensure global execution lock is released
+            }
+            turingTapeState.isExecuting = false;
+            if (stringInput) {
+                stringInput.readOnly = false;
+            }
+
             tapeContainer.style.display = 'none';
             tapeContainer.classList.remove('with-string-analyzer');
 
@@ -1075,7 +1082,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(initializeTuringTape, 100);
 });
 
-// Hacer funciones disponibles globalmente  
+// Hacer funciones disponibles globalmente
 if (typeof window !== 'undefined') {
     window.applyStringToTuringTape = applyStringToTuringTape;
     window.handleApplyTuringString = handleApplyTuringString;

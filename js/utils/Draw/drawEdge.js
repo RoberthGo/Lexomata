@@ -328,9 +328,9 @@ function drawEditingLabel(ctx, text, x, y, theme) {
     // Obtener el texto a mostrar (original o preview normalizado)
     let displayText = text;
     let showPreview = false;
-    
+
     // Si estamos en modo Turing y hay funciones de normalización disponibles
-    if (typeof currentMode !== 'undefined' && currentMode === 'turing' && 
+    if (typeof currentMode !== 'undefined' && currentMode === 'turing' &&
         typeof normalizeTuringLabel === 'function') {
         const normalizedText = normalizeTuringLabel(text || '');
         // Solo mostrar preview si el texto normalizado es diferente al original

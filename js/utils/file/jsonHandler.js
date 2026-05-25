@@ -40,9 +40,9 @@ function exportAsJSON(nodes, edges, nodeCounter) {
 }
 
 function isTuringMachine(jsonData) {
-    return jsonData.edges.some(edge => 
-        'CharacterOfInput' in edge && 
-        'CharacterOfOut' in edge && 
+    return jsonData.edges.some(edge =>
+        'CharacterOfInput' in edge &&
+        'CharacterOfOut' in edge &&
         'Move' in edge
     );
 }
@@ -54,23 +54,23 @@ function parseAndLoadJSON(fileContent) {
         if (data && data.nodes && data.edges) {
             // Detecta si el archivo es una máquina de Turing
             const isFileTuring = isTuringMachine(data);
-            
+
             // Obtiene el modo actual del canvas desde la URL
             const params = new URLSearchParams(window.location.search);
             const currentMode = params.get('mode');
             const isCanvasTuring = currentMode === 'turing';
-            
+
             // Valida la compatibilidad entre el modo del canvas y el tipo de archivo
             if (isCanvasTuring && !isFileTuring) {
                 alert("El archivo no tiene la información válida. Se esperaba un archivo de máquina de Turing pero se detectó un autómata.");
                 return;
             }
-            
+
             if (!isCanvasTuring && isFileTuring) {
                 alert("El archivo no tiene la información válida. Se esperaba un archivo de autómata pero se detectó una máquina de Turing.");
                 return;
             }
-            
+
             // Actualiza el estado de la aplicación con los datos del archivo
             nodes = data.nodes.map(nodeData => {
                 const node = new State(nodeData.id, nodeData.label, nodeData.x, nodeData.y);

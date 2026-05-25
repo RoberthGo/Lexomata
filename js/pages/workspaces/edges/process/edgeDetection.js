@@ -144,4 +144,3 @@ function distancePointToLine(px, py, x1, y1, x2, y2) {
     const dy = py - yy;
     return Math.sqrt(dx * dx + dy * dy);
 }
-

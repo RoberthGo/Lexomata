@@ -16,7 +16,7 @@ function isClickOnLabel(x, y, edge, nodes) {
 
 function handleDeleteClick(clickedObject, x, y, nodes, edges, redrawCanvas, isClickOnEdge) {
     let somethingWasDeleted = false;
-    
+
     if (clickedObject) {
         // Si el objeto clickeado es un label, se asume que viene
         // con dos propiedades: .edge (la arista a la que pertenece)
@@ -48,7 +48,7 @@ function handleDeleteClick(clickedObject, x, y, nodes, edges, redrawCanvas, isCl
             somethingWasDeleted = true;
         }
     }
-    
+
     // Si no se pudo determinar el objeto por clickedObject, se hace la detección manual por hitbox.
     if (!somethingWasDeleted) {
         // Intentar borrar un label de una arista mediante coordenadas
@@ -60,7 +60,7 @@ function handleDeleteClick(clickedObject, x, y, nodes, edges, redrawCanvas, isCl
                 break;
             }
         }
-    
+
         // Si no se borró ningún label, intenta borrar la arista completa
         if (!somethingWasDeleted) {
             for (let i = edges.length - 1; i >= 0; i--) {
@@ -71,20 +71,20 @@ function handleDeleteClick(clickedObject, x, y, nodes, edges, redrawCanvas, isCl
                 }
             }
         }
-    
+
         // Si aún no se borró nada, intenta borrar un nodo por cercanía
         if (!somethingWasDeleted) {
             for (let i = nodes.length - 1; i >= 0; i--) {
                 const node = nodes[i];
                 const distance = Math.sqrt((x - node.x) ** 2 + (y - node.y) ** 2);
-    
+
                 if (distance < node.radius) {
                     const nodeIdToDelete = node.id;
-    
+
                     const updatedEdges = edges.filter(edge => edge.from !== nodeIdToDelete && edge.to !== nodeIdToDelete);
                     edges.length = 0;
                     Array.prototype.push.apply(edges, updatedEdges);
-    
+
                     nodes.splice(i, 1);
                     somethingWasDeleted = true;
                     break;
@@ -92,7 +92,7 @@ function handleDeleteClick(clickedObject, x, y, nodes, edges, redrawCanvas, isCl
             }
         }
     }
-    
+
     if (somethingWasDeleted) {
         redrawCanvas();
         saveState();

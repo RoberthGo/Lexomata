@@ -12,5 +12,5 @@ class EdgeTuring {
         this.CharacterOfOut = characterOfOut;
         this.Move = move;
     }
-    
+
 }

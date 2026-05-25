@@ -76,8 +76,8 @@ function saveEdgeLabels(fromNode, toNode) {
         const validation = validateTransitionLabel(value, currentMode);
         if (validation.isValid) {
             // Si es modo Turing y hay una etiqueta normalizada, usarla
-            const finalLabel = (currentMode === 'turing' && validation.normalizedLabel) 
-                ? validation.normalizedLabel 
+            const finalLabel = (currentMode === 'turing' && validation.normalizedLabel)
+                ? validation.normalizedLabel
                 : value;
             newLabels.push(finalLabel);
         } else {

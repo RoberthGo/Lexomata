@@ -110,7 +110,12 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
-    closeModalBtn.onclick = () => modal.style.display = 'none';
+    closeModalBtn.onclick = () => {
+        modal.style.display = 'none';
+        if (typeof stopExecution === 'function') {
+            stopExecution();
+        }
+    };
     openModalBtn.onclick = () => {
         modal.style.display = 'flex';
     };

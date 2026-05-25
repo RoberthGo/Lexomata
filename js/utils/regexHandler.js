@@ -16,7 +16,7 @@ class RegexHandler {
         if (label === null || label === undefined) {
             return null;
         }
-        
+
         // Si ya es un string, verificar que no sea "[object Object]"
         if (typeof label === 'string') {
             if (label === '[object Object]' || label === '') {
@@ -24,7 +24,7 @@ class RegexHandler {
             }
             return label;
         }
-        
+
         // Si es un objeto, extraer la propiedad text
         if (typeof label === 'object') {
             // Verificar si tiene propiedad text
@@ -34,12 +34,12 @@ class RegexHandler {
                 }
                 return label.text;
             }
-            
+
             // Si es un objeto sin propiedad text, podría ser un error
             console.warn('Label es un objeto sin propiedad text válida:', label);
             return null;
         }
-        
+
         // Para cualquier otro tipo, convertir a string de manera segura
         try {
             const stringValue = String(label);
@@ -61,12 +61,12 @@ class RegexHandler {
     static isRegexPattern(label) {
         // Extraer el texto de la etiqueta
         const labelText = this.extractLabelText(label);
-        
+
         // Si no se pudo extraer texto válido, no es una regex
         if (!labelText || typeof labelText !== 'string') {
             return false;
         }
-        
+
         // Verificar si la etiqueta está entre barras diagonales o contiene metacaracteres
         return labelText.startsWith('/') && labelText.endsWith('/') ||
                labelText.includes('[') || labelText.includes(']') ||
@@ -86,12 +86,12 @@ class RegexHandler {
     static createRegExp(label) {
         // Extraer el texto de la etiqueta
         const labelText = this.extractLabelText(label);
-        
+
         // Verificar que se extrajo texto válido
         if (!labelText || typeof labelText !== 'string') {
             return null;
         }
-        
+
         try {
             // Si está entre barras diagonales, extraer el patrón y flags
             if (labelText.startsWith('/') && labelText.endsWith('/')) {
@@ -100,7 +100,7 @@ class RegexHandler {
                 const flags = labelText.slice(lastSlash + 1);
                 return new RegExp(pattern, flags);
             }
-            
+
             // Si no está entre barras, tratarlo como patrón directo
             return new RegExp(labelText);
         } catch (error) {
@@ -118,7 +118,7 @@ class RegexHandler {
     static findMatch(label, input) {
         // Extraer el texto de la etiqueta
         const labelText = this.extractLabelText(label);
-        
+
         // Verificar que ambos parámetros sean válidos
         if (!labelText || typeof labelText !== 'string' || !input || typeof input !== 'string') {
             return null;
@@ -134,9 +134,9 @@ class RegexHandler {
         if (!regex) return null;
 
         // Asegurar que la regex busque desde el inicio
-        const anchoredPattern = regex.source.startsWith('^') ? 
+        const anchoredPattern = regex.source.startsWith('^') ?
             regex.source : '^' + regex.source;
-        
+
         try {
             const anchoredRegex = new RegExp(anchoredPattern, regex.flags);
             const match = input.match(anchoredRegex);
@@ -159,13 +159,13 @@ class RegexHandler {
         if (!Array.isArray(labels) || !input || typeof input !== 'string') {
             return [];
         }
-        
+
         const matches = [];
 
         for (const label of labels) {
             // Extraer el texto de la etiqueta
             const labelText = this.extractLabelText(label);
-            
+
             // Solo procesar si se pudo extraer texto válido
             if (labelText) {
                 const match = this.findMatch(labelText, input);
@@ -191,15 +191,15 @@ class RegexHandler {
     static validateRegex(label) {
         // Extraer el texto de la etiqueta
         const labelText = this.extractLabelText(label);
-        
+
         // Verificar que se extrajo texto válido
         if (!labelText || typeof labelText !== 'string') {
-            return { 
-                valid: false, 
-                error: 'La etiqueta debe ser una cadena de texto válida' 
+            return {
+                valid: false,
+                error: 'La etiqueta debe ser una cadena de texto válida'
             };
         }
-        
+
         if (!this.isRegexPattern(labelText)) {
             // Para cadenas literales, verificar caracteres de escape inválidos
             return this.validateLiteralString(labelText);
@@ -209,9 +209,9 @@ class RegexHandler {
             this.createRegExp(labelText);
             return { valid: true };
         } catch (error) {
-            return { 
-                valid: false, 
-                error: error.message 
+            return {
+                valid: false,
+                error: error.message
             };
         }
     }
@@ -224,26 +224,26 @@ class RegexHandler {
     static validateLiteralString(label) {
         // Extraer el texto de la etiqueta
         const labelText = this.extractLabelText(label);
-        
+
         // Verificar que se extrajo texto válido
         if (!labelText || typeof labelText !== 'string') {
-            return { 
-                valid: false, 
-                error: 'La etiqueta debe ser una cadena de texto válida' 
+            return {
+                valid: false,
+                error: 'La etiqueta debe ser una cadena de texto válida'
             };
         }
-        
+
         // Detectar secuencias de escape inválidas en cadenas literales
         // Caracteres de escape válidos: \d, \D, \w, \W, \s, \S, \n, \r, \t, \f, \v, \b, \\, \/, \[, \], \(, \), \{, \}, \., \*, \+, \?, \^, \$, \|
         const invalidEscapePattern = /\\([^dnwsrntfvbDSWRNTFVB0-9\[\](){}.*+?^$|\\\/])/g;
         const matches = labelText.match(invalidEscapePattern);
-        
+
         if (matches) {
             const invalidEscapes = matches.map(match => match);
             const uniqueInvalidEscapes = [...new Set(invalidEscapes)];
-            return { 
-                valid: false, 
-                error: `Secuencias de escape inválidas: ${uniqueInvalidEscapes.join(', ')}. Los caracteres de escape válidos incluyen: \\d, \\w, \\s, \\n, \\t, \\\\, etc.` 
+            return {
+                valid: false,
+                error: `Secuencias de escape inválidas: ${uniqueInvalidEscapes.join(', ')}. Los caracteres de escape válidos incluyen: \\d, \\w, \\s, \\n, \\t, \\\\, etc.`
             };
         }
 
@@ -259,12 +259,12 @@ class RegexHandler {
     static generateExamples(label, maxExamples = 5) {
         // Extraer el texto de la etiqueta
         const labelText = this.extractLabelText(label);
-        
+
         // Si no se pudo extraer texto válido, retornar array vacío
         if (!labelText || typeof labelText !== 'string') {
             return [];
         }
-        
+
         if (!this.isRegexPattern(labelText)) {
             return [labelText]; // Para cadenas literales, el ejemplo es la misma cadena
         }
@@ -310,18 +310,18 @@ class RegexHandler {
     static getDescription(label) {
         // Extraer el texto de la etiqueta
         const labelText = this.extractLabelText(label);
-        
+
         // Si no se pudo extraer texto válido, retornar descripción de error
         if (!labelText || typeof labelText !== 'string') {
             return 'Etiqueta inválida';
         }
-        
+
         if (!this.isRegexPattern(labelText)) {
             return `Coincidencia exacta: "${labelText}"`;
         }
 
         let description = 'Expresión regular: ';
-        
+
         if (labelText.includes('\\d')) description += 'dígitos, ';
         if (labelText.includes('\\w')) description += 'caracteres alfanuméricos, ';
         if (labelText.includes('\\s')) description += 'espacios en blanco, ';
@@ -336,7 +336,7 @@ class RegexHandler {
 
         // Limpiar la descripción
         description = description.replace(/, $/, '');
-        
+
         if (description === 'Expresión regular: ') {
             description += `patrón "${labelText}"`;
         }

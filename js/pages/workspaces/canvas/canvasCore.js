@@ -67,5 +67,3 @@ function drawSelectionBox(ctx) {
 if (typeof window !== 'undefined') {
     window.redrawCanvas = redrawCanvas;
 }
-
-
