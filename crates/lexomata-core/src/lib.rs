@@ -4,8 +4,11 @@
 //! Toda la lógica de autómatas finitos y máquinas de Turing vive aquí.
 
 pub mod error;
+pub mod examples;
+pub mod model;
 
 pub use error::{EngineError, EngineErrorCode};
+pub use model::{LexoProject, MachineType, SCHEMA_VERSION};
 
 /// Versión del motor, tomada del manifiesto del crate.
 pub const ENGINE_VERSION: &str = env!("CARGO_PKG_VERSION");
