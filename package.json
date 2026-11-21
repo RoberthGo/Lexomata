@@ -1,0 +1,16 @@
+{
+  "name": "lexomata",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Simulador offline de autómatas y máquinas de Turing",
+  "scripts": {
+    "wasm:build": "wasm-pack build crates/lexomata-wasm --target web --out-dir ../../apps/web/src/wasm",
+    "wasm:build:dev": "wasm-pack build crates/lexomata-wasm --dev --target web --out-dir ../../apps/web/src/wasm",
+    "dev": "npm --prefix apps/web run dev",
+    "typecheck": "npm --prefix apps/web run typecheck",
+    "test:web": "npm --prefix apps/web run test",
+    "build:web": "npm --prefix apps/web run build",
+    "audit:offline": "node scripts/audit-offline.mjs",
+    "verify": "npm run typecheck && npm run test:web && npm run build:web && npm run audit:offline"
+  }
+}
