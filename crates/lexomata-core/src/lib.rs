@@ -6,9 +6,11 @@
 pub mod error;
 pub mod examples;
 pub mod model;
+pub mod validation;
 
 pub use error::{EngineError, EngineErrorCode};
 pub use model::{LexoProject, MachineType, SCHEMA_VERSION};
+pub use validation::{validate_machine, ValidationReport, ValidationWarning, WarningCode};
 
 /// Versión del motor, tomada del manifiesto del crate.
 pub const ENGINE_VERSION: &str = env!("CARGO_PKG_VERSION");
