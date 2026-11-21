@@ -1,3 +1,51 @@
-# Configuración de IDEs
+# IDEs y editores
 .vs/
 .vscode/
+.idea/
+*.swp
+*.swo
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Rust
+target/
+**/target/
+
+# Node / Vite
+node_modules/
+dist/
+**/dist/
+.vite/
+coverage/
+*.tsbuildinfo
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+
+# WASM generado por wasm-pack
+apps/web/src/wasm/
+
+# Tauri
+src-tauri/gen/
+src-tauri/target/
+
+# Android
+.gradle/
+**/build/
+*.apk
+*.aab
+*.jks
+*.keystore
+local.properties
+
+# Entornos y secretos
+.env
+.env.*
+!.env.example
+
+# Pruebas
+playwright-report/
+test-results/
+blob-report/

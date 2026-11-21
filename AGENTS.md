@@ -81,3 +81,44 @@ Activa y sigue el skill correspondiente según la tarea actual:
    - Frontend: `npm run typecheck && npm run test:web && npm run build:web`
    - Auditoría Offline: `npm run audit:offline` (verificar que `apps/web/dist` no contiene URLs externas ni carece de `.wasm`, `.woff2`, `sw.js` y `manifest.webmanifest`).
 5. **Reportar** qué se hizo, qué comandos de verificación pasaron y si quedó alguna desviación respecto a las specs.
+
+---
+
+## 5. Ramas y Política de Commits
+
+| Rama | Uso |
+| :--- | :--- |
+| `main` | Producción. Solo recibe merges de `dev` cuando hay una versión lista para release. |
+| `dev` | Desarrollo activo del rewrite Rust. Aquí viven todos los commits de features. |
+| `beta-old-version` | Versión anterior en JavaScript. Solo consulta; no se modifica. |
+
+Reglas:
+
+1. **Un commit por feature importante.** Prohibido mezclar módulos no relacionados en un mismo commit.
+2. Cada commit debe compilar y pasar sus pruebas antes de crearse.
+3. Usar Conventional Commits: `feat(...)`, `fix(...)`, `chore(...)`, `docs(...)`, `test(...)`, `ci(...)`.
+4. No hacer commits de miles de líneas generadas. Si un cambio es grande, dividirlo por capas (modelo, motor, UI, tests).
+5. No subir secretos, keystores, tokens ni archivos `.env`.
+
+---
+
+## 6. Alcance de la Reescritura (MVP v2.0)
+
+Incluido:
+
+- AFD, AFN y AFN-ε; clausura épsilon; simulación paso a paso y batch.
+- Máquina de Turing determinista de 1 cinta; cinta sparse; rewind; límite de pasos.
+- Editor SVG, inspector, tabla δ, definición formal y panel de lotes.
+- Conversión AFN → AFD y minimización de AFD.
+- Import/export `.lexo` y `.jff` (JFLAP).
+- Exportación SVG, PNG y TikZ.
+- Persistencia local-first, escritorio Windows y Android.
+- Web/PWA compilable; despliegue posterior.
+
+Fuera del MVP:
+
+- Google Drive y cualquier sincronización en la nube.
+- Máquinas multicinta, NTM y PDA.
+- Regex/multi-carácter en transiciones y migración del JSON antiguo.
+
+Cualquier cambio a este alcance debe reflejarse primero en `specs/` y luego en el código.
