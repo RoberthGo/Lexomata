@@ -1,0 +1,14 @@
+[package]
+name = "lexomata-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Puente WebAssembly del motor Lexomata"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+lexomata-core = { path = "../lexomata-core" }
+wasm-bindgen.workspace = true
