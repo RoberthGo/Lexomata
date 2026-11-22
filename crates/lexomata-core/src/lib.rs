@@ -7,6 +7,7 @@ pub mod automata;
 pub mod error;
 pub mod examples;
 pub mod formal;
+pub mod formats;
 pub mod model;
 pub mod turing;
 pub mod validation;
