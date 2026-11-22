@@ -107,7 +107,7 @@ pub fn binary_ending_in_01() -> LexoProject {
 
 /// AFN-ε con un ciclo de transiciones vacías entre `q0` y `q1`.
 pub fn epsilon_cycle() -> LexoProject {
-    fa_project(
+    let mut project = fa_project(
         "example-nfa-epsilon-cycle",
         "Ciclo épsilon",
         MachineType::NfaEpsilon,
@@ -133,12 +133,14 @@ pub fn epsilon_cycle() -> LexoProject {
                 expected: ExpectedVerdict::Accept,
             },
         ],
-    )
+    );
+    project.config.alphabet = vec!["a".to_owned()];
+    project
 }
 
 /// AFN con dos ramas para la misma entrada: una muere y otra acepta.
 pub fn branching_nfa() -> LexoProject {
-    fa_project(
+    let mut project = fa_project(
         "example-nfa-branching",
         "Ramas simultáneas",
         MachineType::Nfa,
@@ -165,7 +167,9 @@ pub fn branching_nfa() -> LexoProject {
                 expected: ExpectedVerdict::Reject,
             },
         ],
-    )
+    );
+    project.config.alphabet = vec!["a".to_owned(), "b".to_owned()];
+    project
 }
 
 /// AFD con estados equivalentes y un estado inalcanzable.

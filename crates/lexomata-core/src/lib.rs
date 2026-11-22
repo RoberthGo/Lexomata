@@ -3,6 +3,7 @@
 //! Este crate es Rust puro: no conoce la UI, el DOM, WASM ni la red.
 //! Toda la lógica de autómatas finitos y máquinas de Turing vive aquí.
 
+pub mod automata;
 pub mod error;
 pub mod examples;
 pub mod model;
