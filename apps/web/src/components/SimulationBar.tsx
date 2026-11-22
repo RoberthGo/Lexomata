@@ -249,6 +249,11 @@ function FaSimulationBar({
             value={simulation.input}
             placeholder="cadena de entrada"
             onChange={(event) => simulation.setInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                void simulation.fastRun();
+              }
+            }}
             className="mono h-full min-w-0 flex-1 bg-transparent text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
           />
           <button
@@ -392,6 +397,11 @@ function TuringSimulationBar({
             value={simulation.input}
             placeholder="entrada inicial"
             onChange={(event) => simulation.setInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                void simulation.fastRun();
+              }
+            }}
             className="mono h-full min-w-0 flex-1 bg-transparent text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
           />
         </div>

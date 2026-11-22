@@ -1082,7 +1082,7 @@ function BatchTab({
 
   return (
     <div className="space-y-3">
-      <SectionTitle hint={`${project.testCases.length} casos`}>Multiple Run</SectionTitle>
+      <SectionTitle hint={`${project.testCases.length} casos`}>Ejecución por lotes</SectionTitle>
 
       <div className="space-y-1.5">
         {project.testCases.map((testCase) => (
@@ -1162,12 +1162,13 @@ function BatchTab({
                     {row.input || 'ε'}
                   </td>
                   <td className="py-1 text-[var(--text-secondary)]">
-                    {row.expected === 'ACCEPT' ? 'ACC' : 'REJ'}
+                    {row.expected === 'ACCEPT' ? 'ACEPTAR' : 'RECHAZAR'}
                   </td>
                   <td
-                    className={`py-1 ${row.passed ? 'text-[var(--accent-accept)]' : 'text-[var(--accent-reject)]'}`}
+                    className={`py-1 font-medium ${row.passed ? 'text-[var(--accent-accept)]' : 'text-[var(--accent-reject)]'}`}
                   >
-                    {row.actual}
+                    {row.passed ? '✓ ' : '✗ '}
+                    {row.actual === 'ACCEPTED' ? 'ACEPTADA' : 'RECHAZADA'}
                   </td>
                   <td className="py-1 text-[var(--text-secondary)]">{row.steps}</td>
                 </tr>

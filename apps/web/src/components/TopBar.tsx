@@ -214,6 +214,25 @@ export function TopBar({
       <ProjectName name={project.name} onRename={onRename} />
 
       <div className="ml-auto flex items-center gap-1.5">
+        <select
+          aria-label="Modo de máquina"
+          value={
+            project.machineType === 'NFA_EPSILON'
+              ? 'NFA'
+              : project.machineType === 'TM_MULTI'
+                ? 'TM_SINGLE'
+                : project.machineType
+          }
+          onChange={(event) => onRequestMachineType(event.target.value as MachineType)}
+          className="h-7 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-1.5 text-[11px] font-medium text-[var(--text-primary)] focus:border-[var(--accent-selection)] focus:outline-none md:hidden"
+        >
+          {MACHINE_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+
         <div className="hidden items-center rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] p-0.5 md:flex">
           {MACHINE_OPTIONS.map((option) => (
             <button

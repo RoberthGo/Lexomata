@@ -807,6 +807,10 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
         <span>{project.transitions.length} reglas</span>
         {pendingFrom ? (
           <span className="text-[var(--accent-active)]">elige el destino · Esc cancela</span>
+        ) : tool === 'state' ? (
+          <span className="text-[var(--accent-selection)]">clic para crear estado</span>
+        ) : tool === 'transition' ? (
+          <span className="text-[var(--accent-selection)]">clic en origen → destino</span>
         ) : null}
       </div>
 
