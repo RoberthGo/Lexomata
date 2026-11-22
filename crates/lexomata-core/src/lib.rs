@@ -6,10 +6,12 @@
 pub mod automata;
 pub mod error;
 pub mod examples;
+pub mod formal;
 pub mod model;
 pub mod validation;
 
 pub use error::{EngineError, EngineErrorCode};
+pub use formal::{get_formal_definition, FormalDefinition, FormalTransitionRow};
 pub use model::{LexoProject, MachineType, SCHEMA_VERSION};
 pub use validation::{validate_machine, ValidationReport, ValidationWarning, WarningCode};
 

@@ -57,6 +57,16 @@ pub enum TapeMove {
     S,
 }
 
+impl std::fmt::Display for TapeMove {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(match self {
+            Self::L => "L",
+            Self::R => "R",
+            Self::S => "S",
+        })
+    }
+}
+
 /// Operación de una cinta en una transición de máquina de Turing.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
