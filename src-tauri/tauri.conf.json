@@ -21,7 +21,8 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://oauth2.googleapis.com https://www.googleapis.com"
+      "dangerousDisableAssetCspModification": true,
+      "csp": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'self' https://oauth2.googleapis.com https://www.googleapis.com"
     }
   },
   "bundle": {

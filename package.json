@@ -15,6 +15,10 @@
     "build:web": "npm --prefix apps/web run build",
     "audit:offline": "node scripts/audit-offline.mjs",
     "verify": "npm run typecheck && npm run test:web && npm run build:web && npm run audit:offline",
-    "check:all": "npm run test:rust && npm run lint:rust && npm run verify"
+    "check:all": "npm run test:rust && npm run lint:rust && npm run verify",
+    "CompileLexomata": "powershell -ExecutionPolicy Bypass -File ./CompileLexomata.ps1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.6"
   }
 }
