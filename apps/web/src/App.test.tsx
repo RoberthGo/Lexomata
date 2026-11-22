@@ -1,19 +1,58 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 
-describe('App', () => {
-  it('muestra la versión del motor cuando el puente responde', async () => {
-    render(<App loadVersion={() => Promise.resolve('0.1.0')} />);
+const { getExamples, validateProject } = vi.hoisted(() => ({
+  getExamples: vi.fn(),
+  validateProject: vi.fn(),
+}));
 
-    expect(await screen.findByText('0.1.0')).toBeInTheDocument();
-    expect(screen.getByText('100% offline')).toBeInTheDocument();
+vi.mock('./engine/wasmAdapter', () => ({
+  getExamples,
+  validateProject,
+  getFormalDefinition: vi.fn().mockResolvedValue({
+    tuple: '',
+    text: '',
+    latex: '',
+    transitions: [],
+  }),
+  simulateFa: vi.fn(),
+  runFaBatch: vi.fn(),
+  convertNfaToDfa: vi.fn(),
+  minimizeDfa: vi.fn(),
+  initTuring: vi.fn(),
+  stepTuring: vi.fn(),
+  runTuringFull: vi.fn(),
+  runTuringBatch: vi.fn(),
+  rewindTuring: vi.fn(),
+  importJflap: vi.fn(),
+  exportJflap: vi.fn(),
+}));
+
+describe('App', () => {
+  beforeEach(() => {
+    getExamples.mockResolvedValue([]);
+    validateProject.mockResolvedValue({ valid: true, errors: [], warnings: [] });
   });
 
-  it('muestra un error legible si el motor no inicializa', async () => {
-    render(<App loadVersion={() => Promise.reject(new Error('wasm roto'))} />);
+  it('muestra el editor y el aviso offline', async () => {
+    render(<App />);
 
-    expect(await screen.findByText('wasm roto')).toBeInTheDocument();
-    expect(screen.getByTestId('engine-version')).toHaveTextContent('no disponible');
+    expect(screen.getByText('Lexomata')).toBeInTheDocument();
+    expect(screen.getByText('100% offline')).toBeInTheDocument();
+    expect(await screen.findByText('Válido')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Lienzo del autómata' })).toBeInTheDocument();
+  });
+
+  it('abre el diálogo de nuevo proyecto', async () => {
+    render(<App />);
+
+    const fileButton = screen.getByRole('button', { name: /archivo/i });
+    fileButton.click();
+
+    const newProject = await screen.findByRole('button', { name: /nuevo proyecto/i });
+    newProject.click();
+
+    expect(await screen.findByRole('dialog', { name: 'Nuevo proyecto' })).toBeInTheDocument();
   });
 });

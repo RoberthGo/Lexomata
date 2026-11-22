@@ -1,0 +1,656 @@
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
+import type { LexoProject, State, Transition } from '../engine/types';
+import { groupedLabel } from '../model/project';
+import type { CanvasHandle, Selection, Tool } from '../uiTypes';
+import {
+  clampZoom,
+  edgeGeometry,
+  fitCamera,
+  NODE_RADIUS,
+  screenToWorld,
+  snapToGrid,
+  type Camera,
+  type Point,
+} from '../utils/geometry';
+
+interface GraphCanvasProps {
+  project: LexoProject;
+  tool: Tool;
+  selection: Selection;
+  activeStateIds: string[];
+  firedTransitionIds: string[];
+  onSelect: (selection: Selection) => void;
+  onCreateState: (x: number, y: number) => void;
+  onCreateTransition: (from: string, to: string) => void;
+  onMoveState: (id: string, x: number, y: number, final: boolean) => void;
+  onDeleteState: (id: string) => void;
+  onEditEdge: (from: string, to: string) => void;
+}
+
+interface EdgeGroup {
+  from: string;
+  to: string;
+  transitions: Transition[];
+  key: string;
+}
+
+interface DragState {
+  id: string;
+  offsetX: number;
+  offsetY: number;
+  moved: boolean;
+}
+
+interface PanState {
+  startX: number;
+  startY: number;
+  cameraX: number;
+  cameraY: number;
+  moved: boolean;
+}
+
+function groupEdges(transitions: Transition[]): EdgeGroup[] {
+  const groups = new Map<string, EdgeGroup>();
+
+  for (const transition of transitions) {
+    const key = `${transition.from}->${transition.to}`;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.transitions.push(transition);
+    } else {
+      groups.set(key, {
+        from: transition.from,
+        to: transition.to,
+        transitions: [transition],
+        key,
+      });
+    }
+  }
+
+  return [...groups.values()];
+}
+
+function nodeFontSize(label: string): number {
+  if (label.length <= 4) {
+    return 12;
+  }
+  if (label.length <= 7) {
+    return 10;
+  }
+  return 9;
+}
+
+export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function GraphCanvas(
+  {
+    project,
+    tool,
+    selection,
+    activeStateIds,
+    firedTransitionIds,
+    onSelect,
+    onCreateState,
+    onCreateTransition,
+    onMoveState,
+    onDeleteState,
+    onEditEdge,
+  },
+  ref,
+) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [size, setSize] = useState({ width: 800, height: 600 });
+  const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, zoom: 1 });
+  const [pendingFrom, setPendingFrom] = useState<string | null>(null);
+  const [hoverWorld, setHoverWorld] = useState<Point | null>(null);
+  const [panning, setPanning] = useState(false);
+  const dragRef = useRef<DragState | null>(null);
+  const panRef = useRef<PanState | null>(null);
+  const spaceRef = useRef(false);
+  const fittedProject = useRef<string | null>(null);
+
+  const activeStates = useMemo(() => new Set(activeStateIds), [activeStateIds]);
+  const firedEdges = useMemo(() => new Set(firedTransitionIds), [firedTransitionIds]);
+  const statesById = useMemo(
+    () => new Map(project.states.map((state) => [state.id, state])),
+    [project.states],
+  );
+  const groups = useMemo(() => groupEdges(project.transitions), [project.transitions]);
+  const reverseKeys = useMemo(() => new Set(groups.map((group) => group.key)), [groups]);
+
+  const getRect = useCallback(() => {
+    return svgRef.current?.getBoundingClientRect() ?? { left: 0, top: 0 };
+  }, []);
+
+  const toWorld = useCallback(
+    (event: { clientX: number; clientY: number }): Point => {
+      return screenToWorld(event.clientX, event.clientY, getRect(), camera);
+    },
+    [camera, getRect],
+  );
+
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element) {
+      return;
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        setSize({
+          width: Math.max(1, entry.contentRect.width),
+          height: Math.max(1, entry.contentRect.height),
+        });
+      }
+    });
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  const fit = useCallback(() => {
+    setCamera(fitCamera(project.states, size.width, size.height));
+  }, [project.states, size.width, size.height]);
+
+  useEffect(() => {
+    if (size.width <= 1 || size.height <= 1) {
+      return;
+    }
+    if (fittedProject.current !== project.id) {
+      fittedProject.current = project.id;
+      setCamera(fitCamera(project.states, size.width, size.height));
+    }
+  }, [project.id, project.states, size.width, size.height]);
+
+  const zoomAt = useCallback(
+    (factor: number, screenX: number, screenY: number) => {
+      setCamera((current) => {
+        const zoom = clampZoom(current.zoom * factor);
+        if (zoom === current.zoom) {
+          return current;
+        }
+        const worldX = screenX / current.zoom + current.x;
+        const worldY = screenY / current.zoom + current.y;
+        return {
+          zoom,
+          x: worldX - screenX / zoom,
+          y: worldY - screenY / zoom,
+        };
+      });
+    },
+    [],
+  );
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      zoomIn: () => zoomAt(1.2, size.width / 2, size.height / 2),
+      zoomOut: () => zoomAt(1 / 1.2, size.width / 2, size.height / 2),
+      fit,
+      centerOnState: (stateId: string) => {
+        const state = statesById.get(stateId);
+        if (!state) {
+          return;
+        }
+        setCamera((current) => ({
+          ...current,
+          x: state.x - size.width / (2 * current.zoom),
+          y: state.y - size.height / (2 * current.zoom),
+        }));
+      },
+    }),
+    [zoomAt, fit, size.width, size.height, statesById],
+  );
+
+  useEffect(() => {
+    const element = svgRef.current;
+    if (!element) {
+      return;
+    }
+
+    const handleWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const rect = element.getBoundingClientRect();
+      zoomAt(
+        event.deltaY < 0 ? 1.12 : 1 / 1.12,
+        event.clientX - rect.left,
+        event.clientY - rect.top,
+      );
+    };
+
+    element.addEventListener('wheel', handleWheel, { passive: false });
+    return () => element.removeEventListener('wheel', handleWheel);
+  }, [zoomAt]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code === 'Space') {
+        spaceRef.current = true;
+      }
+      if (event.key === 'Escape') {
+        setPendingFrom(null);
+      }
+    };
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (event.code === 'Space') {
+        spaceRef.current = false;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
+  const handleBackgroundPointerDown = (event: ReactPointerEvent<SVGRectElement>) => {
+    if (event.button !== 0 && event.button !== 1) {
+      return;
+    }
+
+    setPendingFrom(null);
+    const shouldPan = event.button === 1 || spaceRef.current || tool === 'select' || tool === 'erase';
+    if (!shouldPan) {
+      return;
+    }
+
+    panRef.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      cameraX: camera.x,
+      cameraY: camera.y,
+      moved: false,
+    };
+    setPanning(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
+    if (pendingFrom) {
+      setHoverWorld(toWorld(event));
+    }
+
+    const drag = dragRef.current;
+    if (drag) {
+      const world = toWorld(event);
+      const x = snapToGrid(world.x - drag.offsetX);
+      const y = snapToGrid(world.y - drag.offsetY);
+      if (!drag.moved) {
+        drag.moved = true;
+      }
+      onMoveState(drag.id, x, y, false);
+      return;
+    }
+
+    const pan = panRef.current;
+    if (pan) {
+      const dx = event.clientX - pan.startX;
+      const dy = event.clientY - pan.startY;
+      if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+        pan.moved = true;
+      }
+      setCamera((current) => ({
+        ...current,
+        x: pan.cameraX - dx / current.zoom,
+        y: pan.cameraY - dy / current.zoom,
+      }));
+    }
+  };
+
+  const handlePointerUp = () => {
+    const drag = dragRef.current;
+    if (drag) {
+      dragRef.current = null;
+      if (drag.moved) {
+        const state = statesById.get(drag.id);
+        if (state) {
+          onMoveState(drag.id, state.x, state.y, true);
+        }
+      }
+    }
+
+    const pan = panRef.current;
+    if (pan) {
+      panRef.current = null;
+      setPanning(false);
+      if (!pan.moved) {
+        onSelect({ kind: 'none' });
+      }
+    }
+  };
+
+  const handleNodePointerDown = (
+    event: ReactPointerEvent<SVGGElement>,
+    state: State,
+  ) => {
+    event.stopPropagation();
+
+    if (tool === 'erase') {
+      onDeleteState(state.id);
+      return;
+    }
+
+    if (tool === 'transition') {
+      if (!pendingFrom) {
+        setPendingFrom(state.id);
+        onSelect({ kind: 'state', id: state.id });
+      } else {
+        onCreateTransition(pendingFrom, state.id);
+        setPendingFrom(null);
+      }
+      return;
+    }
+
+    if (tool === 'state') {
+      onSelect({ kind: 'state', id: state.id });
+      return;
+    }
+
+    onSelect({ kind: 'state', id: state.id });
+    const world = toWorld(event);
+    dragRef.current = {
+      id: state.id,
+      offsetX: world.x - state.x,
+      offsetY: world.y - state.y,
+      moved: false,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleBackgroundDoubleClick = (event: ReactPointerEvent<SVGRectElement>) => {
+    if (tool !== 'select' && tool !== 'state') {
+      return;
+    }
+    const world = toWorld(event);
+    onCreateState(snapToGrid(world.x), snapToGrid(world.y));
+  };
+
+  const gridSize = 24 * camera.zoom;
+  const gridOffsetX = ((-camera.x * camera.zoom) % gridSize + gridSize) % gridSize;
+  const gridOffsetY = ((-camera.y * camera.zoom) % gridSize + gridSize) % gridSize;
+  const cursorClass =
+    tool === 'state' || tool === 'transition'
+      ? 'cursor-crosshair'
+      : tool === 'erase'
+        ? 'cursor-not-allowed'
+        : panning
+          ? 'cursor-grabbing'
+          : 'cursor-grab';
+
+  const pendingState = pendingFrom ? statesById.get(pendingFrom) : undefined;
+  const hoverTarget = hoverWorld;
+
+  return (
+    <div ref={containerRef} className="relative h-full w-full overflow-hidden bg-[var(--bg-canvas)]">
+      <svg
+        ref={svgRef}
+        className={`h-full w-full touch-none select-none ${cursorClass}`}
+        role="img"
+        aria-label="Lienzo del autómata"
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
+      >
+        <defs>
+          <pattern
+            id="canvas-dots"
+            width={gridSize}
+            height={gridSize}
+            patternUnits="userSpaceOnUse"
+            x={gridOffsetX}
+            y={gridOffsetY}
+          >
+            <circle cx={1.2} cy={1.2} r={1.1} fill="var(--bg-dot-grid)" />
+          </pattern>
+          <marker
+            id="canvas-arrow"
+            viewBox="0 0 10 10"
+            refX="9"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-secondary)" />
+          </marker>
+          <marker
+            id="canvas-arrow-active"
+            viewBox="0 0 10 10"
+            refX="9"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent-active)" />
+          </marker>
+        </defs>
+
+        <rect
+          width="100%"
+          height="100%"
+          fill="url(#canvas-dots)"
+          onPointerDown={handleBackgroundPointerDown}
+          onDoubleClick={handleBackgroundDoubleClick}
+        />
+
+        <g transform={`translate(${-camera.x * camera.zoom} ${-camera.y * camera.zoom}) scale(${camera.zoom})`}>
+          {groups.map((group) => {
+            const from = statesById.get(group.from);
+            const to = statesById.get(group.to);
+            if (!from || !to) {
+              return null;
+            }
+
+            const reverseKey = `${group.to}->${group.from}`;
+            const reverseGroup = groups.find((candidate) => candidate.key === reverseKey);
+            const hasReverse =
+              group.from !== group.to &&
+              reverseKeys.has(reverseKey) &&
+              group.transitions.every((transition) => transition.curveOffset === 0) &&
+              (reverseGroup?.transitions.every((transition) => transition.curveOffset === 0) ?? false);
+
+            const geometry = edgeGeometry(from, to, group.transitions[0]?.curveOffset ?? 0, {
+              hasReverse,
+            });
+            const active = group.transitions.some((transition) => firedEdges.has(transition.id));
+            const selected =
+              selection.kind === 'edge' &&
+              selection.from === group.from &&
+              selection.to === group.to;
+            const lines = groupedLabel(project, group.transitions).split('\n');
+            const lineHeight = 14;
+            const labelWidth = Math.max(
+              26,
+              Math.max(...lines.map((line) => line.length)) * 6.5 + 16,
+            );
+            const labelHeight = lines.length * lineHeight + 6;
+            const stroke = active
+              ? 'var(--accent-active)'
+              : selected
+                ? 'var(--accent-selection)'
+                : 'var(--text-secondary)';
+
+            return (
+              <g key={group.key}>
+                <path
+                  d={geometry.path}
+                  fill="none"
+                  stroke="transparent"
+                  strokeWidth={16}
+                  className="cursor-pointer"
+                  onPointerDown={(event) => {
+                    event.stopPropagation();
+                    onSelect({ kind: 'edge', from: group.from, to: group.to });
+                  }}
+                  onDoubleClick={(event) => {
+                    event.stopPropagation();
+                    onEditEdge(group.from, group.to);
+                  }}
+                />
+                <path
+                  d={geometry.path}
+                  fill="none"
+                  stroke={stroke}
+                  strokeWidth={selected || active ? 2.2 : 1.5}
+                  strokeDasharray={active ? '7 5' : undefined}
+                  markerEnd={
+                    active ? 'url(#canvas-arrow-active)' : 'url(#canvas-arrow)'
+                  }
+                  className="pointer-events-none transition-[stroke] duration-150"
+                />
+                <g
+                  transform={`translate(${geometry.label.x} ${geometry.label.y})`}
+                  className="cursor-pointer"
+                  onPointerDown={(event) => {
+                    event.stopPropagation();
+                    onSelect({ kind: 'edge', from: group.from, to: group.to });
+                  }}
+                  onDoubleClick={(event) => {
+                    event.stopPropagation();
+                    onEditEdge(group.from, group.to);
+                  }}
+                >
+                  <rect
+                    x={-labelWidth / 2}
+                    y={-labelHeight / 2}
+                    width={labelWidth}
+                    height={labelHeight}
+                    rx={6}
+                    fill="var(--bg-surface)"
+                    stroke={active || selected ? stroke : 'var(--border-subtle)'}
+                    strokeWidth={1}
+                  />
+                  {lines.map((line, index) => (
+                    <text
+                      key={`${line}-${index}`}
+                      x={0}
+                      y={-labelHeight / 2 + 15 + index * lineHeight}
+                      textAnchor="middle"
+                      className="mono pointer-events-none"
+                      fontSize={11}
+                      fill="var(--text-primary)"
+                    >
+                      {line}
+                    </text>
+                  ))}
+                </g>
+              </g>
+            );
+          })}
+
+          {pendingState && hoverTarget ? (
+            <line
+              x1={pendingState.x}
+              y1={pendingState.y}
+              x2={hoverTarget.x}
+              y2={hoverTarget.y}
+              stroke="var(--accent-active)"
+              strokeWidth={1.6}
+              strokeDasharray="6 5"
+              className="pointer-events-none"
+            />
+          ) : null}
+
+          {project.states.map((state) => {
+            const active = activeStates.has(state.id);
+            const selected = selection.kind === 'state' && selection.id === state.id;
+            const pending = pendingFrom === state.id;
+
+            return (
+              <g
+                key={state.id}
+                transform={`translate(${state.x} ${state.y})`}
+                className={tool === 'select' ? 'cursor-grab' : 'cursor-pointer'}
+                onPointerDown={(event) => handleNodePointerDown(event, state)}
+                onDoubleClick={(event) => {
+                  event.stopPropagation();
+                  onSelect({ kind: 'state', id: state.id });
+                }}
+              >
+                {active ? (
+                  <circle
+                    r={NODE_RADIUS + 8}
+                    fill="var(--accent-active-soft)"
+                    stroke="var(--accent-active)"
+                    strokeWidth={2}
+                    className="pointer-events-none"
+                  />
+                ) : null}
+
+                {state.isInitial ? (
+                  <path
+                    d={`M ${-NODE_RADIUS - 38} 0 L ${-NODE_RADIUS - 4} 0`}
+                    stroke={active ? 'var(--accent-active)' : 'var(--text-secondary)'}
+                    strokeWidth={1.6}
+                    fill="none"
+                    markerEnd="url(#canvas-arrow)"
+                    className="pointer-events-none"
+                  />
+                ) : null}
+
+                <circle
+                  r={NODE_RADIUS}
+                  fill="var(--bg-surface)"
+                  stroke={
+                    selected || pending
+                      ? 'var(--accent-selection)'
+                      : active
+                        ? 'var(--accent-active)'
+                        : state.isAccepting
+                          ? 'var(--accent-accept)'
+                          : 'var(--border-strong)'
+                  }
+                  strokeWidth={selected || active ? 2.4 : 1.6}
+                  className="transition-[stroke] duration-150"
+                />
+
+                {state.isAccepting ? (
+                  <circle
+                    r={NODE_RADIUS - 6}
+                    fill="none"
+                    stroke={active ? 'var(--accent-active)' : 'var(--accent-accept)'}
+                    strokeWidth={1.2}
+                    className="pointer-events-none"
+                  />
+                ) : null}
+
+                <text
+                  y={4}
+                  textAnchor="middle"
+                  className="mono pointer-events-none"
+                  fontSize={nodeFontSize(state.label)}
+                  fill="var(--text-primary)"
+                >
+                  {state.label}
+                </text>
+              </g>
+            );
+          })}
+        </g>
+      </svg>
+
+      <div className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-2 text-[10px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
+        <span className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]/80 px-1.5 py-0.5 backdrop-blur">
+          {Math.round(camera.zoom * 100)}%
+        </span>
+        <span>{project.states.length} estados</span>
+        <span>{project.transitions.length} reglas</span>
+        {pendingFrom ? (
+          <span className="text-[var(--accent-active)]">elige el destino · Esc cancela</span>
+        ) : null}
+      </div>
+    </div>
+  );
+});

@@ -1,139 +1,623 @@
-import { useEffect, useState } from 'react';
-import { Cpu, ShieldCheck, WifiOff } from 'lucide-react';
-import { getEngineVersion } from './engine/wasmAdapter';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AlertTriangle, CheckCircle2, WifiOff, X } from 'lucide-react';
+import { Dock } from './components/Dock';
+import { ExportDialog } from './components/ExportDialog';
+import { GraphCanvas } from './components/GraphCanvas';
+import { Inspector } from './components/Inspector';
+import { Modal, PrimaryButton, SecondaryButton } from './components/Modal';
+import { NewProjectDialog } from './components/NewProjectDialog';
+import { SimulationBar } from './components/SimulationBar';
+import { TopBar } from './components/TopBar';
+import {
+  convertNfaToDfa,
+  exportJflap,
+  getExamples,
+  importJflap,
+  minimizeDfa,
+} from './engine/wasmAdapter';
+import type { ExampleEntry, LexoProject, MachineType } from './engine/types';
+import {
+  addState,
+  addTransition,
+  changeMachineType,
+  createId,
+  createProject,
+  normalizeProject,
+  projectFileName,
+  removeStates,
+  removeTransitions,
+  touchProject,
+  updateState,
+} from './model/project';
+import { useFaSimulation } from './state/useFaSimulation';
+import { useProjectStore } from './state/useProjectStore';
+import { useTheme } from './state/useTheme';
+import { useTuringSimulation } from './state/useTuringSimulation';
+import { useValidation } from './state/useValidation';
+import type { CanvasHandle, InspectorTab, Selection, Tool } from './uiTypes';
+import { downloadFile } from './utils/exporters';
+import { layoutStates, type LayoutStrategy } from './utils/layout';
 
-type EngineStatus =
-  | { state: 'loading' }
-  | { state: 'ready'; version: string }
-  | { state: 'error'; message: string };
+type Dialog = 'new' | 'export' | 'type' | null;
 
-export interface AppProps {
-  /** Inyectable en pruebas para no inicializar WASM. */
-  loadVersion?: () => Promise<string>;
+interface Toast {
+  message: string;
+  tone: 'info' | 'error';
 }
 
-const CAPABILITIES = [
-  'AFD · AFN · AFN-ε',
-  'Máquina de Turing de 1 cinta',
-  'Editor SVG y simulación paso a paso',
-  'Importación y exportación JFLAP',
-];
+export function App() {
+  const store = useProjectStore();
+  const { project } = store;
+  const validation = useValidation(project);
+  const { theme, toggleTheme } = useTheme();
+  const fa = useFaSimulation(project);
+  const tm = useTuringSimulation(project);
 
-export function App({ loadVersion = getEngineVersion }: AppProps) {
-  const [status, setStatus] = useState<EngineStatus>({ state: 'loading' });
+  const [tool, setTool] = useState<Tool>('select');
+  const [selection, setSelection] = useState<Selection>({ kind: 'none' });
+  const [inspectorOpen, setInspectorOpen] = useState(true);
+  const [inspectorTab, setInspectorTab] = useState<InspectorTab>('properties');
+  const [dialog, setDialog] = useState<Dialog>(null);
+  const [pendingType, setPendingType] = useState<MachineType | null>(null);
+  const [examples, setExamples] = useState<ExampleEntry[]>([]);
+  const [toast, setToast] = useState<Toast | null>(null);
+  const [opening, setOpening] = useState(false);
+
+  const canvasRef = useRef<CanvasHandle>(null);
+  const lexoInputRef = useRef<HTMLInputElement>(null);
+  const jffInputRef = useRef<HTMLInputElement>(null);
+  const draggingRef = useRef(false);
+  const toastTimer = useRef<number | null>(null);
+
+  const notify = useCallback((message: string, tone: 'info' | 'error' = 'info') => {
+    setToast({ message, tone });
+    if (toastTimer.current !== null) {
+      window.clearTimeout(toastTimer.current);
+    }
+    toastTimer.current = window.setTimeout(() => setToast(null), 3600);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current !== null) {
+        window.clearTimeout(toastTimer.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-
-    loadVersion()
-      .then((version) => {
+    getExamples()
+      .then((entries) => {
         if (!cancelled) {
-          setStatus({ state: 'ready', version });
+          setExamples(entries);
         }
       })
-      .catch((error: unknown) => {
-        if (!cancelled) {
-          setStatus({
-            state: 'error',
-            message: error instanceof Error ? error.message : 'No se pudo cargar el motor',
-          });
-        }
+      .catch(() => {
+        // Los ejemplos son opcionales; la app sigue siendo usable sin ellos.
       });
-
     return () => {
       cancelled = true;
     };
-  }, [loadVersion]);
+  }, []);
+
+  const loadProject = useCallback(
+    (next: LexoProject) => {
+      store.resetProject(next);
+      setSelection({ kind: 'none' });
+      setTool('select');
+      setInspectorTab('properties');
+    },
+    [store],
+  );
+
+  const applyMachineType = useCallback(
+    (type: MachineType) => {
+      const droppedEpsilon = project.transitions.some(
+        (transition) => transition.rule.kind === 'FA' && transition.rule.symbol === null,
+      );
+      store.commit((current) => changeMachineType(current, type));
+      setDialog(null);
+      setPendingType(null);
+      setSelection({ kind: 'none' });
+      if (droppedEpsilon && (type === 'TM_SINGLE' || type === 'TM_MULTI')) {
+        notify('Se descartaron las transiciones ε al convertir a máquina de Turing.');
+      } else {
+        notify('Tipo de máquina actualizado.');
+      }
+      window.setTimeout(() => canvasRef.current?.fit(), 0);
+    },
+    [project.transitions, store, notify],
+  );
+
+  const handleRequestMachineType = useCallback(
+    (type: MachineType) => {
+      if (type === project.machineType) {
+        return;
+      }
+      if (project.transitions.length > 0) {
+        setPendingType(type);
+        setDialog('type');
+      } else {
+        applyMachineType(type);
+      }
+    },
+    [project.machineType, project.transitions.length, applyMachineType],
+  );
+
+  const handleCreateState = useCallback(
+    (x: number, y: number) => {
+      const result = addState(project, x, y);
+      store.commit(() => result.project);
+      setSelection({ kind: 'state', id: result.stateId });
+    },
+    [project, store],
+  );
+
+  const handleCreateTransition = useCallback(
+    (from: string, to: string) => {
+      const result = addTransition(project, from, to);
+      store.commit(() => result.project);
+      setSelection({ kind: 'edge', from, to });
+      setInspectorTab('properties');
+    },
+    [project, store],
+  );
+
+  const handleMoveState = useCallback(
+    (id: string, x: number, y: number, final: boolean) => {
+      if (final) {
+        if (draggingRef.current) {
+          store.endTransaction();
+          draggingRef.current = false;
+        }
+        return;
+      }
+
+      if (!draggingRef.current) {
+        store.beginTransaction();
+        draggingRef.current = true;
+      }
+      store.update((current) => updateState(current, id, { x, y }));
+    },
+    [store],
+  );
+
+  const deleteSelection = useCallback(() => {
+    if (selection.kind === 'state') {
+      store.commit((current) => removeStates(current, [selection.id]));
+    } else if (selection.kind === 'edge') {
+      store.commit((current) =>
+        removeTransitions(
+          current,
+          current.transitions
+            .filter(
+              (transition) =>
+                transition.from === selection.from && transition.to === selection.to,
+            )
+            .map((transition) => transition.id),
+        ),
+      );
+    } else {
+      return;
+    }
+    setSelection({ kind: 'none' });
+  }, [selection, store]);
+
+  const handleDeleteState = useCallback(
+    (id: string) => {
+      store.commit((current) => removeStates(current, [id]));
+      setSelection({ kind: 'none' });
+    },
+    [store],
+  );
+
+  const handleRename = useCallback(
+    (name: string) => {
+      store.commit((current) => touchProject({ ...current, name }));
+    },
+    [store],
+  );
+
+  const saveLexo = useCallback(() => {
+    downloadFile(
+      projectFileName(project, 'lexo'),
+      JSON.stringify(project, null, 2),
+      'application/json',
+    );
+    notify('Proyecto guardado como .lexo.');
+  }, [project, notify]);
+
+  const saveJflap = useCallback(async () => {
+    try {
+      const xml = await exportJflap(project);
+      downloadFile(projectFileName(project, 'jff'), xml, 'application/xml');
+      notify('Archivo .jff exportado.');
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'No se pudo exportar a JFLAP.', 'error');
+    }
+  }, [project, notify]);
+
+  const openLexoFile = useCallback(
+    async (file: File) => {
+      setOpening(true);
+      try {
+        const text = await file.text();
+        const parsed: unknown = JSON.parse(text);
+        const next = normalizeProject(parsed);
+        loadProject({ ...next, id: createId('project') });
+        notify(`Abierto: ${file.name}`);
+      } catch (error) {
+        notify(
+          error instanceof Error ? `No se pudo abrir el archivo: ${error.message}` : 'Archivo inválido.',
+          'error',
+        );
+      } finally {
+        setOpening(false);
+      }
+    },
+    [loadProject, notify],
+  );
+
+  const openJffFile = useCallback(
+    async (file: File) => {
+      setOpening(true);
+      try {
+        const xml = await file.text();
+        const imported = await importJflap(xml);
+        loadProject({ ...imported, id: createId('project') });
+        notify(`Importado desde JFLAP: ${file.name}`);
+      } catch (error) {
+        notify(
+          error instanceof Error ? `No se pudo importar: ${error.message}` : 'Archivo JFLAP inválido.',
+          'error',
+        );
+      } finally {
+        setOpening(false);
+      }
+    },
+    [loadProject, notify],
+  );
+
+  const convertNfa = useCallback(async () => {
+    try {
+      const result = await convertNfaToDfa(project, false);
+      store.commit(() => result.dfa);
+      setSelection({ kind: 'none' });
+      setInspectorTab('properties');
+      notify(`AFD generado con ${result.dfa.states.length} estados.`);
+      window.setTimeout(() => canvasRef.current?.fit(), 0);
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'No se pudo convertir el AFN.', 'error');
+    }
+  }, [project, store, notify]);
+
+  const minimize = useCallback(async () => {
+    try {
+      const result = await minimizeDfa(project);
+      store.commit(() => result.minimized);
+      setSelection({ kind: 'none' });
+      notify(
+        `AFD minimizado: ${result.minimized.states.length} estados, ${result.removedUnreachable.length} inalcanzables eliminados.`,
+      );
+      window.setTimeout(() => canvasRef.current?.fit(), 0);
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'No se pudo minimizar el AFD.', 'error');
+    }
+  }, [project, store, notify]);
+
+  const applyLayout = useCallback(
+    (strategy: LayoutStrategy) => {
+      store.commit((current) => layoutStates(current, strategy));
+      notify(strategy === 'circular' ? 'Auto-layout circular aplicado.' : 'Auto-layout jerárquico aplicado.');
+      window.setTimeout(() => canvasRef.current?.fit(), 0);
+    },
+    [store, notify],
+  );
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.closest('input, textarea, select, [contenteditable="true"]') ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+
+      const modifier = event.ctrlKey || event.metaKey;
+      const key = event.key.toLowerCase();
+
+      if (modifier && key === 'z') {
+        event.preventDefault();
+        if (event.shiftKey) {
+          store.redo();
+        } else {
+          store.undo();
+        }
+        setSelection({ kind: 'none' });
+        return;
+      }
+
+      if (modifier && key === 'y') {
+        event.preventDefault();
+        store.redo();
+        setSelection({ kind: 'none' });
+        return;
+      }
+
+      if (modifier && key === 's') {
+        event.preventDefault();
+        saveLexo();
+        return;
+      }
+
+      if (modifier && key === 'n') {
+        event.preventDefault();
+        setDialog('new');
+        return;
+      }
+
+      if (modifier && event.key === '0') {
+        event.preventDefault();
+        canvasRef.current?.fit();
+        return;
+      }
+
+      if (modifier) {
+        return;
+      }
+
+      if (key === 'v') {
+        setTool('select');
+      } else if (key === 's') {
+        setTool('state');
+      } else if (key === 't') {
+        setTool('transition');
+      } else if (key === 'x') {
+        setTool('erase');
+      } else if (event.key === 'Delete' || event.key === 'Backspace') {
+        event.preventDefault();
+        deleteSelection();
+      } else if (event.key === 'Escape') {
+        setTool('select');
+        setSelection({ kind: 'none' });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [store, saveLexo, deleteSelection]);
 
   return (
-    <div className="flex h-full flex-col bg-[var(--bg-canvas)] text-[var(--text-primary)]">
-      <header className="flex h-12 shrink-0 items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4">
-        <div className="flex items-center gap-3">
-          <BrandMark />
-          <span className="text-[13px] font-semibold tracking-[-0.01em]">Lexomata</span>
-          <span className="rounded-[var(--radius-pill)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--text-secondary)]">
-            Rust
+    <div className="flex h-full flex-col overflow-hidden bg-[var(--bg-canvas)] text-[var(--text-primary)]">
+      <TopBar
+        project={project}
+        canUndo={store.canUndo}
+        canRedo={store.canRedo}
+        theme={theme}
+        validation={validation.report}
+        validationError={validation.error}
+        inspectorOpen={inspectorOpen}
+        examples={examples}
+        onRename={handleRename}
+        onUndo={() => {
+          store.undo();
+          setSelection({ kind: 'none' });
+        }}
+        onRedo={() => {
+          store.redo();
+          setSelection({ kind: 'none' });
+        }}
+        onToggleTheme={toggleTheme}
+        onToggleInspector={() => {
+          setInspectorOpen((current) => !current);
+          setInspectorTab('properties');
+        }}
+        onNew={() => setDialog('new')}
+        onOpenLexo={() => lexoInputRef.current?.click()}
+        onOpenJff={() => jffInputRef.current?.click()}
+        onSaveLexo={saveLexo}
+        onExportJff={() => void saveJflap()}
+        onOpenExport={() => setDialog('export')}
+        onLoadExample={(entry) => {
+          loadProject({ ...entry.project, id: createId('project') });
+          notify(`Ejemplo cargado: ${entry.project.name}`);
+        }}
+        onRequestMachineType={handleRequestMachineType}
+        onConvertNfa={() => void convertNfa()}
+        onMinimizeDfa={() => void minimize()}
+        onLayout={applyLayout}
+      />
+
+      <div className="relative flex min-h-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="relative min-h-0 flex-1">
+            <GraphCanvas
+              ref={canvasRef}
+              project={project}
+              tool={tool}
+              selection={selection}
+              activeStateIds={fa.activeStateIds.concat(
+                tm.snapshot ? [tm.snapshot.currentStateId] : [],
+              )}
+              firedTransitionIds={fa.firedTransitionIds.concat(
+                tm.firedTransitionId ? [tm.firedTransitionId] : [],
+              )}
+              onSelect={setSelection}
+              onCreateState={handleCreateState}
+              onCreateTransition={handleCreateTransition}
+              onMoveState={handleMoveState}
+              onDeleteState={handleDeleteState}
+              onEditEdge={(from, to) => {
+                setSelection({ kind: 'edge', from, to });
+                setInspectorTab('properties');
+                setInspectorOpen(true);
+              }}
+            />
+
+            <Dock
+              tool={tool}
+              onToolChange={setTool}
+              onZoomIn={() => canvasRef.current?.zoomIn()}
+              onZoomOut={() => canvasRef.current?.zoomOut()}
+              onFit={() => canvasRef.current?.fit()}
+            />
+
+            <div className="pointer-events-none absolute right-3 top-3 flex items-center gap-1.5 rounded-[var(--radius-pill)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]/80 px-2 py-1 text-[10px] text-[var(--text-secondary)] backdrop-blur">
+              <WifiOff aria-hidden="true" className="h-3 w-3" />
+              100% offline
+            </div>
+          </div>
+
+          <SimulationBar project={project} fa={fa} tm={tm} />
+        </div>
+
+        {inspectorOpen ? (
+          <>
+            <div
+              className="absolute inset-0 z-10 bg-black/25 lg:hidden"
+              onClick={() => setInspectorOpen(false)}
+              role="presentation"
+            />
+            <div className="absolute inset-y-0 right-0 z-20 flex max-w-[85vw] shadow-[var(--shadow-panel)] lg:static lg:z-auto lg:max-w-none lg:shadow-none">
+              <Inspector
+                project={project}
+                selection={selection}
+                report={validation.report}
+                validationError={validation.error}
+                tab={inspectorTab}
+                onTabChange={setInspectorTab}
+                onCommit={store.commit}
+                onSelect={setSelection}
+                onFocusState={(stateId) => canvasRef.current?.centerOnState(stateId)}
+                onClose={() => setInspectorOpen(false)}
+              />
+            </div>
+          </>
+        ) : null}
+      </div>
+
+      {dialog === 'new' ? (
+        <NewProjectDialog
+          onClose={() => setDialog(null)}
+          onCreate={(machineType, name) => {
+            loadProject(createProject(machineType, name));
+            setDialog(null);
+            notify('Proyecto creado.');
+          }}
+        />
+      ) : null}
+
+      {dialog === 'export' ? (
+        <ExportDialog
+          project={project}
+          onClose={() => setDialog(null)}
+          onNotify={notify}
+        />
+      ) : null}
+
+      {dialog === 'type' && pendingType ? (
+        <Modal
+          title="Cambiar tipo de máquina"
+          subtitle="Las transiciones existentes se adaptarán al nuevo modelo."
+          onClose={() => {
+            setDialog(null);
+            setPendingType(null);
+          }}
+          footer={
+            <>
+              <SecondaryButton
+                onClick={() => {
+                  setDialog(null);
+                  setPendingType(null);
+                }}
+              >
+                Cancelar
+              </SecondaryButton>
+              <PrimaryButton onClick={() => applyMachineType(pendingType)}>
+                Convertir
+              </PrimaryButton>
+            </>
+          }
+        >
+          <p className="text-[12px] leading-relaxed text-[var(--text-secondary)]">
+            Vas a cambiar de <span className="mono text-[var(--text-primary)]">{project.machineType}</span> a{' '}
+            <span className="mono text-[var(--text-primary)]">{pendingType}</span>. Las reglas de autómata
+            finito se convertirán en operaciones de cinta (leyendo el mismo símbolo, moviendo a la derecha)
+            y viceversa.
+          </p>
+          {project.transitions.some(
+            (transition) => transition.rule.kind === 'FA' && transition.rule.symbol === null,
+          ) && (pendingType === 'TM_SINGLE' || pendingType === 'TM_MULTI') ? (
+            <p className="mt-3 flex items-start gap-1.5 rounded-[var(--radius-sm)] border border-[var(--accent-warning)]/40 bg-[var(--accent-warning-soft)] px-2 py-1.5 text-[11px] text-[var(--accent-warning)]">
+              <AlertTriangle aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              Las transiciones ε no tienen equivalente directo en una máquina de Turing y se descartarán.
+            </p>
+          ) : null}
+        </Modal>
+      ) : null}
+
+      {toast ? (
+        <div
+          className={`fixed bottom-4 right-4 z-50 flex max-w-sm items-start gap-2 rounded-[var(--radius-md)] border px-3 py-2 text-[12px] shadow-[var(--shadow-float)] ${
+            toast.tone === 'error'
+              ? 'border-[var(--accent-reject)]/40 bg-[var(--bg-surface)] text-[var(--accent-reject)]'
+              : 'border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)]'
+          }`}
+          role="status"
+        >
+          {toast.tone === 'error' ? (
+            <AlertTriangle aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          ) : (
+            <CheckCircle2 aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--accent-accept)]" />
+          )}
+          <span className="flex-1">{toast.message}</span>
+          <button
+            type="button"
+            onClick={() => setToast(null)}
+            aria-label="Cerrar aviso"
+            className="rounded p-0.5 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+          >
+            <X aria-hidden="true" className="h-3 w-3" />
+          </button>
+        </div>
+      ) : null}
+
+      {opening ? (
+        <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-black/20">
+          <span className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-[12px] text-[var(--text-secondary)]">
+            Procesando archivo…
           </span>
         </div>
-        <div className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)]">
-          <WifiOff aria-hidden="true" className="h-3.5 w-3.5" />
-          <span>100% offline</span>
-        </div>
-      </header>
+      ) : null}
 
-      <main className="dot-grid relative flex flex-1 items-center justify-center overflow-hidden p-6">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,var(--accent-selection-soft),transparent_60%)]" />
-
-        <section className="surface-panel relative w-full max-w-[460px] p-7">
-          <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)]">
-            <Cpu aria-hidden="true" className="h-3.5 w-3.5" />
-            Motor formal
-          </div>
-
-          <h1 className="mt-3 text-[22px] font-semibold leading-tight tracking-[-0.02em]">
-            Núcleo Rust conectado a la interfaz
-          </h1>
-          <p className="mt-2 text-[13px] leading-relaxed text-[var(--text-secondary)]">
-            Fase 0 completada: workspace, WebAssembly y shell web listos para construir el editor.
-          </p>
-
-          <div className="mt-5 flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-3 py-2.5">
-            <StatusDot state={status.state} />
-            <span className="text-[12px] text-[var(--text-secondary)]">Versión del motor</span>
-            <span className="mono ml-auto text-[12px] text-[var(--text-primary)]" data-testid="engine-version">
-              {status.state === 'ready' ? status.version : status.state === 'error' ? 'no disponible' : '…'}
-            </span>
-          </div>
-
-          {status.state === 'error' && (
-            <p className="mt-3 rounded-[var(--radius-md)] border border-[var(--accent-reject)]/30 bg-[var(--accent-reject-soft)] px-3 py-2 text-[12px] text-[var(--accent-reject)]">
-              {status.message}
-            </p>
-          )}
-
-          <ul className="mt-5 grid gap-2">
-            {CAPABILITIES.map((capability) => (
-              <li key={capability} className="flex items-center gap-2 text-[12px] text-[var(--text-secondary)]">
-                <ShieldCheck aria-hidden="true" className="h-3.5 w-3.5 text-[var(--accent-accept)]" />
-                {capability}
-              </li>
-            ))}
-          </ul>
-        </section>
-      </main>
-
-      <footer className="flex h-8 shrink-0 items-center justify-between border-t border-[var(--border-subtle)] px-4 text-[10px] text-[var(--text-muted)]">
-        <span>Lexomata RUST · MVP offline</span>
-        <span className="mono">sin CDNs · sin telemetría</span>
-      </footer>
+      <input
+        ref={lexoInputRef}
+        type="file"
+        accept=".lexo,.json,application/json"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = '';
+          if (file) {
+            void openLexoFile(file);
+          }
+        }}
+      />
+      <input
+        ref={jffInputRef}
+        type="file"
+        accept=".jff,.xml,application/xml,text/xml"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = '';
+          if (file) {
+            void openJffFile(file);
+          }
+        }}
+      />
     </div>
-  );
-}
-
-function BrandMark() {
-  return (
-    <svg viewBox="0 0 32 32" className="h-6 w-6" role="img" aria-label="Lexomata">
-      <path d="M4 16h4" stroke="var(--text-primary)" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="13" cy="16" r="5" fill="none" stroke="var(--accent-selection)" strokeWidth="2" />
-      <circle cx="25" cy="16" r="4.5" fill="none" stroke="var(--accent-active)" strokeWidth="2" />
-      <path d="M18 16h2" stroke="var(--text-primary)" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function StatusDot({ state }: { state: EngineStatus['state'] }) {
-  const color =
-    state === 'ready'
-      ? 'var(--accent-accept)'
-      : state === 'error'
-        ? 'var(--accent-reject)'
-        : 'var(--accent-warning)';
-
-  return (
-    <span
-      aria-hidden="true"
-      className="h-1.5 w-1.5 rounded-full"
-      style={{ backgroundColor: color, boxShadow: `0 0 0 3px color-mix(in srgb, ${color} 20%, transparent)` }}
-    />
   );
 }
