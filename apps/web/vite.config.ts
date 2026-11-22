@@ -41,6 +41,7 @@ export default defineConfig({
     cspPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: false,
       includeAssets: ['favicon.svg'],
       manifest: {
         name: 'Lexomata RUST',

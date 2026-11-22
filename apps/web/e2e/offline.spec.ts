@@ -70,7 +70,7 @@ test.describe('Lexomata PWA Offline E2E', () => {
       await page.getByPlaceholder('cadena').first().fill('0011');
     }
     await runBatch.click();
-    await expect(page.getByText(/ACEPTADA|RECHAZADA|OK|FALLO/i).first()).toBeVisible();
+    await expect(page.getByText(/ACCEPTED|REJECTED|ACEPTADA|RECHAZADA|pasadas/i).first()).toBeVisible();
 
     // 4. Abrir personalización de interfaz y alternar tema sin errores.
     await page.getByRole('button', { name: 'Personalizar interfaz' }).click();
