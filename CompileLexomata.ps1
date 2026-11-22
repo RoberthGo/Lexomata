@@ -1,6 +1,7 @@
 ﻿param(
     [switch]$SkipExe,
-    [switch]$SkipApk
+    [switch]$SkipApk,
+    [switch]$AllAndroidAbis
 )
 
 $ErrorActionPreference = 'Stop'
@@ -94,7 +95,12 @@ if (-not $SkipApk) {
         }
     }
 
-    npx tauri android build --apk
+    if ($AllAndroidAbis) {
+        npx tauri android build --apk
+    } else {
+        Write-Host '    Compilando ABI arm64 (aarch64) para compilación rápida. Usa -AllAndroidAbis para las 4 arquitecturas.' -ForegroundColor DarkGray
+        npx tauri android build --apk --target aarch64
+    }
     if ($LASTEXITCODE -ne 0) { throw 'Fallo tauri android build' }
 
     $apk = Get-ChildItem (Join-Path $Root 'src-tauri\gen\android\app\build\outputs\apk') -Recurse -Filter '*.apk' -ErrorAction SilentlyContinue |

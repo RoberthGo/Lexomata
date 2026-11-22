@@ -318,6 +318,15 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
     }
 
     setPendingFrom(null);
+    if (event.button === 0 && !spaceRef.current && tool === 'state') {
+      const world = toWorld(event);
+      onCreateState(
+        snapEnabled ? snapToGrid(world.x) : Math.round(world.x),
+        snapEnabled ? snapToGrid(world.y) : Math.round(world.y),
+      );
+      return;
+    }
+
     const shouldPan = event.button === 1 || spaceRef.current || tool === 'select' || tool === 'erase';
     if (!shouldPan) {
       return;
@@ -468,7 +477,7 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
   };
 
   const handleBackgroundDoubleClick = (event: ReactPointerEvent<SVGRectElement>) => {
-    if (tool !== 'select' && tool !== 'state') {
+    if (tool !== 'select') {
       return;
     }
     const world = toWorld(event);
