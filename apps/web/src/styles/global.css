@@ -27,8 +27,33 @@
     font-family: var(--font-ui);
     font-size: 14px;
     line-height: 1.5;
+    caret-color: var(--accent-selection);
+    font-variant-numeric: tabular-nums;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--border-strong);
+    border-radius: 999px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  :root[data-density='compact'] body {
+    font-size: 13px;
   }
 
   ::selection {

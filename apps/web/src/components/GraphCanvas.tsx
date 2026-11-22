@@ -40,6 +40,9 @@ interface GraphCanvasProps {
   onReassignEdge?: (from: string, to: string, nextFrom: string, nextTo: string) => void;
   onUpdateEdgeComment?: (from: string, to: string, comment?: string) => void;
   onDeleteEdge?: (from: string, to: string) => void;
+  showGrid?: boolean;
+  snapEnabled?: boolean;
+  showNotes?: boolean;
 }
 
 interface EdgeContextMenuState {
@@ -119,6 +122,9 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
     onReassignEdge,
     onUpdateEdgeComment,
     onDeleteEdge,
+    showGrid = true,
+    snapEnabled = true,
+    showNotes = true,
   },
   ref,
 ) {
@@ -132,6 +138,8 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
   const [edgeMenu, setEdgeMenu] = useState<EdgeContextMenuState | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const panRef = useRef<PanState | null>(null);
+  const touchPointersRef = useRef<Map<number, Point>>(new Map());
+  const pinchRef = useRef<{ distance: number; mid: Point } | null>(null);
   const spaceRef = useRef(false);
   const fittedProject = useRef<string | null>(null);
 
@@ -334,13 +342,47 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
     const drag = dragRef.current;
     if (drag) {
       const world = toWorld(event);
-      const x = snapToGrid(world.x - drag.offsetX);
-      const y = snapToGrid(world.y - drag.offsetY);
+      const rawX = world.x - drag.offsetX;
+      const rawY = world.y - drag.offsetY;
+      const x = snapEnabled ? snapToGrid(rawX) : Math.round(rawX);
+      const y = snapEnabled ? snapToGrid(rawY) : Math.round(rawY);
       if (!drag.moved) {
         drag.moved = true;
       }
       onMoveState(drag.id, x, y, false);
       return;
+    }
+
+    if (touchPointersRef.current.has(event.pointerId)) {
+      touchPointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (touchPointersRef.current.size === 2) {
+        const [p1, p2] = [...touchPointersRef.current.values()];
+        if (p1 && p2) {
+          const distance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+          const mid = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+          const prev = pinchRef.current;
+          if (prev && prev.distance > 0) {
+            const rect = svgRef.current?.getBoundingClientRect();
+            const factor = distance / prev.distance;
+            const dx = mid.x - prev.mid.x;
+            const dy = mid.y - prev.mid.y;
+            setCamera((current) => {
+              const nextZoom = clampZoom(current.zoom * factor);
+              const screenX = mid.x - (rect?.left ?? 0);
+              const screenY = mid.y - (rect?.top ?? 0);
+              const worldX = screenX / current.zoom + current.x;
+              const worldY = screenY / current.zoom + current.y;
+              return {
+                zoom: nextZoom,
+                x: worldX - screenX / nextZoom - dx / nextZoom,
+                y: worldY - screenY / nextZoom - dy / nextZoom,
+              };
+            });
+          }
+          pinchRef.current = { distance, mid };
+          return;
+        }
+      }
     }
 
     const pan = panRef.current;
@@ -358,7 +400,14 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
     }
   };
 
-  const handlePointerUp = () => {
+  const handlePointerUp = (event?: ReactPointerEvent<SVGSVGElement>) => {
+    if (event) {
+      touchPointersRef.current.delete(event.pointerId);
+      if (touchPointersRef.current.size < 2) {
+        pinchRef.current = null;
+      }
+    }
+
     const drag = dragRef.current;
     if (drag) {
       dragRef.current = null;
@@ -423,7 +472,10 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
       return;
     }
     const world = toWorld(event);
-    onCreateState(snapToGrid(world.x), snapToGrid(world.y));
+    onCreateState(
+      snapEnabled ? snapToGrid(world.x) : Math.round(world.x),
+      snapEnabled ? snapToGrid(world.y) : Math.round(world.y),
+    );
   };
 
   const gridSize = 24 * camera.zoom;
@@ -448,9 +500,26 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
         className={`h-full w-full touch-none select-none ${cursorClass}`}
         role="img"
         aria-label="Lienzo del autómata"
+        onPointerDown={(event) => {
+          if (event.pointerType === 'touch') {
+            touchPointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+            if (touchPointersRef.current.size === 2) {
+              dragRef.current = null;
+              panRef.current = null;
+              const [p1, p2] = [...touchPointersRef.current.values()];
+              if (p1 && p2) {
+                pinchRef.current = {
+                  distance: Math.hypot(p2.x - p1.x, p2.y - p1.y),
+                  mid: { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 },
+                };
+              }
+            }
+          }
+        }}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onPointerLeave={() => handlePointerUp()}
       >
         <defs>
           <pattern
@@ -490,7 +559,7 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
         <rect
           width="100%"
           height="100%"
-          fill="url(#canvas-dots)"
+          fill={showGrid ? 'url(#canvas-dots)' : 'transparent'}
           onPointerDown={handleBackgroundPointerDown}
           onDoubleClick={handleBackgroundDoubleClick}
         />
@@ -599,7 +668,7 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
                       {line}
                     </text>
                   ))}
-                  {edgeNote ? (
+                  {showNotes && edgeNote ? (
                     <text
                       x={0}
                       y={labelHeight / 2 + 11}
@@ -702,7 +771,7 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
                   {state.label}
                 </text>
 
-                {state.comment?.trim() ? (
+                {showNotes && state.comment?.trim() ? (
                   <text
                     y={NODE_RADIUS + 13}
                     textAnchor="middle"

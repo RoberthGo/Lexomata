@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Pause,
   Play,
   RotateCcw,
@@ -23,13 +25,80 @@ interface SimulationProps {
   project: LexoProject;
   fa: FaSimulation;
   tm: TuringSimulation;
+  collapsed?: boolean;
+  position?: 'top' | 'bottom';
+  onToggleCollapse?: () => void;
 }
 
-export function SimulationBar({ project, fa, tm }: SimulationProps) {
-  return isTuring(project.machineType) ? (
-    <TuringSimulationBar project={project} simulation={tm} />
-  ) : (
-    <FaSimulationBar project={project} simulation={fa} />
+export function SimulationBar({
+  project,
+  fa,
+  tm,
+  collapsed = false,
+  position = 'bottom',
+  onToggleCollapse,
+}: SimulationProps) {
+  if (collapsed) {
+    return (
+      <section
+        className={`flex h-9 shrink-0 items-center justify-between bg-[var(--bg-surface)] px-3 ${
+          position === 'top'
+            ? 'border-b border-[var(--border-subtle)]'
+            : 'border-t border-[var(--border-subtle)]'
+        }`}
+      >
+        <span className="text-[11px] font-medium text-[var(--text-secondary)]">
+          Simulación (oculta)
+        </span>
+        {onToggleCollapse ? (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className="flex items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-0.5 text-[11px] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+          >
+            {position === 'top' ? (
+              <ChevronDown aria-hidden="true" className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronUp aria-hidden="true" className="h-3.5 w-3.5" />
+            )}
+            Mostrar simulación
+          </button>
+        ) : null}
+      </section>
+    );
+  }
+
+  return (
+    <div
+      className={`relative ${
+        onToggleCollapse ? '[&>section>div:first-child]:sm:pr-9' : ''
+      } ${
+        position === 'top'
+          ? 'border-b border-[var(--border-subtle)] [&>section]:border-t-0'
+          : ''
+      }`}
+    >
+      {onToggleCollapse ? (
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          title="Ocultar barra de simulación"
+          aria-label="Ocultar barra de simulación"
+          className="absolute right-2 top-1.5 z-10 hidden h-6 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 text-[10px] text-[var(--text-muted)] hover:bg-[var(--bg-surface-elevated)] hover:text-[var(--text-primary)] sm:flex"
+        >
+          {position === 'top' ? (
+            <ChevronUp aria-hidden="true" className="h-3 w-3" />
+          ) : (
+            <ChevronDown aria-hidden="true" className="h-3 w-3" />
+          )}
+        </button>
+      ) : null}
+      {isTuring(project.machineType) ? (
+        <TuringSimulationBar project={project} simulation={tm} />
+      ) : (
+        <FaSimulationBar project={project} simulation={fa} />
+      )}
+    </div>
   );
 }
 

@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2, WifiOff, X } from 'lucide-react';
 import { Dock } from './components/Dock';
+import { DriveSyncDialog } from './components/DriveSyncDialog';
 import { ExportDialog } from './components/ExportDialog';
 import { GraphCanvas } from './components/GraphCanvas';
 import { Inspector } from './components/Inspector';
 import { Modal, PrimaryButton, SecondaryButton } from './components/Modal';
 import { NewProjectDialog } from './components/NewProjectDialog';
+import { PreferencesDialog } from './components/PreferencesDialog';
 import { SimulationBar } from './components/SimulationBar';
 import { TopBar } from './components/TopBar';
 import {
@@ -40,12 +42,22 @@ import { useFaSimulation } from './state/useFaSimulation';
 import { useProjectStore } from './state/useProjectStore';
 import { useTheme } from './state/useTheme';
 import { useTuringSimulation } from './state/useTuringSimulation';
+import { useUiPrefs } from './state/useUiPrefs';
 import { useValidation } from './state/useValidation';
+import {
+  deleteProjectLocal,
+  getLastProjectId,
+  listRecentProjects,
+  loadProjectLocal,
+  saveLastProjectId,
+  saveProjectLocal,
+} from './storage/localDb';
 import type { CanvasHandle, InspectorTab, Selection, Tool } from './uiTypes';
-import { downloadFile } from './utils/exporters';
+import { fileService } from './platform/fileService';
+import { completeWebOAuthRedirect } from './platform/gdriveSync';
 import { layoutStates, type LayoutStrategy } from './utils/layout';
 
-type Dialog = 'new' | 'export' | 'type' | null;
+type Dialog = 'new' | 'export' | 'type' | 'drive' | 'prefs' | null;
 
 interface Toast {
   message: string;
@@ -57,6 +69,7 @@ export function App() {
   const { project } = store;
   const validation = useValidation(project);
   const { theme, toggleTheme } = useTheme();
+  const { prefs, updatePrefs, resetPrefs } = useUiPrefs();
   const fa = useFaSimulation(project);
   const tm = useTuringSimulation(project);
 
@@ -68,14 +81,14 @@ export function App() {
   const [transformationReport, setTransformationReport] = useState<TransformationReport | null>(null);
   const [pendingType, setPendingType] = useState<MachineType | null>(null);
   const [examples, setExamples] = useState<ExampleEntry[]>([]);
+  const [recentProjects, setRecentProjects] = useState<LexoProject[]>([]);
   const [toast, setToast] = useState<Toast | null>(null);
   const [opening, setOpening] = useState(false);
 
   const canvasRef = useRef<CanvasHandle>(null);
-  const lexoInputRef = useRef<HTMLInputElement>(null);
-  const jffInputRef = useRef<HTMLInputElement>(null);
   const draggingRef = useRef(false);
   const toastTimer = useRef<number | null>(null);
+  const restoredRef = useRef(false);
 
   const notify = useCallback((message: string, tone: 'info' | 'error' = 'info') => {
     setToast({ message, tone });
@@ -108,6 +121,56 @@ export function App() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const lastId = await getLastProjectId();
+        if (lastId && !cancelled) {
+          const saved = await loadProjectLocal(lastId);
+          if (saved && !cancelled && !restoredRef.current) {
+            restoredRef.current = true;
+            store.resetProject(normalizeProject(saved));
+          }
+        }
+        const recent = await listRecentProjects(8);
+        if (!cancelled) {
+          setRecentProjects(recent);
+        }
+      } catch {
+        // IndexedDB es opcional; si falla se mantiene el proyecto inicial.
+      }
+      void completeWebOAuthRedirect()
+        .then((completed) => {
+          if (completed && !cancelled) {
+            setDialog('drive');
+            notify('Sesión de Google Drive conectada.');
+          }
+        })
+        .catch(() => {
+          // OAuth opcional.
+        });
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Solo al montar la aplicación.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void saveProjectLocal(project)
+        .then(() => saveLastProjectId(project.id))
+        .then(() => listRecentProjects(8))
+        .then(setRecentProjects)
+        .catch(() => {
+          // Silencioso en entornos sin IndexedDB persistente.
+        });
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [project]);
 
   const loadProject = useCallback(
     (next: LexoProject) => {
@@ -227,65 +290,78 @@ export function App() {
     [store],
   );
 
-  const saveLexo = useCallback(() => {
-    downloadFile(
-      projectFileName(project, 'lexo'),
-      JSON.stringify(project, null, 2),
-      'application/json',
-    );
-    notify('Proyecto guardado como .lexo.');
+  const saveLexo = useCallback(async () => {
+    try {
+      const saved = await fileService.saveCurrentFile(
+        projectFileName(project, 'lexo'),
+        JSON.stringify(project, null, 2),
+        'application/json',
+      );
+      if (saved) {
+        notify('Proyecto guardado como .lexo.');
+      }
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'No se pudo guardar el archivo.', 'error');
+    }
   }, [project, notify]);
 
   const saveJflap = useCallback(async () => {
     try {
       const xml = await exportJflap(project);
-      downloadFile(projectFileName(project, 'jff'), xml, 'application/xml');
-      notify('Archivo .jff exportado.');
+      const saved = await fileService.saveFile(
+        projectFileName(project, 'jff'),
+        xml,
+        'application/xml',
+      );
+      if (saved) {
+        notify('Archivo .jff exportado.');
+      }
     } catch (error) {
       notify(error instanceof Error ? error.message : 'No se pudo exportar a JFLAP.', 'error');
     }
   }, [project, notify]);
 
-  const openLexoFile = useCallback(
-    async (file: File) => {
-      setOpening(true);
-      try {
-        const text = await file.text();
-        const parsed: unknown = JSON.parse(text);
-        const next = normalizeProject(parsed);
-        loadProject({ ...next, id: createId('project') });
-        notify(`Abierto: ${file.name}`);
-      } catch (error) {
-        notify(
-          error instanceof Error ? `No se pudo abrir el archivo: ${error.message}` : 'Archivo inválido.',
-          'error',
-        );
-      } finally {
-        setOpening(false);
+  const openLexo = useCallback(async () => {
+    setOpening(true);
+    try {
+      const opened = await fileService.openFile('.lexo');
+      if (!opened) {
+        return;
       }
-    },
-    [loadProject, notify],
-  );
+      const parsed: unknown = JSON.parse(opened.content);
+      const next = normalizeProject(parsed);
+      loadProject({ ...next, id: createId('project') });
+      notify(`Abierto: ${opened.name}`);
+    } catch (error) {
+      notify(
+        error instanceof Error ? `No se pudo abrir el archivo: ${error.message}` : 'Archivo inválido.',
+        'error',
+      );
+    } finally {
+      setOpening(false);
+    }
+  }, [loadProject, notify]);
 
-  const openJffFile = useCallback(
-    async (file: File) => {
-      setOpening(true);
-      try {
-        const xml = await file.text();
-        const imported = await importJflap(xml);
-        loadProject({ ...imported, id: createId('project') });
-        notify(`Importado desde JFLAP: ${file.name}`);
-      } catch (error) {
-        notify(
-          error instanceof Error ? `No se pudo importar: ${error.message}` : 'Archivo JFLAP inválido.',
-          'error',
-        );
-      } finally {
-        setOpening(false);
+  const openJff = useCallback(async () => {
+    setOpening(true);
+    try {
+      const opened = await fileService.openFile('.jff');
+      if (!opened) {
+        return;
       }
-    },
-    [loadProject, notify],
-  );
+      const imported = await importJflap(opened.content);
+      fileService.clearActiveHandle();
+      loadProject({ ...imported, id: createId('project') });
+      notify(`Importado desde JFLAP: ${opened.name}`);
+    } catch (error) {
+      notify(
+        error instanceof Error ? `No se pudo importar: ${error.message}` : 'Archivo JFLAP inválido.',
+        'error',
+      );
+    } finally {
+      setOpening(false);
+    }
+  }, [loadProject, notify]);
 
   const convertNfa = useCallback(async () => {
     try {
@@ -430,9 +506,11 @@ export function App() {
           setInspectorOpen((current) => !current);
           setInspectorTab('properties');
         }}
+        onOpenDrive={() => setDialog('drive')}
+        onOpenPrefs={() => setDialog('prefs')}
         onNew={() => setDialog('new')}
-        onOpenLexo={() => lexoInputRef.current?.click()}
-        onOpenJff={() => jffInputRef.current?.click()}
+        onOpenLexo={() => void openLexo()}
+        onOpenJff={() => void openJff()}
         onSaveLexo={saveLexo}
         onExportJff={() => void saveJflap()}
         onOpenExport={() => setDialog('export')}
@@ -448,6 +526,17 @@ export function App() {
 
       <div className="relative flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col">
+          {prefs.simPosition === 'top' ? (
+            <SimulationBar
+              project={project}
+              fa={fa}
+              tm={tm}
+              position="top"
+              collapsed={prefs.simCollapsed}
+              onToggleCollapse={() => updatePrefs({ simCollapsed: !prefs.simCollapsed })}
+            />
+          ) : null}
+
           <div className="relative min-h-0 flex-1">
             <GraphCanvas
               ref={canvasRef}
@@ -460,6 +549,9 @@ export function App() {
               firedTransitionIds={fa.firedTransitionIds.concat(
                 tm.firedTransitionId ? [tm.firedTransitionId] : [],
               )}
+              showGrid={prefs.showGrid}
+              snapEnabled={prefs.snapToGrid}
+              showNotes={prefs.showNotes}
               onSelect={setSelection}
               onCreateState={handleCreateState}
               onCreateTransition={handleCreateTransition}
@@ -492,19 +584,35 @@ export function App() {
 
             <Dock
               tool={tool}
+              position={prefs.dockPosition}
               onToolChange={setTool}
               onZoomIn={() => canvasRef.current?.zoomIn()}
               onZoomOut={() => canvasRef.current?.zoomOut()}
               onFit={() => canvasRef.current?.fit()}
             />
 
-            <div className="pointer-events-none absolute right-3 top-3 flex items-center gap-1.5 rounded-[var(--radius-pill)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]/80 px-2 py-1 text-[10px] text-[var(--text-secondary)] backdrop-blur">
-              <WifiOff aria-hidden="true" className="h-3 w-3" />
-              100% offline
-            </div>
+            {prefs.showOfflineBadge ? (
+              <div
+                className={`pointer-events-none absolute top-3 flex items-center gap-1.5 rounded-[var(--radius-pill)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]/80 px-2 py-1 text-[10px] text-[var(--text-secondary)] backdrop-blur ${
+                  prefs.dockPosition === 'right' ? 'left-3' : 'right-3'
+                }`}
+              >
+                <WifiOff aria-hidden="true" className="h-3 w-3" />
+                100% offline
+              </div>
+            ) : null}
           </div>
 
-          <SimulationBar project={project} fa={fa} tm={tm} />
+          {prefs.simPosition === 'bottom' ? (
+            <SimulationBar
+              project={project}
+              fa={fa}
+              tm={tm}
+              position="bottom"
+              collapsed={prefs.simCollapsed}
+              onToggleCollapse={() => updatePrefs({ simCollapsed: !prefs.simCollapsed })}
+            />
+          ) : null}
         </div>
 
         {inspectorOpen ? (
@@ -514,13 +622,15 @@ export function App() {
               onClick={() => setInspectorOpen(false)}
               role="presentation"
             />
-            <div className="absolute inset-y-0 right-0 z-20 flex max-w-[85vw] shadow-[var(--shadow-panel)] lg:static lg:z-auto lg:max-w-none lg:shadow-none">
+            <div className="fixed inset-x-0 bottom-0 z-20 flex max-h-[58vh] overflow-hidden rounded-t-[var(--radius-lg)] border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-[var(--shadow-panel)] lg:static lg:z-auto lg:max-h-none lg:rounded-none lg:border-t-0 lg:shadow-none">
               <Inspector
                 project={project}
                 selection={selection}
                 report={validation.report}
                 validationError={validation.error}
                 tab={inspectorTab}
+                width={prefs.inspectorWidth}
+                onResizeWidth={(inspectorWidth) => updatePrefs({ inspectorWidth })}
                 onTabChange={setInspectorTab}
                 onCommit={store.commit}
                 onSelect={setSelection}
@@ -534,6 +644,17 @@ export function App() {
 
       {dialog === 'new' ? (
         <NewProjectDialog
+          recentProjects={recentProjects}
+          onOpenRecent={(recent) => {
+            loadProject(normalizeProject(recent));
+            setDialog(null);
+            notify(`Proyecto restaurado: ${recent.name}`);
+          }}
+          onDeleteRecent={(id) => {
+            void deleteProjectLocal(id)
+              .then(() => listRecentProjects(8))
+              .then(setRecentProjects);
+          }}
           onClose={() => setDialog(null)}
           onCreate={(machineType, name) => {
             loadProject(createProject(machineType, name));
@@ -549,6 +670,29 @@ export function App() {
           selection={selection}
           onClose={() => setDialog(null)}
           onNotify={notify}
+        />
+      ) : null}
+
+      {dialog === 'drive' ? (
+        <DriveSyncDialog
+          project={project}
+          onLoadProject={(next) => {
+            fileService.clearActiveHandle();
+            loadProject(next);
+          }}
+          onClose={() => setDialog(null)}
+          onNotify={notify}
+        />
+      ) : null}
+
+      {dialog === 'prefs' ? (
+        <PreferencesDialog
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          prefs={prefs}
+          onUpdatePrefs={updatePrefs}
+          onResetPrefs={resetPrefs}
+          onClose={() => setDialog(null)}
         />
       ) : null}
 
@@ -637,33 +781,6 @@ export function App() {
           </span>
         </div>
       ) : null}
-
-      <input
-        ref={lexoInputRef}
-        type="file"
-        accept=".lexo,.json,application/json"
-        className="hidden"
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          event.target.value = '';
-          if (file) {
-            void openLexoFile(file);
-          }
-        }}
-      />
-      <input
-        ref={jffInputRef}
-        type="file"
-        accept=".jff,.xml,application/xml,text/xml"
-        className="hidden"
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          event.target.value = '';
-          if (file) {
-            void openJffFile(file);
-          }
-        }}
-      />
     </div>
   );
 }

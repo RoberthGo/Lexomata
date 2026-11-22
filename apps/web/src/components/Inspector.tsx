@@ -49,6 +49,8 @@ interface InspectorProps {
   report: ValidationReport | null;
   validationError: string | null;
   tab: InspectorTab;
+  width?: number;
+  onResizeWidth?: (nextWidth: number) => void;
   onTabChange: (tab: InspectorTab) => void;
   onCommit: (updater: (project: LexoProject) => LexoProject) => void;
   onSelect: (selection: Selection) => void;
@@ -69,29 +71,62 @@ export function Inspector({
   report,
   validationError,
   tab,
+  width = 344,
+  onResizeWidth,
   onTabChange,
   onCommit,
   onSelect,
   onFocusState,
   onClose,
 }: InspectorProps) {
+  const startResize = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!onResizeWidth) {
+      return;
+    }
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = width;
+    const onMove = (moveEvent: PointerEvent) => {
+      onResizeWidth(startWidth + (startX - moveEvent.clientX));
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
+
   return (
-    <aside className="flex h-full w-[320px] shrink-0 flex-col border-l border-[var(--border-subtle)] bg-[var(--bg-surface)]">
-      <div className="flex h-11 shrink-0 items-center justify-between border-b border-[var(--border-subtle)] px-3">
-        <div className="flex items-center gap-1">
+    <aside
+      style={{ '--inspector-width': `${width}px` } as React.CSSProperties}
+      className="relative flex h-full w-full shrink-0 flex-col border-l border-[var(--border-subtle)] bg-[var(--bg-surface)] lg:w-[var(--inspector-width)]"
+    >
+      {onResizeWidth ? (
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Redimensionar inspector"
+          title="Arrastra para ajustar el ancho"
+          onPointerDown={startResize}
+          className="absolute inset-y-0 -left-1 z-30 hidden w-2 cursor-col-resize transition-colors hover:bg-[var(--accent-selection)]/40 lg:block"
+        />
+      ) : null}
+      <div className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-[var(--border-subtle)] px-3">
+        <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               type="button"
               onClick={() => onTabChange(id)}
               title={label}
-              className={`flex h-7 items-center gap-1.5 rounded-[var(--radius-sm)] px-2 text-[11px] font-medium transition-colors ${
+              className={`flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-[11px] font-medium transition-colors ${
                 tab === id
                   ? 'bg-[var(--accent-selection-soft)] text-[var(--accent-selection)]'
                   : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface-elevated)] hover:text-[var(--text-primary)]'
               }`}
             >
-              <Icon aria-hidden="true" className="h-3.5 w-3.5" />
+              <Icon aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
               <span className="hidden xl:inline">{label}</span>
             </button>
           ))}
@@ -99,7 +134,7 @@ export function Inspector({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-[var(--radius-sm)] px-2 py-1 text-[11px] text-[var(--text-muted)] hover:bg-[var(--bg-surface-elevated)] hover:text-[var(--text-primary)]"
+          className="shrink-0 rounded-[var(--radius-sm)] px-2 py-1 text-[11px] text-[var(--text-muted)] hover:bg-[var(--bg-surface-elevated)] hover:text-[var(--text-primary)]"
           title="Ocultar inspector"
         >
           Ocultar

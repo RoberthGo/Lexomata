@@ -1,0 +1,31 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Lexomata",
+  "version": "0.1.0",
+  "identifier": "io.github.roberthg.lexomata",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:5173",
+    "beforeBuildCommand": "npm run build:web",
+    "frontendDist": "../apps/web/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Lexomata — Autómatas y Máquinas de Turing",
+        "width": 1280,
+        "height": 820,
+        "minWidth": 360,
+        "minHeight": 560,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://oauth2.googleapis.com https://www.googleapis.com"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all"
+  }
+}

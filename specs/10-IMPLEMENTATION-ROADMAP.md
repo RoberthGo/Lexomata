@@ -90,13 +90,13 @@
 
 ---
 
-## Fase 6 — Persistencia Local-First, Tauri 2.0 y Google Drive Opcional
+## Fase 6 — Persistencia Local-First, Tauri 2.0 y Google Drive Opcional (`[x]` Completada)
 **Objetivo:** Empaquetado nativo de escritorio (y base móvil) + persistencia completa sin depender de la nube.
-- [ ] Implementar autoguardado automático en IndexedDB (`apps/web/src/storage/localDb.ts`) con debounce de 1 s, lista de proyectos recientes y recuperación al recargar tras fallo.
-- [ ] Inicializar `src-tauri` con Tauri 2.0 apuntando a `apps/web/dist`, configurar `tauri.conf.json` y habilitar plugins `dialog` y `fs` con permisos mínimos.
-- [ ] Implementar capa unificada `apps/web/src/platform/fileService.ts` (Web: File System Access API / `<input>` + descarga; Tauri: `dialog` + `fs` nativo) para `.lexo` y `.jff`.
-- [ ] Implementar sincronización opcional con Google Drive (`specs/08`): OAuth 2.0 PKCE en Web + `oauth_loopback.rs` en Tauri (`127.0.0.1`), carpeta dedicada `Lexomata/`, solo metadata + contenido, y degradación limpia cuando `navigator.onLine === false`.
-- [ ] Ajustar layout responsivo y gestos táctiles para pantallas pequeñas (móvil/tablet: BottomSheet para Inspector y Dock compacto).
+- [x] Implementar autoguardado automático en IndexedDB (`apps/web/src/storage/localDb.ts`) con debounce de 500 ms, lista de proyectos recientes y recuperación al recargar tras fallo.
+- [x] Inicializar `src-tauri` con Tauri 2.0 apuntando a `apps/web/dist`, configurar `tauri.conf.json` y habilitar plugins `dialog` y `fs` con permisos mínimos.
+- [x] Implementar capa unificada `apps/web/src/platform/fileService.ts` (Web: File System Access API / `<input>` + descarga; Tauri: `dialog` + `fs` nativo) para `.lexo` y `.jff`.
+- [x] Implementar sincronización opcional con Google Drive (`specs/08`): OAuth 2.0 PKCE en Web + `oauth_loopback.rs` en Tauri (`127.0.0.1`), carpeta dedicada `Lexomata/`, solo metadata + contenido, y degradación limpia cuando `navigator.onLine === false`.
+- [x] Ajustar layout responsivo y gestos táctiles para pantallas pequeñas (móvil/tablet: BottomSheet para Inspector, Dock táctil `>= 44px` y pinch-to-zoom) + personalización de interfaz (`useUiPrefs`, `PreferencesDialog`, ancho redimensionable del Inspector).
 
 **Criterio de salida:** Ejecutable de escritorio (Windows/Linux/macOS) y build Web PWA funcionan 100% offline, recuperan proyectos tras cerrar pestaña, abren/guardan `.lexo`/`.jff` localmente y sincronizan opcionalmente con Drive al conectar.
 

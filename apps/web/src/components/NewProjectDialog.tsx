@@ -1,9 +1,12 @@
 import { useState } from 'react';
-import { Binary, CircleDot, Cpu } from 'lucide-react';
-import type { MachineType } from '../engine/types';
+import { Binary, CircleDot, Cpu, Trash2 } from 'lucide-react';
+import type { LexoProject, MachineType } from '../engine/types';
 import { Modal, PrimaryButton, SecondaryButton } from './Modal';
 
 interface NewProjectDialogProps {
+  recentProjects?: LexoProject[];
+  onOpenRecent?: (project: LexoProject) => void;
+  onDeleteRecent?: (id: string) => void;
   onClose: () => void;
   onCreate: (machineType: MachineType, name: string) => void;
 }
@@ -34,7 +37,13 @@ const OPTIONS: Array<{
   },
 ];
 
-export function NewProjectDialog({ onClose, onCreate }: NewProjectDialogProps) {
+export function NewProjectDialog({
+  recentProjects = [],
+  onOpenRecent,
+  onDeleteRecent,
+  onClose,
+  onCreate,
+}: NewProjectDialogProps) {
   const [machineType, setMachineType] = useState<MachineType>('DFA');
   const [name, setName] = useState('');
 
@@ -92,6 +101,43 @@ export function NewProjectDialog({ onClose, onCreate }: NewProjectDialogProps) {
           Se creará un estado inicial q0. Usa la herramienta <span className="mono">S</span> para añadir
           estados y <span className="mono">T</span> para conectar transiciones.
         </p>
+
+        {recentProjects.length > 0 && onOpenRecent ? (
+          <div className="border-t border-[var(--border-subtle)] pt-3">
+            <span className="mb-1.5 block text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--text-muted)]">
+              Recientes locales (IndexedDB)
+            </span>
+            <div className="max-h-36 space-y-1 overflow-auto">
+              {recentProjects.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-2.5 py-1.5 text-[11px]"
+                >
+                  <button
+                    type="button"
+                    onClick={() => onOpenRecent(item)}
+                    className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left hover:text-[var(--accent-selection)]"
+                  >
+                    <span className="truncate font-medium text-[var(--text-primary)]">{item.name}</span>
+                    <span className="mono shrink-0 text-[10px] text-[var(--text-muted)]">
+                      {item.machineType}
+                    </span>
+                  </button>
+                  {onDeleteRecent ? (
+                    <button
+                      type="button"
+                      aria-label={`Eliminar ${item.name}`}
+                      onClick={() => onDeleteRecent(item.id)}
+                      className="ml-2 text-[var(--text-muted)] hover:text-[var(--accent-reject)]"
+                    >
+                      <Trash2 aria-hidden="true" className="h-3.5 w-3.5" />
+                    </button>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
     </Modal>
   );

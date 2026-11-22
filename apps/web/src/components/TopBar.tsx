@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   ChevronDown,
+  Cloud,
   Code2,
   Download,
   FileJson,
@@ -17,6 +18,7 @@ import {
   PanelRight,
   Redo2,
   Save,
+  SlidersHorizontal,
   Sun,
   Undo2,
   Wand2,
@@ -40,6 +42,8 @@ interface TopBarProps {
   onRedo: () => void;
   onToggleTheme: () => void;
   onToggleInspector: () => void;
+  onOpenDrive?: () => void;
+  onOpenPrefs?: () => void;
   onNew: () => void;
   onOpenLexo: () => void;
   onOpenJff: () => void;
@@ -74,6 +78,8 @@ export function TopBar({
   onRedo,
   onToggleTheme,
   onToggleInspector,
+  onOpenDrive,
+  onOpenPrefs,
   onNew,
   onOpenLexo,
   onOpenJff,
@@ -244,6 +250,18 @@ export function TopBar({
             <Redo2 aria-hidden="true" className="h-3.5 w-3.5" />
           </IconButton>
         </div>
+
+        {onOpenDrive ? (
+          <IconButton label="Google Drive (opcional)" onClick={onOpenDrive}>
+            <Cloud aria-hidden="true" className="h-3.5 w-3.5" />
+          </IconButton>
+        ) : null}
+
+        {onOpenPrefs ? (
+          <IconButton label="Personalizar interfaz" onClick={onOpenPrefs}>
+            <SlidersHorizontal aria-hidden="true" className="h-3.5 w-3.5" />
+          </IconButton>
+        ) : null}
 
         <IconButton label="Cambiar tema" onClick={onToggleTheme}>
           {theme === 'dark' ? (
