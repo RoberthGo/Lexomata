@@ -35,6 +35,8 @@ name = "lexomata-wasm"
 version = "0.1.0"
 dependencies = [
  "lexomata-core",
+ "serde",
+ "serde_json",
  "wasm-bindgen",
 ]
 
