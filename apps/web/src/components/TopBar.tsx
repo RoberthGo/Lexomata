@@ -60,7 +60,6 @@ interface TopBarProps {
 const MACHINE_OPTIONS: Array<{ value: MachineType; label: string }> = [
   { value: 'DFA', label: 'AFD' },
   { value: 'NFA', label: 'AFN' },
-  { value: 'NFA_EPSILON', label: 'AFN-ε' },
   { value: 'TM_SINGLE', label: 'MT' },
 ];
 
@@ -223,6 +222,7 @@ export function TopBar({
               onClick={() => onRequestMachineType(option.value)}
               className={`rounded-[4px] px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
                 project.machineType === option.value ||
+                (option.value === 'NFA' && project.machineType === 'NFA_EPSILON') ||
                 (option.value === 'TM_SINGLE' && project.machineType === 'TM_MULTI')
                   ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm'
                   : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'

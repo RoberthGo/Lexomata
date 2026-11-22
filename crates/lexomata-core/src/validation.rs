@@ -258,19 +258,6 @@ fn validate_finite_automaton(project: &LexoProject, report: &mut ValidationRepor
         );
     }
 
-    if project.machine_type == MachineType::Nfa
-        && project
-            .transitions
-            .iter()
-            .any(|transition| transition.rule.is_epsilon())
-    {
-        report.warning(
-            WarningCode::EpsilonInNfa,
-            "Hay transiciones ε en un proyecto marcado como AFN; considera cambiar el tipo a AFN-ε.",
-            Vec::new(),
-        );
-    }
-
     if let Some(initial) = project.initial_state() {
         let reachable = reachable_states(project, &initial.id);
         let unreachable: Vec<String> = project
@@ -475,7 +462,7 @@ fn validate_dfa_determinism(project: &LexoProject, report: &mut ValidationReport
             report.error(EngineError::with_related_ids(
                 EngineErrorCode::NonDeterministicConflict,
                 format!(
-                    "El AFD contiene una transición ε en '{}'; usa AFN-ε para transiciones vacías.",
+                    "El AFD contiene una transición ε en '{}'; usa AFN para transiciones vacías.",
                     transition.id
                 ),
                 vec![transition.id.clone()],
@@ -704,14 +691,14 @@ mod tests {
     }
 
     #[test]
-    fn epsilon_in_nfa_mode_is_only_a_warning() {
+    fn epsilon_in_nfa_mode_is_valid_without_warning() {
         let mut project = examples::epsilon_cycle();
         project.machine_type = MachineType::Nfa;
 
         let report = validate_machine(&project);
 
         assert!(report.valid);
-        assert!(report
+        assert!(!report
             .warnings
             .iter()
             .any(|warning| warning.code == WarningCode::EpsilonInNfa));

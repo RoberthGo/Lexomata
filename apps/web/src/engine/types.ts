@@ -259,9 +259,8 @@ export function machineTypeLabel(type: MachineType): string {
     case 'DFA':
       return 'AFD';
     case 'NFA':
-      return 'AFN';
     case 'NFA_EPSILON':
-      return 'AFN-ε';
+      return 'AFN';
     case 'TM_SINGLE':
       return 'MT 1 cinta';
     case 'TM_MULTI':

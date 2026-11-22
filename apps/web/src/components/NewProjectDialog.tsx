@@ -24,9 +24,9 @@ const OPTIONS: Array<{
     icon: CircleDot,
   },
   {
-    type: 'NFA_EPSILON',
-    title: 'AFN-ε',
-    description: 'No determinista con transiciones vacías ε.',
+    type: 'NFA',
+    title: 'AFN',
+    description: 'No determinista (permite múltiples caminos y transiciones ε).',
     icon: Binary,
   },
   {
