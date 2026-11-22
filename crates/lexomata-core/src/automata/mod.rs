@@ -1,8 +1,10 @@
 //! Algoritmos de autómatas finitos: clausura ε, simulación y transformaciones.
 
+pub mod conversion;
 pub mod epsilon;
 pub mod simulation;
 
+pub use conversion::{nfa_to_dfa, nfa_to_dfa_with_dead_state, NfaToDfaResult};
 pub use epsilon::{epsilon_closure, EpsilonClosure};
 pub use simulation::{
     batch_run, simulate_fa, FaBatchResult, FaBranchTrace, FaSimulationTrace, FaStepSnapshot,
