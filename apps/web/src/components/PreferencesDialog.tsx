@@ -228,14 +228,6 @@ export function PreferencesDialog({
             />
             Mostrar notas inline
           </label>
-          <label className="flex cursor-pointer items-center gap-2 text-[var(--text-secondary)]">
-            <input
-              type="checkbox"
-              checked={prefs.showOfflineBadge}
-              onChange={(event) => onUpdatePrefs({ showOfflineBadge: event.target.checked })}
-            />
-            Mostrar aviso offline
-          </label>
         </div>
       </div>
     </Modal>

@@ -14,7 +14,6 @@ export interface UiPrefs {
   showGrid: boolean;
   snapToGrid: boolean;
   showNotes: boolean;
-  showOfflineBadge: boolean;
   inspectorWidth: number;
 }
 
@@ -29,7 +28,6 @@ export const DEFAULT_UI_PREFS: UiPrefs = {
   showGrid: true,
   snapToGrid: true,
   showNotes: true,
-  showOfflineBadge: true,
   inspectorWidth: 344,
 };
 
@@ -70,8 +68,6 @@ function readStoredPrefs(): UiPrefs {
       showGrid: typeof parsed.showGrid === 'boolean' ? parsed.showGrid : true,
       snapToGrid: typeof parsed.snapToGrid === 'boolean' ? parsed.snapToGrid : true,
       showNotes: typeof parsed.showNotes === 'boolean' ? parsed.showNotes : true,
-      showOfflineBadge:
-        typeof parsed.showOfflineBadge === 'boolean' ? parsed.showOfflineBadge : true,
       inspectorWidth:
         typeof parsed.inspectorWidth === 'number' && Number.isFinite(parsed.inspectorWidth)
           ? clampInspectorWidth(parsed.inspectorWidth)

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AlertTriangle, CheckCircle2, WifiOff, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import { Dock } from './components/Dock';
 import { DriveSyncDialog } from './components/DriveSyncDialog';
 import { ExportDialog } from './components/ExportDialog';
@@ -590,17 +590,6 @@ export function App() {
               onZoomOut={() => canvasRef.current?.zoomOut()}
               onFit={() => canvasRef.current?.fit()}
             />
-
-            {prefs.showOfflineBadge ? (
-              <div
-                className={`pointer-events-none absolute top-3 flex items-center gap-1.5 rounded-[var(--radius-pill)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]/80 px-2 py-1 text-[10px] text-[var(--text-secondary)] backdrop-blur ${
-                  prefs.dockPosition === 'right' ? 'left-3' : 'right-3'
-                }`}
-              >
-                <WifiOff aria-hidden="true" className="h-3 w-3" />
-                100% offline
-              </div>
-            ) : null}
           </div>
 
           {prefs.simPosition === 'bottom' ? (

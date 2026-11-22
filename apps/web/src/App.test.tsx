@@ -35,11 +35,10 @@ describe('App', () => {
     validateProject.mockResolvedValue({ valid: true, errors: [], warnings: [] });
   });
 
-  it('muestra el editor y el aviso offline', async () => {
+  it('muestra el editor principal', async () => {
     render(<App />);
 
     expect(screen.getByText('Lexomata')).toBeInTheDocument();
-    expect(screen.getByText('100% offline')).toBeInTheDocument();
     expect(await screen.findByText('Válido')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Lienzo del autómata' })).toBeInTheDocument();
   });
