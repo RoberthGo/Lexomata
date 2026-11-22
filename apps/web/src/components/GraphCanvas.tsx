@@ -6,8 +6,10 @@ import {
   useMemo,
   useRef,
   useState,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
+import { ArrowLeftRight, Pencil, Trash2 } from 'lucide-react';
 import type { LexoProject, State, Transition } from '../engine/types';
 import { groupedLabel } from '../model/project';
 import type { CanvasHandle, Selection, Tool } from '../uiTypes';
@@ -34,6 +36,17 @@ interface GraphCanvasProps {
   onMoveState: (id: string, x: number, y: number, final: boolean) => void;
   onDeleteState: (id: string) => void;
   onEditEdge: (from: string, to: string) => void;
+  onInvertEdge?: (from: string, to: string) => void;
+  onReassignEdge?: (from: string, to: string, nextFrom: string, nextTo: string) => void;
+  onUpdateEdgeComment?: (from: string, to: string, comment?: string) => void;
+  onDeleteEdge?: (from: string, to: string) => void;
+}
+
+interface EdgeContextMenuState {
+  from: string;
+  to: string;
+  x: number;
+  y: number;
 }
 
 interface EdgeGroup {
@@ -102,6 +115,10 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
     onMoveState,
     onDeleteState,
     onEditEdge,
+    onInvertEdge,
+    onReassignEdge,
+    onUpdateEdgeComment,
+    onDeleteEdge,
   },
   ref,
 ) {
@@ -112,10 +129,42 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
   const [pendingFrom, setPendingFrom] = useState<string | null>(null);
   const [hoverWorld, setHoverWorld] = useState<Point | null>(null);
   const [panning, setPanning] = useState(false);
+  const [edgeMenu, setEdgeMenu] = useState<EdgeContextMenuState | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const panRef = useRef<PanState | null>(null);
   const spaceRef = useRef(false);
   const fittedProject = useRef<string | null>(null);
+
+  const openEdgeMenu = useCallback(
+    (event: ReactMouseEvent, from: string, to: string) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const rect = containerRef.current?.getBoundingClientRect();
+      const rawX = rect ? event.clientX - rect.left : event.clientX;
+      const rawY = rect ? event.clientY - rect.top : event.clientY;
+      setEdgeMenu({
+        from,
+        to,
+        x: Math.max(8, Math.min(rawX, Math.max(8, size.width - 248))),
+        y: Math.max(8, Math.min(rawY, Math.max(8, size.height - 220))),
+      });
+      onSelect({ kind: 'edge', from, to });
+    },
+    [onSelect, size.height, size.width],
+  );
+
+  useEffect(() => {
+    if (!edgeMenu) {
+      return;
+    }
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setEdgeMenu(null);
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [edgeMenu]);
 
   const activeStates = useMemo(() => new Set(activeStateIds), [activeStateIds]);
   const firedEdges = useMemo(() => new Set(firedTransitionIds), [firedTransitionIds]);
@@ -255,6 +304,7 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
   }, []);
 
   const handleBackgroundPointerDown = (event: ReactPointerEvent<SVGRectElement>) => {
+    setEdgeMenu(null);
     if (event.button !== 0 && event.button !== 1) {
       return;
     }
@@ -470,6 +520,7 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
               selection.from === group.from &&
               selection.to === group.to;
             const lines = groupedLabel(project, group.transitions).split('\n');
+            const edgeNote = group.transitions.find((item) => item.comment?.trim())?.comment?.trim();
             const lineHeight = 14;
             const labelWidth = Math.max(
               26,
@@ -498,6 +549,7 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
                     event.stopPropagation();
                     onEditEdge(group.from, group.to);
                   }}
+                  onContextMenu={(event) => openEdgeMenu(event, group.from, group.to)}
                 />
                 <path
                   d={geometry.path}
@@ -515,12 +567,14 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
                   className="cursor-pointer"
                   onPointerDown={(event) => {
                     event.stopPropagation();
+                    setEdgeMenu(null);
                     onSelect({ kind: 'edge', from: group.from, to: group.to });
                   }}
                   onDoubleClick={(event) => {
                     event.stopPropagation();
                     onEditEdge(group.from, group.to);
                   }}
+                  onContextMenu={(event) => openEdgeMenu(event, group.from, group.to)}
                 >
                   <rect
                     x={-labelWidth / 2}
@@ -545,6 +599,18 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
                       {line}
                     </text>
                   ))}
+                  {edgeNote ? (
+                    <text
+                      x={0}
+                      y={labelHeight / 2 + 11}
+                      textAnchor="middle"
+                      className="pointer-events-none"
+                      fontSize={9}
+                      fill="var(--text-muted)"
+                    >
+                      {edgeNote.length > 22 ? `${edgeNote.slice(0, 21)}…` : edgeNote}
+                    </text>
+                  ) : null}
                 </g>
               </g>
             );
@@ -635,6 +701,20 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
                 >
                   {state.label}
                 </text>
+
+                {state.comment?.trim() ? (
+                  <text
+                    y={NODE_RADIUS + 13}
+                    textAnchor="middle"
+                    className="pointer-events-none"
+                    fontSize={9}
+                    fill="var(--text-muted)"
+                  >
+                    {state.comment.trim().length > 22
+                      ? `${state.comment.trim().slice(0, 21)}…`
+                      : state.comment.trim()}
+                  </text>
+                ) : null}
               </g>
             );
           })}
@@ -651,6 +731,127 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
           <span className="text-[var(--accent-active)]">elige el destino · Esc cancela</span>
         ) : null}
       </div>
+
+      {edgeMenu ? (
+        <div
+          role="menu"
+          aria-label="Acciones de arista"
+          style={{ left: edgeMenu.x, top: edgeMenu.y }}
+          onPointerDown={(event) => event.stopPropagation()}
+          className="absolute z-30 w-60 space-y-2 rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--bg-surface)] p-2.5 text-[12px] shadow-[var(--shadow-panel)]"
+        >
+          <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-1.5">
+            <span className="mono text-[11px] font-medium text-[var(--text-secondary)]">
+              {statesById.get(edgeMenu.from)?.label ?? edgeMenu.from} →{' '}
+              {statesById.get(edgeMenu.to)?.label ?? edgeMenu.to}
+            </span>
+            <button
+              type="button"
+              onClick={() => setEdgeMenu(null)}
+              className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            >
+              Esc
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              onEditEdge(edgeMenu.from, edgeMenu.to);
+              setEdgeMenu(null);
+            }}
+            className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]"
+          >
+            <Pencil aria-hidden="true" className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
+            Editar transiciones
+          </button>
+
+          <button
+            type="button"
+            disabled={edgeMenu.from === edgeMenu.to}
+            onClick={() => {
+              onInvertEdge?.(edgeMenu.from, edgeMenu.to);
+              setEdgeMenu(null);
+            }}
+            className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] disabled:opacity-40"
+          >
+            <ArrowLeftRight aria-hidden="true" className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
+            Invertir dirección
+          </button>
+
+          {onReassignEdge ? (
+            <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+              <label className="space-y-0.5">
+                <span className="text-[10px] text-[var(--text-muted)]">Origen</span>
+                <select
+                  value={edgeMenu.from}
+                  onChange={(event) => {
+                    const nextFrom = event.target.value;
+                    onReassignEdge(edgeMenu.from, edgeMenu.to, nextFrom, edgeMenu.to);
+                    setEdgeMenu((current) => (current ? { ...current, from: nextFrom } : null));
+                  }}
+                  className="mono h-7 w-full rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-1 text-[11px] text-[var(--text-primary)]"
+                >
+                  {project.states.map((state) => (
+                    <option key={state.id} value={state.id}>
+                      {state.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-0.5">
+                <span className="text-[10px] text-[var(--text-muted)]">Destino</span>
+                <select
+                  value={edgeMenu.to}
+                  onChange={(event) => {
+                    const nextTo = event.target.value;
+                    onReassignEdge(edgeMenu.from, edgeMenu.to, edgeMenu.from, nextTo);
+                    setEdgeMenu((current) => (current ? { ...current, to: nextTo } : null));
+                  }}
+                  className="mono h-7 w-full rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-1 text-[11px] text-[var(--text-primary)]"
+                >
+                  {project.states.map((state) => (
+                    <option key={state.id} value={state.id}>
+                      {state.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          ) : null}
+
+          {onUpdateEdgeComment ? (
+            <label className="block space-y-0.5 pt-0.5">
+              <span className="text-[10px] text-[var(--text-muted)]">Nota</span>
+              <input
+                type="text"
+                value={
+                  project.transitions.find(
+                    (item) => item.from === edgeMenu.from && item.to === edgeMenu.to && item.comment,
+                  )?.comment ?? ''
+                }
+                placeholder="Anotación opcional…"
+                onChange={(event) =>
+                  onUpdateEdgeComment(edgeMenu.from, edgeMenu.to, event.target.value)
+                }
+                className="h-7 w-full rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-2 text-[11px] text-[var(--text-primary)] focus:border-[var(--border-strong)] focus:outline-none"
+              />
+            </label>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={() => {
+              onDeleteEdge?.(edgeMenu.from, edgeMenu.to);
+              setEdgeMenu(null);
+            }}
+            className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-[var(--accent-reject)] hover:bg-[var(--accent-reject-soft)]"
+          >
+            <Trash2 aria-hidden="true" className="h-3.5 w-3.5" />
+            Eliminar arista
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 });

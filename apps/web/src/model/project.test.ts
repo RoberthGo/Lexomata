@@ -6,11 +6,14 @@ import {
   createProject,
   effectiveAlphabet,
   groupedLabel,
+  invertEdgeGroup,
   markInitial,
   normalizeProject,
   projectFileName,
+  reassignEdgeGroup,
   removeStates,
   toggleAccepting,
+  updateEdgeGroupComment,
   updateTransition,
 } from './project';
 
@@ -124,5 +127,24 @@ describe('project model', () => {
     const project = createProject('DFA', 'Mi Máquina Ñ');
     expect(projectFileName(project, 'lexo')).toBe('mi-máquina-ñ.lexo');
     expect(projectFileName({ ...project, name: '   ' }, 'jff')).toBe('lexomata.jff');
+  });
+
+  it('invierte, reasigna origen/destino y guarda notas en grupos de aristas', () => {
+    const base = createProject('DFA', 'Aristas');
+    const s1 = addState(base, 200, 120);
+    const s2 = addState(s1.project, 320, 120);
+    const withEdge = addTransition(s2.project, 's0', s1.stateId, { kind: 'FA', symbol: '0' }).project;
+
+    const inverted = invertEdgeGroup(withEdge, 's0', s1.stateId);
+    expect(inverted.transitions[0]).toMatchObject({ from: s1.stateId, to: 's0' });
+
+    const reassigned = reassignEdgeGroup(inverted, s1.stateId, 's0', 's0', s2.stateId);
+    expect(reassigned.transitions[0]).toMatchObject({ from: 's0', to: s2.stateId });
+
+    const noted = updateEdgeGroupComment(reassigned, 's0', s2.stateId, 'camino principal');
+    expect(noted.transitions[0]?.comment).toBe('camino principal');
+
+    const cleared = updateEdgeGroupComment(noted, 's0', s2.stateId, '');
+    expect(cleared.transitions[0]?.comment).toBeUndefined();
   });
 });

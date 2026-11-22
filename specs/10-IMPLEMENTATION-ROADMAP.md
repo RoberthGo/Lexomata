@@ -49,7 +49,7 @@
 
 ---
 
-## Fase 3 — Sistema de Diseño + Editor de Lienzo Interactivo (Frontend)
+## Fase 3 — Sistema de Diseño + Editor de Lienzo Interactivo (Frontend) (`[x]` Completada)
 **Objetivo:** Interfaz moderna *"Precision Academic Instrument"* con tema oscuro/claro y editor gráfico fluido de estados y transiciones.
 - [x] Implementar tokens CSS claro/oscuro (`apps/web/src/styles/tokens.css`) y fuentes locales (`Plus Jakarta Sans` + `JetBrains Mono`).
 - [x] Implementar layout base: `TopBar` (tipo de máquina, badge offline, validación, acciones, tema), `Dock` flotante y `Inspector` colapsable.
@@ -57,8 +57,8 @@
 - [x] Implementar `geometry.ts` (aristas rectas recortadas, Bézier automáticas para bidireccionales, self-loops limpios, snap a rejilla).
 - [x] Implementar `GraphCanvas`: crear/mover/eliminar estados, marcar inicial/aceptación, arrastrar transiciones, editar reglas con popover inline (cero `prompt()`/`alert()`), zoom/pan, selección múltiple y atajos de teclado (`V`, `A`, `T`, `D`, `Delete`, `Ctrl+A`, `Ctrl+0`, `Space`).
 - [x] Implementar panel de propiedades, tabla de transiciones $\delta$ y vista de definición formal en `Inspector.tsx`.
-- [ ] **Menú contextual en aristas y notas inline (`specs/06`, `specs/07`):** clic derecho en arista para *Invertir dirección* y *Reasignar origen/destino*; notas inline en nodos y aristas.
-- [ ] **Navegación focalizada (`specs/07`):** acción `focusOnNode(stateId)` para centrar cámara en un estado `X` desde la tabla $\delta$ o inspector.
+- [x] **Menú contextual en aristas y notas inline (`specs/06`, `specs/07`):** clic derecho en arista para *Invertir dirección* y *Reasignar origen/destino*; notas inline en nodos y aristas.
+- [x] **Navegación focalizada (`specs/07`):** acción `centerOnState(stateId)` para centrar cámara en un estado `X` desde el inspector.
 
 **Criterio de salida:** Se puede dibujar y editar cómodamente un AFD y una Máquina de Turing completa a 60 FPS en tema claro y oscuro con todas las acciones del menú contextual.
 

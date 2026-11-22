@@ -32,6 +32,7 @@ export interface Transition {
   to: string;
   curveOffset: number;
   rule: TransitionRule;
+  comment?: string;
 }
 
 export interface MachineConfig {

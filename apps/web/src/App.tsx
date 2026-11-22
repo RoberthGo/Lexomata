@@ -22,11 +22,14 @@ import {
   changeMachineType,
   createId,
   createProject,
+  invertEdgeGroup,
   normalizeProject,
   projectFileName,
+  reassignEdgeGroup,
   removeStates,
   removeTransitions,
   touchProject,
+  updateEdgeGroupComment,
   updateState,
 } from './model/project';
 import { useFaSimulation } from './state/useFaSimulation';
@@ -453,6 +456,24 @@ export function App() {
                 setSelection({ kind: 'edge', from, to });
                 setInspectorTab('properties');
                 setInspectorOpen(true);
+              }}
+              onInvertEdge={(from, to) => {
+                store.commit((current) => invertEdgeGroup(current, from, to));
+                setSelection({ kind: 'edge', from: to, to: from });
+              }}
+              onReassignEdge={(from, to, nextFrom, nextTo) => {
+                store.commit((current) => reassignEdgeGroup(current, from, to, nextFrom, nextTo));
+                setSelection({ kind: 'edge', from: nextFrom, to: nextTo });
+              }}
+              onUpdateEdgeComment={(from, to, comment) => {
+                store.commit((current) => updateEdgeGroupComment(current, from, to, comment));
+              }}
+              onDeleteEdge={(from, to) => {
+                const ids = project.transitions
+                  .filter((transition) => transition.from === from && transition.to === to)
+                  .map((transition) => transition.id);
+                store.commit((current) => removeTransitions(current, ids));
+                setSelection({ kind: 'none' });
               }}
             />
 

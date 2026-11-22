@@ -29,10 +29,13 @@ import { isTuring } from '../engine/types';
 import {
   addTransition,
   effectiveAlphabet,
+  invertEdgeGroup,
   markInitial,
+  reassignEdgeGroup,
   removeStates,
   removeTransitions,
   ruleSymbolLabel,
+  updateEdgeGroupComment,
   stateLabel,
   toggleAccepting,
   updateState,
@@ -363,20 +366,73 @@ function PropertiesTab({
             Añadir regla a esta arista
           </button>
 
+          <div className="grid grid-cols-2 gap-2">
+            <label className="space-y-1">
+              <span className="text-[11px] text-[var(--text-secondary)]">Origen</span>
+              <select
+                value={selection.from}
+                onChange={(event) => {
+                  const nextFrom = event.target.value;
+                  onCommit((current) =>
+                    reassignEdgeGroup(current, selection.from, selection.to, nextFrom, selection.to),
+                  );
+                  onSelect({ kind: 'edge', from: nextFrom, to: selection.to });
+                }}
+                className="mono h-7 w-full rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-1.5 text-[11px] text-[var(--text-primary)] focus:border-[var(--border-strong)] focus:outline-none"
+              >
+                {project.states.map((state) => (
+                  <option key={state.id} value={state.id}>
+                    {state.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-1">
+              <span className="text-[11px] text-[var(--text-secondary)]">Destino</span>
+              <select
+                value={selection.to}
+                onChange={(event) => {
+                  const nextTo = event.target.value;
+                  onCommit((current) =>
+                    reassignEdgeGroup(current, selection.from, selection.to, selection.from, nextTo),
+                  );
+                  onSelect({ kind: 'edge', from: selection.from, to: nextTo });
+                }}
+                className="mono h-7 w-full rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-1.5 text-[11px] text-[var(--text-primary)] focus:border-[var(--border-strong)] focus:outline-none"
+              >
+                {project.states.map((state) => (
+                  <option key={state.id} value={state.id}>
+                    {state.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <label className="block space-y-1">
+            <span className="text-[11px] text-[var(--text-secondary)]">Nota de arista</span>
+            <textarea
+              rows={2}
+              value={transitions.find((item) => item.comment)?.comment ?? ''}
+              placeholder="Anotación opcional…"
+              onChange={(event) =>
+                onCommit((current) =>
+                  updateEdgeGroupComment(current, selection.from, selection.to, event.target.value),
+                )
+              }
+              className="w-full resize-none rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-2 py-1.5 text-[12px] text-[var(--text-primary)] focus:border-[var(--border-strong)] focus:outline-none"
+            />
+          </label>
+
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() =>
-                onCommit((current) => ({
-                  ...current,
-                  transitions: current.transitions.map((transition) =>
-                    transition.from === selection.from && transition.to === selection.to
-                      ? { ...transition, from: selection.to, to: selection.from }
-                      : transition,
-                  ),
-                }))
-              }
-              className="flex h-7 flex-1 items-center justify-center gap-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] text-[11px] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+              disabled={selection.from === selection.to}
+              onClick={() => {
+                onCommit((current) => invertEdgeGroup(current, selection.from, selection.to));
+                onSelect({ kind: 'edge', from: selection.to, to: selection.from });
+              }}
+              className="flex h-7 flex-1 items-center justify-center gap-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] text-[11px] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] disabled:opacity-40"
             >
               <ArrowLeftRight aria-hidden="true" className="h-3 w-3" />
               Invertir

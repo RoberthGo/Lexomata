@@ -213,6 +213,64 @@ export function removeTransitions(project: LexoProject, transitionIds: Iterable<
   });
 }
 
+function mapEdgeGroup(
+  project: LexoProject,
+  from: string,
+  to: string,
+  transform: (transition: Transition) => Transition,
+): LexoProject {
+  let changed = false;
+  const transitions = project.transitions.map((transition) => {
+    if (transition.from !== from || transition.to !== to) {
+      return transition;
+    }
+    changed = true;
+    return transform(transition);
+  });
+
+  return changed ? touchProject({ ...project, transitions }) : project;
+}
+
+export function invertEdgeGroup(project: LexoProject, from: string, to: string): LexoProject {
+  if (from === to) {
+    return project;
+  }
+  return mapEdgeGroup(project, from, to, (transition) => ({
+    ...transition,
+    from: to,
+    to: from,
+  }));
+}
+
+export function reassignEdgeGroup(
+  project: LexoProject,
+  from: string,
+  to: string,
+  nextFrom: string,
+  nextTo: string,
+): LexoProject {
+  if (from === nextFrom && to === nextTo) {
+    return project;
+  }
+  return mapEdgeGroup(project, from, to, (transition) => ({
+    ...transition,
+    from: nextFrom,
+    to: nextTo,
+  }));
+}
+
+export function updateEdgeGroupComment(
+  project: LexoProject,
+  from: string,
+  to: string,
+  comment?: string,
+): LexoProject {
+  return mapEdgeGroup(project, from, to, (transition) => ({
+    ...transition,
+    comment: comment && comment.length > 0 ? comment : undefined,
+  }));
+}
+
 export function markInitial(project: LexoProject, stateId: string): LexoProject {
   return touchProject({
     ...project,
@@ -455,6 +513,7 @@ function normalizeTransition(
     to: transition.to,
     curveOffset: Number.isFinite(transition.curveOffset) ? Number(transition.curveOffset) : 0,
     rule,
+    comment: typeof transition.comment === 'string' ? transition.comment : undefined,
   };
 }
 
