@@ -41,26 +41,26 @@ if ($LASTEXITCODE -ne 0) { throw 'Fallo wasm:build' }
 npm run build:web
 if ($LASTEXITCODE -ne 0) { throw 'Fallo build:web' }
 
+$WebDist = Join-Path $Root 'apps\web\dist'
+$ReleaseWeb = Join-Path $ReleaseDir 'web'
+if (Test-Path $ReleaseWeb) { Remove-Item $ReleaseWeb -Recurse -Force }
+Copy-Item $WebDist $ReleaseWeb -Recurse -Force
+$WebZip = Join-Path $ReleaseDir 'Lexomata-web.zip'
+Compress-Archive -Path "$WebDist\*" -DestinationPath $WebZip -Force
+Write-Host "    Copiado web: $ReleaseWeb y $WebZip" -ForegroundColor Green
+
 if (-not $SkipExe) {
     Write-Host '==> [2/3] Compilando aplicación Windows (.exe)...' -ForegroundColor Cyan
-    npx tauri build --bundles nsis
+    npx tauri build --no-bundle
     if ($LASTEXITCODE -ne 0) { throw 'Fallo tauri build (Windows)' }
 
-    $setupExe = Get-ChildItem (Join-Path $Root 'src-tauri\target\release\bundle\nsis') -Filter '*.exe' -ErrorAction SilentlyContinue |
-        Sort-Object LastWriteTime -Descending |
-        Select-Object -First 1
-    if ($setupExe) {
-        $destExe = Join-Path $ReleaseDir 'Lexomata-Setup.exe'
-        Copy-Item $setupExe.FullName $destExe -Force
-        Write-Host "    Copiado: $destExe" -ForegroundColor Green
-    }
-
     $portableExe = Join-Path $Root 'src-tauri\target\release\lexomata-desktop.exe'
-    if (Test-Path $portableExe) {
-        $destPortable = Join-Path $ReleaseDir 'Lexomata.exe'
-        Copy-Item $portableExe $destPortable -Force
-        Write-Host "    Copiado: $destPortable" -ForegroundColor Green
+    if (-not (Test-Path $portableExe)) {
+        throw 'No se encontró src-tauri\target\release\lexomata-desktop.exe'
     }
+    $destPortable = Join-Path $ReleaseDir 'Lexomata.exe'
+    Copy-Item $portableExe $destPortable -Force
+    Write-Host "    Copiado: $destPortable" -ForegroundColor Green
 }
 
 if (-not $SkipApk) {
