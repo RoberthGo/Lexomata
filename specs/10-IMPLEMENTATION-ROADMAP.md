@@ -64,13 +64,13 @@
 
 ---
 
-## Fase 4 — Simulador Visual + Cinta Infinita Animada de Turing + Batch Runner
+## Fase 4 — Simulador Visual + Cinta Infinita Animada de Turing + Batch Runner (`[x]` Completada)
 **Objetivo:** Conectar la UI con el motor Rust WASM para simulación interactiva y pruebas masivas.
 - [x] Implementar hooks `useFaSimulation.ts` y `useTuringSimulation.ts` conectados a `wasmAdapter.ts`.
 - [x] Implementar `SimulationBar` para AF (`FaSimBar`): tira de entrada, resaltado en vivo de estados/aristas disparadas (incluyendo múltiples estados en AFN), Play/Pausa, Step Back/Forward y selector de velocidad.
 - [x] Implementar `SimulationBar` para MT (`TuringTapeBar`): cinta infinita con cabezal animado, edición directa de celdas, índice por celda, Step Back instantáneo, Fast Run y aviso claro de `STEP_LIMIT`.
 - [x] Implementar pestaña **Lotes / Batch Runner** (*Multiple Run*) para AF y MT en `Inspector.tsx`.
-- [ ] **Controles finos de `FaSimBar` (`specs/06`):** selector de velocidad custom en `ms` e indicador compacto de transiciones disponibles desde el estado actual.
+- [x] **Controles finos de `FaSimBar` (`specs/06`):** selector de velocidad custom en `ms` e indicador compacto de transiciones disponibles desde el estado actual.
 
 **Criterio de salida:** Los 4 proyectos de ejemplo integrados se simulan paso a paso, hacia atrás y por lotes sin errores, con control de velocidad en `ms` e indicador de transiciones.
 

@@ -60,7 +60,7 @@ function ControlButton({
 
 function SpeedSelect({ speed, onChange }: { speed: number; onChange: (speed: number) => void }) {
   return (
-    <div className="flex items-center rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] p-0.5">
+    <div className="flex items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] p-0.5">
       {SPEED_OPTIONS.map((option) => (
         <button
           key={option.value}
@@ -75,6 +75,24 @@ function SpeedSelect({ speed, onChange }: { speed: number; onChange: (speed: num
           {option.label}
         </button>
       ))}
+      <label className="flex items-center gap-0.5 border-l border-[var(--border-subtle)] pl-1.5 pr-1 text-[10px] text-[var(--text-muted)]">
+        <input
+          type="number"
+          min={50}
+          max={5000}
+          step={50}
+          aria-label="Velocidad en milisegundos"
+          value={speed}
+          onChange={(event) => {
+            const parsed = Number(event.target.value);
+            if (Number.isFinite(parsed)) {
+              onChange(Math.max(50, Math.min(5000, Math.round(parsed))));
+            }
+          }}
+          className="mono w-12 bg-transparent text-right text-[10px] text-[var(--text-primary)] focus:outline-none"
+        />
+        <span>ms</span>
+      </label>
     </div>
   );
 }
@@ -133,9 +151,23 @@ function FaSimulationBar({
   const snapshot = trace?.steps[stepIndex];
   const characters = [...simulation.input];
   const consumed = snapshot?.inputIndex ?? 0;
+  const activeIds =
+    snapshot?.activeStateIds ??
+    project.states.filter((state) => state.isInitial).map((state) => state.id);
   const activeNames = (snapshot?.activeStateIds ?? [])
     .map((id) => project.states.find((state) => state.id === id)?.label ?? id)
     .join(', ');
+  const activeSet = new Set(activeIds);
+  const availableTransitions = project.transitions
+    .filter((transition) => activeSet.has(transition.from))
+    .map((transition) => {
+      const symbol =
+        transition.rule.kind === 'FA'
+          ? (transition.rule.symbol ?? project.config.epsilonSymbol)
+          : '';
+      const target = project.states.find((state) => state.id === transition.to)?.label ?? transition.to;
+      return `${symbol}→${target}`;
+    });
 
   return (
     <section className="shrink-0 border-t border-[var(--border-subtle)] bg-[var(--bg-surface)]">
@@ -229,6 +261,16 @@ function FaSimulationBar({
             Activos: <span className="text-[var(--accent-active)]">{activeNames}</span>
             {snapshot && snapshot.activeStateIds.length > 1 ? ` · ${snapshot.activeStateIds.length} ramas` : ''}
             {snapshot?.branchesTruncated ? ' · traza truncada' : ''}
+          </span>
+        ) : null}
+
+        {availableTransitions.length > 0 ? (
+          <span
+            title={availableTransitions.join(', ')}
+            className="mono truncate rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]"
+          >
+            Salientes: {availableTransitions.slice(0, 4).join(', ')}
+            {availableTransitions.length > 4 ? ` +${availableTransitions.length - 4}` : ''}
           </span>
         ) : null}
 
