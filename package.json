@@ -8,9 +8,13 @@
     "wasm:build:dev": "wasm-pack build crates/lexomata-wasm --dev --target web --out-dir ../../apps/web/src/wasm",
     "dev": "npm --prefix apps/web run dev",
     "typecheck": "npm --prefix apps/web run typecheck",
+    "test:rust": "cargo test --workspace",
+    "lint:rust": "cargo clippy --workspace -- -D warnings",
     "test:web": "npm --prefix apps/web run test",
+    "test:e2e": "npm --prefix apps/web run test:e2e",
     "build:web": "npm --prefix apps/web run build",
     "audit:offline": "node scripts/audit-offline.mjs",
-    "verify": "npm run typecheck && npm run test:web && npm run build:web && npm run audit:offline"
+    "verify": "npm run typecheck && npm run test:web && npm run build:web && npm run audit:offline",
+    "check:all": "npm run test:rust && npm run lint:rust && npm run verify"
   }
 }

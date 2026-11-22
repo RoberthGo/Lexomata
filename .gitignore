@@ -19,6 +19,10 @@ dist/
 **/dist/
 .vite/
 coverage/
+test-results/
+**/test-results/
+playwright-report/
+**/playwright-report/
 *.tsbuildinfo
 npm-debug.log*
 pnpm-debug.log*

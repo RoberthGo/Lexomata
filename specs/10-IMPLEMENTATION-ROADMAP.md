@@ -102,10 +102,10 @@
 
 ---
 
-## Fase 7 — Pulido Final, CI/CD y Despliegue a GitHub Pages
+## Fase 7 — Pulido Final, CI/CD y Despliegue a GitHub Pages (`[~]` E2E + CI/CD listos)
 **Objetivo:** Automatización total de pruebas, auditoría offline y publicaciones.
-- [ ] Escribir pruebas E2E con Playwright validando flujo completo en modo offline (`context.setOffline(true)` tras primera carga PWA).
-- [ ] Configurar `.github/workflows/ci.yml` (`cargo test`, `cargo clippy`, `typecheck`, `test:web`, `build:web`, `audit:offline`, Playwright).
-- [ ] Configurar `.github/workflows/deploy-pages.yml` para publicar `apps/web/dist` en GitHub Pages al hacer push a `main`.
-- [ ] Configurar `.github/workflows/release-desktop.yml` para compilar instaladores Tauri 2.0 por tag (`v*`).
-- [ ] Verificar puntuación Lighthouse PWA / rendimiento y revisar visualmente toda la interfaz en modo claro y oscuro.
+- [x] Escribir pruebas E2E con Playwright (`apps/web/e2e/offline.spec.ts`) validando flujo completo en modo offline (`context.setOffline(true)` tras primera carga PWA).
+- [x] Configurar `.github/workflows/ci.yml` (`cargo test`, `cargo clippy`, `typecheck`, `test:web`, `build:web`, `audit:offline`, Playwright).
+- [x] Configurar `.github/workflows/deploy-pages.yml` para publicar `apps/web/dist` en GitHub Pages al hacer push a `main`.
+- [x] Configurar `.github/workflows/release-desktop.yml` para compilar instaladores Tauri 2.0 por tag (`v*.*.*`).
+- [ ] Ejecutar auditoría formal de Lighthouse PWA tras el primer despliegue en GitHub Pages.
