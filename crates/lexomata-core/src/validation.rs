@@ -17,6 +17,8 @@ pub enum WarningCode {
     NoAcceptingStates,
     EpsilonInNfa,
     EmptyAlphabet,
+    TransitionFromAcceptingState,
+    UndeclaredTapeSymbol,
 }
 
 /// Advertencia no bloqueante con IDs relacionados para resaltar en la UI.
@@ -78,6 +80,8 @@ pub fn validate_machine(project: &LexoProject) -> ValidationReport {
 
     if project.machine_type.is_finite_automaton() {
         validate_finite_automaton(project, &mut report);
+    } else if project.machine_type.is_turing() {
+        validate_turing(project, &mut report);
     }
 
     report
@@ -300,6 +304,161 @@ fn validate_finite_automaton(project: &LexoProject, report: &mut ValidationRepor
                     states,
                 );
             }
+        }
+    }
+}
+
+fn validate_turing(project: &LexoProject, report: &mut ValidationReport) {
+    if project.machine_type == MachineType::TmSingle && project.config.tape_count != 1 {
+        report.error(EngineError::new(
+            EngineErrorCode::InvalidSchema,
+            format!(
+                "Una MT_SINGLE debe tener exactamente una cinta; config.tapeCount es {}.",
+                project.config.tape_count
+            ),
+        ));
+    }
+
+    if project.config.blank_symbol.chars().count() != 1 {
+        report.error(EngineError::new(
+            EngineErrorCode::InvalidSchema,
+            "El símbolo blanco de una máquina de Turing debe ser exactamente un carácter.",
+        ));
+    }
+
+    let expected_operations = project.config.tape_count.max(1) as usize;
+    let tape_alphabet: BTreeSet<&str> = project
+        .config
+        .tape_alphabet
+        .iter()
+        .map(String::as_str)
+        .collect();
+
+    let mut seen: BTreeMap<(&str, Vec<String>), &str> = BTreeMap::new();
+    let mut undeclared_symbols = BTreeSet::new();
+    let mut undeclared_transitions = BTreeSet::new();
+
+    for transition in &project.transitions {
+        let TransitionRule::Tm { operations } = &transition.rule else {
+            continue;
+        };
+
+        if operations.len() != expected_operations {
+            report.error(EngineError::with_related_ids(
+                EngineErrorCode::InvalidTransitionRule,
+                format!(
+                    "La transición '{}' tiene {} operación(es), pero la máquina declara {} cinta(s).",
+                    transition.id,
+                    operations.len(),
+                    expected_operations
+                ),
+                vec![transition.id.clone()],
+            ));
+        }
+
+        for operation in operations {
+            if operation.read.is_empty() || operation.write.is_empty() {
+                report.error(EngineError::with_related_ids(
+                    EngineErrorCode::InvalidTransitionRule,
+                    format!(
+                        "La transición '{}' tiene un símbolo de lectura o escritura vacío; usa '{}' para el blanco.",
+                        transition.id, project.config.blank_symbol
+                    ),
+                    vec![transition.id.clone()],
+                ));
+            } else if operation.read.chars().count() != 1 || operation.write.chars().count() != 1 {
+                report.error(EngineError::with_related_ids(
+                    EngineErrorCode::InvalidTransitionRule,
+                    format!(
+                        "La transición '{}' usa símbolos de cinta que no son de un solo carácter.",
+                        transition.id
+                    ),
+                    vec![transition.id.clone()],
+                ));
+            }
+
+            for symbol in [&operation.read, &operation.write] {
+                if !symbol.is_empty()
+                    && symbol != &project.config.blank_symbol
+                    && !tape_alphabet.contains(symbol.as_str())
+                {
+                    undeclared_symbols.insert(symbol.clone());
+                    undeclared_transitions.insert(transition.id.clone());
+                }
+            }
+        }
+
+        if project
+            .state(&transition.from)
+            .is_some_and(|state| state.is_accepting)
+        {
+            report.warning(
+                WarningCode::TransitionFromAcceptingState,
+                format!(
+                    "La transición '{}' sale de un estado de aceptación; la máquina se detendrá al entrar en él y esa transición nunca se usará.",
+                    transition.id
+                ),
+                vec![transition.from.clone(), transition.id.clone()],
+            );
+        }
+
+        let reads: Vec<String> = operations
+            .iter()
+            .map(|operation| operation.read.clone())
+            .collect();
+
+        if let Some(previous) =
+            seen.insert((transition.from.as_str(), reads), transition.id.as_str())
+        {
+            report.error(EngineError::with_related_ids(
+                EngineErrorCode::NonDeterministicConflict,
+                format!(
+                    "La MT tiene dos transiciones desde '{}' que leen la misma tupla ('{}' y '{}').",
+                    transition.from, previous, transition.id
+                ),
+                vec![previous.to_owned(), transition.id.clone()],
+            ));
+        }
+    }
+
+    if !undeclared_symbols.is_empty() {
+        let symbols: Vec<String> = undeclared_symbols.into_iter().collect();
+        report.warning(
+            WarningCode::UndeclaredTapeSymbol,
+            format!(
+                "Hay símbolos usados que no están en tapeAlphabet: {}.",
+                symbols.join(", ")
+            ),
+            undeclared_transitions.into_iter().collect(),
+        );
+    }
+
+    if !project.states.iter().any(|state| state.is_accepting) {
+        report.warning(
+            WarningCode::NoAcceptingStates,
+            "No hay estados de aceptación: la máquina siempre rechazará al detenerse.",
+            Vec::new(),
+        );
+    }
+
+    if let Some(initial) = project.initial_state() {
+        let reachable = reachable_states(project, &initial.id);
+        let unreachable: Vec<String> = project
+            .states
+            .iter()
+            .filter(|state| !reachable.contains(&state.id))
+            .map(|state| state.id.clone())
+            .collect();
+
+        if !unreachable.is_empty() {
+            report.warning(
+                WarningCode::UnreachableStates,
+                format!(
+                    "{} estado(s) no son alcanzables desde el estado inicial.",
+                    unreachable.len()
+                ),
+                unreachable,
+            );
         }
     }
 }
@@ -567,5 +726,128 @@ mod tests {
 
         assert!(!report.valid);
         assert!(error_codes(&report).contains(&EngineErrorCode::InvalidTransitionRule));
+    }
+
+    #[test]
+    fn tm_examples_have_no_blocking_errors() {
+        for project in [
+            examples::binary_increment_tm(),
+            examples::equal_zeros_ones_tm(),
+            examples::negative_tape_tm(),
+            examples::infinite_loop_tm(),
+        ] {
+            let report = validate_machine(&project);
+            assert!(report.valid, "{}: {:?}", project.name, report.errors);
+        }
+    }
+
+    #[test]
+    fn tm_duplicate_read_is_nondeterministic() {
+        let mut project = examples::binary_increment_tm();
+        project.transitions.push(crate::model::Transition {
+            id: "t-dup".to_owned(),
+            from: "s0".to_owned(),
+            to: "s2".to_owned(),
+            curve_offset: 0.0,
+            rule: TransitionRule::Tm {
+                operations: vec![crate::model::TmOperation {
+                    read: "0".to_owned(),
+                    write: "0".to_owned(),
+                    r#move: crate::model::TapeMove::R,
+                }],
+            },
+        });
+
+        let report = validate_machine(&project);
+
+        assert!(!report.valid);
+        assert!(error_codes(&report).contains(&EngineErrorCode::NonDeterministicConflict));
+    }
+
+    #[test]
+    fn tm_operation_count_must_match_tape_count() {
+        let mut project = examples::binary_increment_tm();
+        if let TransitionRule::Tm { operations } = &mut project.transitions[0].rule {
+            operations.clear();
+        }
+
+        let report = validate_machine(&project);
+
+        assert!(!report.valid);
+        assert!(error_codes(&report).contains(&EngineErrorCode::InvalidTransitionRule));
+    }
+
+    #[test]
+    fn tm_undeclared_symbol_is_a_warning() {
+        let mut project = examples::binary_increment_tm();
+        project.transitions.push(crate::model::Transition {
+            id: "t-undeclared".to_owned(),
+            from: "s0".to_owned(),
+            to: "s2".to_owned(),
+            curve_offset: 0.0,
+            rule: TransitionRule::Tm {
+                operations: vec![crate::model::TmOperation {
+                    read: "Z".to_owned(),
+                    write: "Z".to_owned(),
+                    r#move: crate::model::TapeMove::S,
+                }],
+            },
+        });
+
+        let report = validate_machine(&project);
+
+        assert!(report.valid);
+        assert!(report
+            .warnings
+            .iter()
+            .any(|warning| warning.code == WarningCode::UndeclaredTapeSymbol));
+    }
+
+    #[test]
+    fn tm_transition_from_accepting_state_warns() {
+        let mut project = examples::binary_increment_tm();
+        project.transitions.push(crate::model::Transition {
+            id: "t-from-accept".to_owned(),
+            from: "s2".to_owned(),
+            to: "s0".to_owned(),
+            curve_offset: 0.0,
+            rule: TransitionRule::Tm {
+                operations: vec![crate::model::TmOperation {
+                    read: "0".to_owned(),
+                    write: "0".to_owned(),
+                    r#move: crate::model::TapeMove::S,
+                }],
+            },
+        });
+
+        let report = validate_machine(&project);
+
+        assert!(report.valid);
+        assert!(report
+            .warnings
+            .iter()
+            .any(|warning| warning.code == WarningCode::TransitionFromAcceptingState));
+    }
+
+    #[test]
+    fn tm_blank_symbol_must_be_one_character() {
+        let mut project = examples::binary_increment_tm();
+        project.config.blank_symbol = "##".to_owned();
+
+        let report = validate_machine(&project);
+
+        assert!(!report.valid);
+        assert!(error_codes(&report).contains(&EngineErrorCode::InvalidSchema));
+    }
+
+    #[test]
+    fn tm_single_requires_exactly_one_tape() {
+        let mut project = examples::binary_increment_tm();
+        project.config.tape_count = 2;
+
+        let report = validate_machine(&project);
+
+        assert!(!report.valid);
+        assert!(error_codes(&report).contains(&EngineErrorCode::InvalidSchema));
     }
 }

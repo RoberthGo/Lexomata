@@ -4,8 +4,8 @@
 //! menú de ejemplos de la interfaz.
 
 use crate::model::{
-    ExpectedVerdict, LexoProject, MachineConfig, MachineType, State, TestCase, Transition,
-    TransitionRule, Viewport, SCHEMA_VERSION,
+    ExpectedVerdict, LexoProject, MachineConfig, MachineType, State, TapeMove, TestCase,
+    TmOperation, Transition, TransitionRule, Viewport, SCHEMA_VERSION,
 };
 
 const CREATED_AT: &str = "2026-11-21T00:00:00Z";
@@ -31,6 +31,57 @@ fn fa_transition(id: &str, from: &str, to: &str, symbol: Option<&str>) -> Transi
         rule: TransitionRule::Fa {
             symbol: symbol.map(str::to_owned),
         },
+    }
+}
+
+fn tm_transition(
+    id: &str,
+    from: &str,
+    to: &str,
+    read: &str,
+    write: &str,
+    movement: TapeMove,
+) -> Transition {
+    Transition {
+        id: id.to_owned(),
+        from: from.to_owned(),
+        to: to.to_owned(),
+        curve_offset: 0.0,
+        rule: TransitionRule::Tm {
+            operations: vec![TmOperation {
+                read: read.to_owned(),
+                write: write.to_owned(),
+                r#move: movement,
+            }],
+        },
+    }
+}
+
+fn tm_project(
+    id: &str,
+    name: &str,
+    states: Vec<State>,
+    transitions: Vec<Transition>,
+    alphabet: Vec<&str>,
+    tape_alphabet: Vec<&str>,
+) -> LexoProject {
+    LexoProject {
+        schema_version: SCHEMA_VERSION.to_owned(),
+        id: id.to_owned(),
+        name: name.to_owned(),
+        description: None,
+        machine_type: MachineType::TmSingle,
+        created_at: CREATED_AT.to_owned(),
+        updated_at: CREATED_AT.to_owned(),
+        config: MachineConfig {
+            alphabet: alphabet.into_iter().map(str::to_owned).collect(),
+            tape_alphabet: tape_alphabet.into_iter().map(str::to_owned).collect(),
+            ..MachineConfig::default()
+        },
+        states,
+        transitions,
+        test_cases: Vec::new(),
+        viewport: Viewport::default(),
     }
 }
 
@@ -212,5 +263,100 @@ pub fn redundant_dfa() -> LexoProject {
                 expected: ExpectedVerdict::Reject,
             },
         ],
+    )
+}
+
+/// MT que suma 1 a un número binario.
+pub fn binary_increment_tm() -> LexoProject {
+    tm_project(
+        "example-tm-binary-increment",
+        "Incremento binario",
+        vec![
+            state("s0", "q0", 160.0, 240.0, true, false),
+            state("s1", "q1", 420.0, 240.0, false, false),
+            state("s2", "q2", 680.0, 240.0, false, true),
+        ],
+        vec![
+            tm_transition("t0", "s0", "s0", "0", "0", TapeMove::R),
+            tm_transition("t1", "s0", "s0", "1", "1", TapeMove::R),
+            tm_transition("t2", "s0", "s1", "□", "□", TapeMove::L),
+            tm_transition("t3", "s1", "s1", "1", "0", TapeMove::L),
+            tm_transition("t4", "s1", "s2", "0", "1", TapeMove::S),
+            tm_transition("t5", "s1", "s2", "□", "1", TapeMove::S),
+        ],
+        vec!["0", "1"],
+        vec!["0", "1", "□"],
+    )
+}
+
+/// MT que reconoce `0^n 1^n` para `n >= 1`.
+pub fn equal_zeros_ones_tm() -> LexoProject {
+    tm_project(
+        "example-tm-equal-zeros-ones",
+        "0^n 1^n",
+        vec![
+            state("s0", "q0", 160.0, 240.0, true, false),
+            state("s1", "q1", 380.0, 120.0, false, false),
+            state("s2", "q2", 380.0, 360.0, false, false),
+            state("s3", "q3", 600.0, 240.0, false, false),
+            state("s4", "q_accept", 840.0, 120.0, false, true),
+            state("s5", "q_reject", 840.0, 360.0, false, false),
+        ],
+        vec![
+            tm_transition("t0", "s0", "s1", "0", "X", TapeMove::R),
+            tm_transition("t1", "s0", "s0", "X", "X", TapeMove::R),
+            tm_transition("t2", "s0", "s3", "Y", "Y", TapeMove::R),
+            tm_transition("t3", "s0", "s5", "□", "□", TapeMove::S),
+            tm_transition("t4", "s1", "s1", "0", "0", TapeMove::R),
+            tm_transition("t5", "s1", "s1", "Y", "Y", TapeMove::R),
+            tm_transition("t6", "s1", "s2", "1", "Y", TapeMove::L),
+            tm_transition("t7", "s2", "s2", "0", "0", TapeMove::L),
+            tm_transition("t8", "s2", "s2", "Y", "Y", TapeMove::L),
+            tm_transition("t9", "s2", "s0", "X", "X", TapeMove::R),
+            tm_transition("t10", "s3", "s3", "Y", "Y", TapeMove::R),
+            tm_transition("t11", "s3", "s4", "□", "□", TapeMove::S),
+        ],
+        vec!["0", "1"],
+        vec!["0", "1", "X", "Y", "□"],
+    )
+}
+
+/// MT que escribe en índices negativos y vuelve al origen.
+pub fn negative_tape_tm() -> LexoProject {
+    tm_project(
+        "example-tm-negative-tape",
+        "Índices negativos",
+        vec![
+            state("s0", "q0", 160.0, 240.0, true, false),
+            state("s1", "q1", 360.0, 240.0, false, false),
+            state("s2", "q2", 560.0, 240.0, false, false),
+            state("s3", "q3", 760.0, 240.0, false, false),
+            state("s4", "q4", 960.0, 240.0, false, false),
+            state("s5", "q_accept", 1160.0, 240.0, false, true),
+        ],
+        vec![
+            tm_transition("t0", "s0", "s1", "□", "A", TapeMove::L),
+            tm_transition("t1", "s1", "s2", "□", "B", TapeMove::L),
+            tm_transition("t2", "s2", "s3", "□", "C", TapeMove::L),
+            tm_transition("t3", "s3", "s4", "□", "□", TapeMove::R),
+            tm_transition("t4", "s4", "s4", "C", "C", TapeMove::R),
+            tm_transition("t5", "s4", "s4", "B", "B", TapeMove::R),
+            tm_transition("t6", "s4", "s4", "A", "A", TapeMove::R),
+            tm_transition("t7", "s4", "s5", "□", "□", TapeMove::S),
+        ],
+        Vec::new(),
+        vec!["A", "B", "C", "□"],
+    )
+}
+
+/// MT que se mueve indefinidamente a la derecha.
+pub fn infinite_loop_tm() -> LexoProject {
+    tm_project(
+        "example-tm-infinite-loop",
+        "Bucle infinito",
+        vec![state("s0", "q0", 240.0, 240.0, true, false)],
+        vec![tm_transition("t0", "s0", "s0", "□", "□", TapeMove::R)],
+        Vec::new(),
+        vec!["□"],
     )
 }
