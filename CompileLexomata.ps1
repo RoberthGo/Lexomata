@@ -78,6 +78,14 @@ if (-not $SkipApk) {
         if ($LASTEXITCODE -ne 0) { throw 'Fallo tauri android init' }
     }
 
+    $gradleProps = Join-Path $Root 'src-tauri\gen\android\gradle.properties'
+    if (Test-Path $gradleProps) {
+        $propsContent = Get-Content $gradleProps -Raw
+        if ($propsContent -notmatch 'android\.overridePathCheck=true') {
+            Add-Content -Path $gradleProps -Value "`nandroid.overridePathCheck=true"
+        }
+    }
+
     npx tauri android build --apk
     if ($LASTEXITCODE -ne 0) { throw 'Fallo tauri android build' }
 
