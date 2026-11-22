@@ -86,6 +86,14 @@ if (-not $SkipApk) {
         }
     }
 
+    $buildTask = Join-Path $Root 'src-tauri\gen\android\buildSrc\src\main\java\io\github\roberthg\lexomata\kotlin\BuildTask.kt'
+    if (Test-Path $buildTask) {
+        $taskContent = Get-Content $buildTask -Raw
+        if ($taskContent -match 'val executable = """npm""";') {
+            Set-Content -Path $buildTask -Value ($taskContent -replace 'val executable = """npm""";', 'val executable = """npm.cmd""";') -NoNewline
+        }
+    }
+
     npx tauri android build --apk
     if ($LASTEXITCODE -ne 0) { throw 'Fallo tauri android build' }
 
