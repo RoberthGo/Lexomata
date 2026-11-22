@@ -97,16 +97,27 @@ function labelLines(project: LexoProject, group: EdgeGroup): string[] {
     : [label];
 }
 
+export interface ExportOptions {
+  includeTestCases?: boolean;
+}
+
 /** Genera un SVG limpio, autocontenido y sin recursos remotos. */
 export function projectToSvg(
   project: LexoProject,
   theme: ExportTheme = 'light',
   padding = 48,
+  options: ExportOptions = {},
 ): string {
   const palette = PALETTES[theme];
   const bounds = graphBounds(project.states);
-  const width = Math.ceil(bounds.maxX - bounds.minX + padding * 2);
-  const height = Math.ceil(bounds.maxY - bounds.minY + padding * 2);
+  const testCases = options.includeTestCases ? project.testCases : [];
+  const tableHeight = testCases.length > 0 ? 44 + testCases.length * 22 + 16 : 0;
+  const width = Math.max(
+    testCases.length > 0 ? 340 : 0,
+    Math.ceil(bounds.maxX - bounds.minX + padding * 2),
+  );
+  const graphHeight = Math.ceil(bounds.maxY - bounds.minY + padding * 2);
+  const height = graphHeight + tableHeight;
   const offsetX = -bounds.minX + padding;
   const offsetY = -bounds.minY + padding;
   const groups = groupTransitions(project.transitions);
@@ -193,6 +204,31 @@ export function projectToSvg(
   }
 
   parts.push('</g>');
+
+  if (testCases.length > 0) {
+    const tableY = graphHeight + 8;
+    const tableX = padding;
+    const tableWidth = Math.max(240, width - padding * 2);
+    parts.push(`<g transform="translate(${tableX} ${tableY})">`);
+    parts.push(
+      `<text x="0" y="14" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="11" font-weight="600" fill="${palette.text}">Casos Multi-Run</text>`,
+    );
+    parts.push(
+      `<line x1="0" y1="22" x2="${tableWidth}" y2="22" stroke="${palette.nodeStroke}" stroke-width="1"/>`,
+    );
+    testCases.forEach((tc, index) => {
+      const y = 38 + index * 22;
+      const inputLabel = tc.input.length > 0 ? tc.input : project.config.epsilonSymbol;
+      parts.push(
+        `<text x="4" y="${y}" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="11" fill="${palette.text}">${escapeXml(inputLabel)}</text>`,
+      );
+      parts.push(
+        `<text x="${tableWidth - 4}" y="${y}" text-anchor="end" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10" fill="${palette.muted}">${escapeXml(tc.expected)}</text>`,
+      );
+    });
+    parts.push('</g>');
+  }
+
   parts.push('</svg>');
 
   return parts.join('\n');
@@ -216,7 +252,7 @@ function escapeLatex(value: string): string {
 }
 
 /** Genera código TikZ listo para compilar con LaTeX. */
-export function projectToTikz(project: LexoProject): string {
+export function projectToTikz(project: LexoProject, options: ExportOptions = {}): string {
   const scale = 0.026;
   const groups = groupTransitions(project.transitions);
   const reverseKeys = new Set(groups.map((group) => group.key));
@@ -276,6 +312,21 @@ export function projectToTikz(project: LexoProject): string {
   }
 
   lines.push('\\end{tikzpicture}');
+
+  if (options.includeTestCases && project.testCases.length > 0) {
+    lines.push('');
+    lines.push('\\begin{tabular}{ll}');
+    lines.push('  \\hline');
+    lines.push('  Entrada & Esperado \\\\');
+    lines.push('  \\hline');
+    for (const tc of project.testCases) {
+      const input = tc.input.length > 0 ? escapeLatex(tc.input) : '\\varepsilon';
+      lines.push(`  $${input}$ & ${escapeLatex(tc.expected)} \\\\`);
+    }
+    lines.push('  \\hline');
+    lines.push('\\end{tabular}');
+  }
+
   return lines.join('\n');
 }
 

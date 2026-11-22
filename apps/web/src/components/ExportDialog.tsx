@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Check, Copy, Download, Image as ImageIcon, Loader2 } from 'lucide-react';
 import type { LexoProject } from '../engine/types';
+import type { Selection } from '../uiTypes';
 import { projectFileName } from '../model/project';
 import {
   downloadBlob,
@@ -14,8 +15,33 @@ import { Modal, PrimaryButton, SecondaryButton } from './Modal';
 
 interface ExportDialogProps {
   project: LexoProject;
+  selection?: Selection;
   onClose: () => void;
   onNotify: (message: string, tone?: 'info' | 'error') => void;
+}
+
+function sliceSelection(project: LexoProject, selection?: Selection): LexoProject {
+  if (!selection || selection.kind === 'none') {
+    return project;
+  }
+
+  const allowedStates = new Set<string>(
+    selection.kind === 'state' ? [selection.id] : [selection.from, selection.to],
+  );
+  const transitions =
+    selection.kind === 'edge'
+      ? project.transitions.filter(
+          (transition) => transition.from === selection.from && transition.to === selection.to,
+        )
+      : project.transitions.filter(
+          (transition) => allowedStates.has(transition.from) && allowedStates.has(transition.to),
+        );
+
+  return {
+    ...project,
+    states: project.states.filter((state) => allowedStates.has(state.id)),
+    transitions,
+  };
 }
 
 const THEMES: Array<{ id: ExportTheme; label: string }> = [
@@ -26,14 +52,27 @@ const THEMES: Array<{ id: ExportTheme; label: string }> = [
 
 const SCALES = [2, 3, 4];
 
-export function ExportDialog({ project, onClose, onNotify }: ExportDialogProps) {
+export function ExportDialog({ project, selection, onClose, onNotify }: ExportDialogProps) {
   const [theme, setTheme] = useState<ExportTheme>('light');
   const [scale, setScale] = useState(2);
+  const [area, setArea] = useState<'all' | 'selection'>('all');
+  const [includeTestCases, setIncludeTestCases] = useState(false);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const svg = useMemo(() => projectToSvg(project, theme), [project, theme]);
-  const tikz = useMemo(() => projectToTikz(project), [project]);
+  const hasSelection = Boolean(selection && selection.kind !== 'none');
+  const targetProject = useMemo(
+    () => (area === 'selection' && hasSelection ? sliceSelection(project, selection) : project),
+    [area, hasSelection, project, selection],
+  );
+  const svg = useMemo(
+    () => projectToSvg(targetProject, theme, 48, { includeTestCases }),
+    [targetProject, theme, includeTestCases],
+  );
+  const tikz = useMemo(
+    () => projectToTikz(targetProject, { includeTestCases }),
+    [targetProject, includeTestCases],
+  );
 
   const exportSvg = () => {
     downloadFile(projectFileName(project, 'svg'), svg, 'image/svg+xml');
@@ -144,6 +183,49 @@ export function ExportDialog({ project, onClose, onNotify }: ExportDialogProps) 
             </div>
           </div>
 
+          {hasSelection ? (
+            <div>
+              <p className="mb-1 text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                Área
+              </p>
+              <div className="flex items-center rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setArea('all')}
+                  className={`rounded-[4px] px-2 py-0.5 text-[10px] ${
+                    area === 'all'
+                      ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                  }`}
+                >
+                  Completo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setArea('selection')}
+                  className={`rounded-[4px] px-2 py-0.5 text-[10px] ${
+                    area === 'selection'
+                      ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                  }`}
+                >
+                  Selección
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {project.testCases.length > 0 ? (
+            <label className="mt-4 flex cursor-pointer items-center gap-1.5 text-[11px] text-[var(--text-secondary)]">
+              <input
+                type="checkbox"
+                checked={includeTestCases}
+                onChange={(event) => setIncludeTestCases(event.target.checked)}
+              />
+              Incluir tabla Multi-Run ({project.testCases.length})
+            </label>
+          ) : null}
+
           <button
             type="button"
             onClick={() => void copyTikz()}
@@ -160,7 +242,7 @@ export function ExportDialog({ project, onClose, onNotify }: ExportDialogProps) 
 
         <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-muted)]">
           <ImageIcon aria-hidden="true" className="h-3 w-3" />
-          Vista previa · {project.states.length} estados · {project.transitions.length} reglas
+          Vista previa · {targetProject.states.length} estados · {targetProject.transitions.length} reglas
         </div>
 
         <div className="max-h-[360px] overflow-auto rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] p-3">

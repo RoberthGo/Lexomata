@@ -9,6 +9,10 @@ import { NewProjectDialog } from './components/NewProjectDialog';
 import { SimulationBar } from './components/SimulationBar';
 import { TopBar } from './components/TopBar';
 import {
+  TransformationDialog,
+  type TransformationReport,
+} from './components/TransformationDialog';
+import {
   convertNfaToDfa,
   exportJflap,
   getExamples,
@@ -61,6 +65,7 @@ export function App() {
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>('properties');
   const [dialog, setDialog] = useState<Dialog>(null);
+  const [transformationReport, setTransformationReport] = useState<TransformationReport | null>(null);
   const [pendingType, setPendingType] = useState<MachineType | null>(null);
   const [examples, setExamples] = useState<ExampleEntry[]>([]);
   const [toast, setToast] = useState<Toast | null>(null);
@@ -284,10 +289,14 @@ export function App() {
 
   const convertNfa = useCallback(async () => {
     try {
+      const sourceLabels = Object.fromEntries(
+        project.states.map((state) => [state.id, state.label]),
+      );
       const result = await convertNfaToDfa(project, false);
       store.commit(() => result.dfa);
       setSelection({ kind: 'none' });
       setInspectorTab('properties');
+      setTransformationReport({ kind: 'nfaToDfa', result, sourceLabels });
       notify(`AFD generado con ${result.dfa.states.length} estados.`);
       window.setTimeout(() => canvasRef.current?.fit(), 0);
     } catch (error) {
@@ -297,9 +306,13 @@ export function App() {
 
   const minimize = useCallback(async () => {
     try {
+      const sourceLabels = Object.fromEntries(
+        project.states.map((state) => [state.id, state.label]),
+      );
       const result = await minimizeDfa(project);
       store.commit(() => result.minimized);
       setSelection({ kind: 'none' });
+      setTransformationReport({ kind: 'minimize', result, sourceLabels });
       notify(
         `AFD minimizado: ${result.minimized.states.length} estados, ${result.removedUnreachable.length} inalcanzables eliminados.`,
       );
@@ -533,8 +546,20 @@ export function App() {
       {dialog === 'export' ? (
         <ExportDialog
           project={project}
+          selection={selection}
           onClose={() => setDialog(null)}
           onNotify={notify}
+        />
+      ) : null}
+
+      {transformationReport ? (
+        <TransformationDialog
+          report={transformationReport}
+          onUndo={() => {
+            store.undo();
+            window.setTimeout(() => canvasRef.current?.fit(), 0);
+          }}
+          onClose={() => setTransformationReport(null)}
         />
       ) : null}
 

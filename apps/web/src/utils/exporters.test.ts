@@ -48,4 +48,23 @@ describe('exporters', () => {
     expect(tikz).toContain('a\\textbackslash{}b');
     expect(tikz).not.toContain('\\textbackslash\\{\\}');
   });
+
+  it('incluye tabla de casos Multi-Run en SVG y TikZ cuando se solicita', () => {
+    const project = {
+      ...sampleProject(),
+      testCases: [
+        { id: 'tc1', input: '01', expected: 'ACCEPT' as const },
+        { id: 'tc2', input: '', expected: 'REJECT' as const },
+      ],
+    };
+
+    const svg = projectToSvg(project, 'light', 48, { includeTestCases: true });
+    const tikz = projectToTikz(project, { includeTestCases: true });
+
+    expect(svg).toContain('Casos Multi-Run');
+    expect(svg).toContain('01');
+    expect(svg).toContain('ACCEPT');
+    expect(tikz).toContain('\\begin{tabular}{ll}');
+    expect(tikz).toContain('$\\varepsilon$ & REJECT');
+  });
 });

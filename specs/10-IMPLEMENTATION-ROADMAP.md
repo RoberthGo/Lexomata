@@ -76,15 +76,15 @@
 
 ---
 
-## Fase 5 — Algoritmos Formales Avanzados, Auto-Layout, JFLAP y Exportación
+## Fase 5 — Algoritmos Formales Avanzados, Auto-Layout, JFLAP y Exportación (`[x]` Completada)
 **Objetivo:** Paridad académica fuerte con JFLAP + exportación para tareas/artículos.
 - [x] Implementar `fa_nfa_to_dfa` (construcción de subconjuntos + `subsetMap`) en Rust + botón de conversión en UI.
 - [x] Implementar `fa_minimize_dfa` (Hopcroft + `equivalenceClasses`) en Rust + botón de minimización en UI.
 - [x] Implementar `import_jflap_xml` y `export_jflap_xml` (`.jff`) para FA y TM en Rust + pruebas roundtrip + botones importar/exportar en UI.
 - [x] Implementar Auto-Layout (jerárquico BFS y circular) en `apps/web/src/utils/layout.ts` + tests.
 - [x] Implementar exportación offline a **SVG**, **PNG (2x)** y **LaTeX (TikZ)** en `apps/web/src/utils/exporters.ts` y `ExportDialog.tsx` + tests.
-- [ ] **Vista pedagógica de transformaciones:** modal o panel explicativo en UI que muestre `subsetMap` (qué estados del AFN componen cada estado del AFD) y `equivalenceClasses` (particiones fusionadas al minimizar).
-- [ ] **Vista previa enriquecida de exportación (`specs/07`):** permitir elegir área (diagrama completo vs selección), tema de exportación (claro/oscuro) y adjuntar opcionalmente la tabla de resultados Multi-Run.
+- [x] **Vista pedagógica de transformaciones:** modal explicativo (`TransformationDialog.tsx`) que muestra `subsetMap` y `equivalenceClasses` con opción de deshacer.
+- [x] **Vista previa enriquecida de exportación (`specs/07`):** permite elegir área (`Completo` vs `Selección`), tema de exportación y adjuntar tabla de resultados Multi-Run en SVG/PNG y TikZ.
 
 **Criterio de salida:** Se puede importar un `.jff` real de JFLAP, convertirlo de AFN a AFD inspeccionando subconjuntos, minimizarlo viendo clases de equivalencia y exportar el diagrama + tabla Multi-Run a PNG o TikZ sin internet.
 
