@@ -230,6 +230,56 @@ pub fn export_jflap_xml(project_json: &str) -> String {
     })
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ExampleEntry {
+    id: &'static str,
+    project: LexoProject,
+}
+
+/// Lista los ejemplos integrados, listos para cargar en la interfaz.
+#[wasm_bindgen]
+pub fn list_examples() -> String {
+    run(|| {
+        let entries = vec![
+            ExampleEntry {
+                id: "binary-ending-in-01",
+                project: lexomata_core::examples::binary_ending_in_01(),
+            },
+            ExampleEntry {
+                id: "epsilon-cycle",
+                project: lexomata_core::examples::epsilon_cycle(),
+            },
+            ExampleEntry {
+                id: "branching-nfa",
+                project: lexomata_core::examples::branching_nfa(),
+            },
+            ExampleEntry {
+                id: "redundant-dfa",
+                project: lexomata_core::examples::redundant_dfa(),
+            },
+            ExampleEntry {
+                id: "binary-increment-tm",
+                project: lexomata_core::examples::binary_increment_tm(),
+            },
+            ExampleEntry {
+                id: "equal-zeros-ones-tm",
+                project: lexomata_core::examples::equal_zeros_ones_tm(),
+            },
+            ExampleEntry {
+                id: "negative-tape-tm",
+                project: lexomata_core::examples::negative_tape_tm(),
+            },
+            ExampleEntry {
+                id: "infinite-loop-tm",
+                project: lexomata_core::examples::infinite_loop_tm(),
+            },
+        ];
+
+        Ok::<Vec<ExampleEntry>, EngineError>(entries)
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -338,5 +388,15 @@ mod tests {
         assert!(formal["data"]["text"]
             .as_str()
             .is_some_and(|text| text.contains("q0")));
+    }
+
+    #[test]
+    fn builtin_examples_are_listed() {
+        let listed = parse_envelope(&list_examples());
+
+        assert_eq!(listed["ok"], true);
+        assert_eq!(listed["data"].as_array().map(Vec::len), Some(8));
+        assert_eq!(listed["data"][0]["id"], "binary-ending-in-01");
+        assert_eq!(listed["data"][0]["project"]["machineType"], "DFA");
     }
 }
