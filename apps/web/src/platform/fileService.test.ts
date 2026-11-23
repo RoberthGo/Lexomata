@@ -32,6 +32,12 @@ describe('fileService', () => {
     expect(showSaveFilePicker).toHaveBeenCalledTimes(1);
     expect(write).toHaveBeenCalledWith('{"ok":2}');
 
+    const blob = new Blob(['png-bytes'], { type: 'image/png' });
+    const pngSaved = await fileService.saveBinaryFile('diagrama.png', blob);
+    expect(pngSaved).toBe(true);
+    expect(showSaveFilePicker).toHaveBeenCalledTimes(2);
+    expect(write).toHaveBeenLastCalledWith(blob);
+
     delete (window as { showSaveFilePicker?: unknown }).showSaveFilePicker;
   });
 });

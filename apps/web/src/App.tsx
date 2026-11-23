@@ -21,7 +21,7 @@ import {
   importJflap,
   minimizeDfa,
 } from './engine/wasmAdapter';
-import type { ExampleEntry, LexoProject, MachineType } from './engine/types';
+import { machineTypeLabel, type ExampleEntry, type LexoProject, type MachineType } from './engine/types';
 import {
   addState,
   addTransition,
@@ -515,6 +515,7 @@ export function App() {
         onExportJff={() => void saveJflap()}
         onOpenExport={() => setDialog('export')}
         onLoadExample={(entry) => {
+          fileService.clearActiveHandle();
           loadProject({ ...entry.project, id: createId('project') });
           notify(`Ejemplo cargado: ${entry.project.name}`);
         }}
@@ -635,6 +636,7 @@ export function App() {
         <NewProjectDialog
           recentProjects={recentProjects}
           onOpenRecent={(recent) => {
+            fileService.clearActiveHandle();
             loadProject(normalizeProject(recent));
             setDialog(null);
             notify(`Proyecto restaurado: ${recent.name}`);
@@ -646,6 +648,7 @@ export function App() {
           }}
           onClose={() => setDialog(null)}
           onCreate={(machineType, name) => {
+            fileService.clearActiveHandle();
             loadProject(createProject(machineType, name));
             setDialog(null);
             notify('Proyecto creado.');
@@ -721,10 +724,13 @@ export function App() {
           }
         >
           <p className="text-[12px] leading-relaxed text-[var(--text-secondary)]">
-            Vas a cambiar de <span className="mono text-[var(--text-primary)]">{project.machineType}</span> a{' '}
-            <span className="mono text-[var(--text-primary)]">{pendingType}</span>. Las reglas de autómata
-            finito se convertirán en operaciones de cinta (leyendo el mismo símbolo, moviendo a la derecha)
-            y viceversa.
+            Vas a cambiar de{' '}
+            <span className="mono text-[var(--text-primary)]">
+              {machineTypeLabel(project.machineType)}
+            </span>{' '}
+            a <span className="mono text-[var(--text-primary)]">{machineTypeLabel(pendingType)}</span>.
+            Las reglas de autómata finito se convertirán en operaciones de cinta (leyendo el mismo
+            símbolo, moviendo a la derecha) y viceversa.
           </p>
           {project.transitions.some(
             (transition) => transition.rule.kind === 'FA' && transition.rule.symbol === null,

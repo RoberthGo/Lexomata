@@ -69,6 +69,16 @@ function tapeBounds(cells: Record<string, string>, head: number): { minIndex: nu
   return { minIndex: Math.min(...indices), maxIndex: Math.max(...indices) };
 }
 
+function tmStructureSignature(project: LexoProject): string {
+  const statesKey = project.states
+    .map((s) => `${s.id}:${s.isInitial ? 1 : 0}:${s.isAccepting ? 1 : 0}`)
+    .join('|');
+  const transKey = project.transitions
+    .map((t) => `${t.id}:${t.from}->${t.to}:${JSON.stringify(t.rule)}`)
+    .join('|');
+  return `${project.id}::${project.machineType}::${project.config.blankSymbol}::${statesKey}::${transKey}`;
+}
+
 export function useTuringSimulation(project: LexoProject): TuringSimulation {
   const [input, setInputState] = useState('');
   const [snapshot, setSnapshot] = useState<TmStepSnapshot | null>(null);
@@ -82,36 +92,45 @@ export function useTuringSimulation(project: LexoProject): TuringSimulation {
   const generation = useRef(0);
   const projectRef = useRef(project);
   projectRef.current = project;
+  const signature = tmStructureSignature(project);
 
   const initialize = useCallback(
-    async (value: string) => {
+    async (value: string, autoPlay = false): Promise<TmRuntimeState | null> => {
       const activeProject = projectRef.current;
       if (!isTuring(activeProject.machineType)) {
-        return;
+        return null;
       }
 
       const current = ++generation.current;
       setBusy(true);
       setError(null);
-      setPlaying(false);
+      if (!autoPlay) {
+        setPlaying(false);
+      }
 
       try {
         const next = await initTuring(activeProject, [value]);
         if (current !== generation.current) {
-          return;
+          return null;
         }
         const nextRuntime = runtimeFromSnapshot(next);
         setSnapshot(next);
         setRuntime(nextRuntime);
         setDeltas([]);
         setFiredTransitionId(null);
+        if (autoPlay && nextRuntime.status === 'RUNNING') {
+          setPlaying(true);
+        }
+        return nextRuntime;
       } catch (caught) {
         if (current === generation.current) {
           setSnapshot(null);
           setRuntime(null);
           setDeltas([]);
+          setPlaying(false);
           setError(caught instanceof Error ? caught.message : 'No se pudo inicializar la cinta.');
         }
+        return null;
       } finally {
         if (current === generation.current) {
           setBusy(false);
@@ -123,6 +142,13 @@ export function useTuringSimulation(project: LexoProject): TuringSimulation {
 
   useEffect(() => {
     if (!isTuring(project.machineType)) {
+      generation.current += 1;
+      setSnapshot(null);
+      setRuntime(null);
+      setDeltas([]);
+      setFiredTransitionId(null);
+      setPlaying(false);
+      setError(null);
       return;
     }
 
@@ -131,7 +157,7 @@ export function useTuringSimulation(project: LexoProject): TuringSimulation {
     }, 180);
 
     return () => window.clearTimeout(timer);
-  }, [initialize, input, project.id, project.machineType]);
+  }, [initialize, input, signature, project.machineType]);
 
   const setInput = useCallback((value: string) => {
     setInputState(value);
@@ -144,11 +170,14 @@ export function useTuringSimulation(project: LexoProject): TuringSimulation {
   }, []);
 
   const stepForward = useCallback(async () => {
-    if (!runtime) {
-      await initialize(input);
-      return;
+    let activeRuntime = runtime;
+    if (!activeRuntime) {
+      activeRuntime = await initialize(input);
+      if (!activeRuntime) {
+        return;
+      }
     }
-    if (runtime.status !== 'RUNNING') {
+    if (activeRuntime.status !== 'RUNNING') {
       setPlaying(false);
       return;
     }
@@ -157,7 +186,7 @@ export function useTuringSimulation(project: LexoProject): TuringSimulation {
     setError(null);
 
     try {
-      const result = await stepTuring(projectRef.current, runtime);
+      const result = await stepTuring(projectRef.current, activeRuntime);
       const nextRuntime = runtimeFromSnapshot(result.snapshot);
       setSnapshot(result.snapshot);
       setRuntime(nextRuntime);
@@ -250,13 +279,16 @@ export function useTuringSimulation(project: LexoProject): TuringSimulation {
   }, [initialize, input]);
 
   const togglePlay = useCallback(() => {
-    setPlaying((current) => {
-      if (!current && (!runtime || runtime.status !== 'RUNNING')) {
-        void initialize(input);
-      }
-      return !current;
-    });
-  }, [runtime, input, initialize]);
+    if (playing) {
+      setPlaying(false);
+      return;
+    }
+    if (!runtime || runtime.status !== 'RUNNING') {
+      void initialize(input, true);
+      return;
+    }
+    setPlaying(true);
+  }, [playing, runtime, input, initialize]);
 
   useEffect(() => {
     if (!playing) {

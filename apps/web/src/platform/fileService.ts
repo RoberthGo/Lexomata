@@ -1,4 +1,4 @@
-import { downloadFile } from '../utils/exporters';
+import { downloadBlob, downloadFile } from '../utils/exporters';
 
 export type SupportedFileExtension = '.lexo' | '.jff';
 
@@ -11,6 +11,7 @@ export interface OpenedFileResult {
 export interface FileService {
   openFile(accept: SupportedFileExtension): Promise<OpenedFileResult | null>;
   saveFile(suggestedName: string, content: string, mimeType: string): Promise<boolean>;
+  saveBinaryFile(suggestedName: string, blob: Blob): Promise<boolean>;
   saveCurrentFile(suggestedName: string, content: string, mimeType: string): Promise<boolean>;
   clearActiveHandle(): void;
 }
@@ -19,7 +20,7 @@ interface PickerHandle {
   name: string;
   getFile(): Promise<File>;
   createWritable(): Promise<{
-    write(data: string): Promise<void>;
+    write(data: string | Blob): Promise<void>;
     close(): Promise<void>;
   }>;
 }
@@ -36,15 +37,28 @@ export function isTauriRuntime(): boolean {
 let activeTauriPath: string | null = null;
 let activeWebHandle: PickerHandle | null = null;
 
-function pickerTypesFor(accept: SupportedFileExtension) {
-  return [
-    {
-      description: accept === '.lexo' ? 'Proyecto Lexomata (.lexo)' : 'Archivo JFLAP (.jff)',
-      accept: {
-        [accept === '.lexo' ? 'application/json' : 'application/xml']: [accept],
-      },
-    },
-  ];
+function filterMetaForFileName(fileName: string): {
+  ext: string;
+  label: string;
+  mime: string;
+} {
+  const lower = fileName.toLowerCase();
+  if (lower.endsWith('.lexo')) {
+    return { ext: 'lexo', label: 'Proyecto Lexomata (.lexo)', mime: 'application/json' };
+  }
+  if (lower.endsWith('.jff')) {
+    return { ext: 'jff', label: 'Archivo JFLAP (.jff)', mime: 'application/xml' };
+  }
+  if (lower.endsWith('.svg')) {
+    return { ext: 'svg', label: 'Imagen vectorial (.svg)', mime: 'image/svg+xml' };
+  }
+  if (lower.endsWith('.png')) {
+    return { ext: 'png', label: 'Imagen PNG (.png)', mime: 'image/png' };
+  }
+  if (lower.endsWith('.tex')) {
+    return { ext: 'tex', label: 'Código LaTeX TikZ (.tex)', mime: 'application/x-tex' };
+  }
+  return { ext: 'txt', label: 'Archivo', mime: 'text/plain' };
 }
 
 function openViaHiddenInput(accept: SupportedFileExtension): Promise<OpenedFileResult | null> {
@@ -99,9 +113,10 @@ export const fileService: FileService = {
     const pickerWin = window as PickerWindow;
     if (typeof pickerWin.showOpenFilePicker === 'function') {
       try {
+        const meta = filterMetaForFileName(`archivo${accept}`);
         const [handle] = await pickerWin.showOpenFilePicker({
           multiple: false,
-          types: pickerTypesFor(accept),
+          types: [{ description: meta.label, accept: { [meta.mime]: [accept] } }],
         });
         if (!handle) {
           return null;
@@ -123,6 +138,7 @@ export const fileService: FileService = {
 
   async saveFile(suggestedName, content, mimeType) {
     const isLexo = suggestedName.endsWith('.lexo');
+    const meta = filterMetaForFileName(suggestedName);
     if (isTauriRuntime()) {
       const [{ save }, { writeTextFile }] = await Promise.all([
         import('@tauri-apps/plugin-dialog'),
@@ -130,12 +146,7 @@ export const fileService: FileService = {
       ]);
       const target = await save({
         defaultPath: suggestedName,
-        filters: [
-          {
-            name: isLexo ? 'Lexomata' : 'JFLAP',
-            extensions: [isLexo ? 'lexo' : 'jff'],
-          },
-        ],
+        filters: [{ name: meta.label, extensions: [meta.ext] }],
       });
       if (!target) {
         return false;
@@ -152,7 +163,7 @@ export const fileService: FileService = {
       try {
         const handle = await pickerWin.showSaveFilePicker({
           suggestedName,
-          types: pickerTypesFor(isLexo ? '.lexo' : '.jff'),
+          types: [{ description: meta.label, accept: { [meta.mime]: [`.${meta.ext}`] } }],
         });
         const writable = await handle.createWritable();
         await writable.write(content);
@@ -169,6 +180,47 @@ export const fileService: FileService = {
     }
 
     downloadFile(suggestedName, content, mimeType);
+    return true;
+  },
+
+  async saveBinaryFile(suggestedName, blob) {
+    const meta = filterMetaForFileName(suggestedName);
+    if (isTauriRuntime()) {
+      const [{ save }, { writeFile }] = await Promise.all([
+        import('@tauri-apps/plugin-dialog'),
+        import('@tauri-apps/plugin-fs'),
+      ]);
+      const target = await save({
+        defaultPath: suggestedName,
+        filters: [{ name: meta.label, extensions: [meta.ext] }],
+      });
+      if (!target) {
+        return false;
+      }
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      await writeFile(target, bytes);
+      return true;
+    }
+
+    const pickerWin = window as PickerWindow;
+    if (typeof pickerWin.showSaveFilePicker === 'function') {
+      try {
+        const handle = await pickerWin.showSaveFilePicker({
+          suggestedName,
+          types: [{ description: meta.label, accept: { [meta.mime]: [`.${meta.ext}`] } }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        return true;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return false;
+        }
+      }
+    }
+
+    downloadBlob(suggestedName, blob);
     return true;
   },
 

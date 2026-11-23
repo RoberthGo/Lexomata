@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ChevronDown,
   ChevronLeft,
@@ -128,6 +128,23 @@ function ControlButton({
 }
 
 function SpeedSelect({ speed, onChange }: { speed: number; onChange: (speed: number) => void }) {
+  const [draft, setDraft] = useState(String(speed));
+
+  useEffect(() => {
+    setDraft(String(speed));
+  }, [speed]);
+
+  const commitDraft = () => {
+    const parsed = Number(draft);
+    if (Number.isFinite(parsed) && draft.trim() !== '') {
+      const clamped = Math.max(50, Math.min(5000, Math.round(parsed)));
+      onChange(clamped);
+      setDraft(String(clamped));
+    } else {
+      setDraft(String(speed));
+    }
+  };
+
   return (
     <div className="flex items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] p-0.5">
       {SPEED_OPTIONS.map((option) => (
@@ -151,11 +168,18 @@ function SpeedSelect({ speed, onChange }: { speed: number; onChange: (speed: num
           max={5000}
           step={50}
           aria-label="Velocidad en milisegundos"
-          value={speed}
+          value={draft}
           onChange={(event) => {
+            setDraft(event.target.value);
             const parsed = Number(event.target.value);
-            if (Number.isFinite(parsed)) {
-              onChange(Math.max(50, Math.min(5000, Math.round(parsed))));
+            if (Number.isFinite(parsed) && parsed >= 50 && parsed <= 5000) {
+              onChange(Math.round(parsed));
+            }
+          }}
+          onBlur={commitDraft}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              commitDraft();
             }
           }}
           className="mono w-12 bg-transparent text-right text-[10px] text-[var(--text-primary)] focus:outline-none"

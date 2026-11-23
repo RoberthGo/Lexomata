@@ -60,8 +60,14 @@ if (-not $SkipExe) {
         throw 'No se encontró src-tauri\target\release\lexomata-desktop.exe'
     }
     $destPortable = Join-Path $ReleaseDir 'Lexomata.exe'
-    Copy-Item $portableExe $destPortable -Force
-    Write-Host "    Copiado: $destPortable" -ForegroundColor Green
+    try {
+        Copy-Item $portableExe $destPortable -Force -ErrorAction Stop
+        Write-Host "    Copiado: $destPortable" -ForegroundColor Green
+    } catch {
+        $fallbackExe = Join-Path $ReleaseDir 'Lexomata-nuevo.exe'
+        Copy-Item $portableExe $fallbackExe -Force
+        Write-Host "    Aviso: Lexomata.exe está en uso; guardado como $fallbackExe" -ForegroundColor Yellow
+    }
 }
 
 if (-not $SkipApk) {
@@ -98,8 +104,8 @@ if (-not $SkipApk) {
     if ($AllAndroidAbis) {
         npx tauri android build --apk
     } else {
-        Write-Host '    Compilando ABI arm64 (aarch64) para compilación rápida. Usa -AllAndroidAbis para las 4 arquitecturas.' -ForegroundColor DarkGray
-        npx tauri android build --apk --target aarch64
+        Write-Host '    Compilando ABIs ARM (aarch64 + armv7) para compatibilidad móvil.' -ForegroundColor DarkGray
+        npx tauri android build --apk --target aarch64 armv7
     }
     if ($LASTEXITCODE -ne 0) { throw 'Fallo tauri android build' }
 
@@ -111,8 +117,36 @@ if (-not $SkipApk) {
     }
 
     $destApk = Join-Path $ReleaseDir 'Lexomata.apk'
-    Copy-Item $apk.FullName $destApk -Force
-    Write-Host "    Copiado: $destApk" -ForegroundColor Green
+    if ($apk.Name -like '*unsigned*') {
+        $buildToolsDir = Get-ChildItem "$env:ANDROID_HOME\build-tools" -Directory -ErrorAction SilentlyContinue |
+            Sort-Object Name -Descending |
+            Select-Object -First 1
+        if (-not $buildToolsDir) {
+            throw "No se encontró Android build-tools en $env:ANDROID_HOME\build-tools para firmar el APK."
+        }
+        $zipalign = Join-Path $buildToolsDir.FullName 'zipalign.exe'
+        $apksigner = Join-Path $buildToolsDir.FullName 'apksigner.bat'
+        $keystore = Join-Path $Root 'src-tauri\lexomata-release.keystore'
+        if (-not (Test-Path $keystore)) {
+            $keytool = if ($env:JAVA_HOME) { Join-Path $env:JAVA_HOME 'bin\keytool.exe' } else { 'keytool' }
+            Write-Host '    Generando keystore local para firmar el APK...' -ForegroundColor Yellow
+            & $keytool -genkeypair -v -keystore $keystore -storepass lexomata -keypass lexomata -alias lexomata -keyalg RSA -keysize 2048 -validity 10000 -dname 'CN=Lexomata, OU=Dev, O=Lexomata, L=Local, ST=Local, C=MX' | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw 'Fallo keytool al generar keystore' }
+        }
+        $alignedApk = Join-Path $env:TEMP 'lexomata-aligned.apk'
+        & $zipalign -p -f 4 $apk.FullName $alignedApk
+        if ($LASTEXITCODE -ne 0) { throw 'Fallo zipalign' }
+        & $apksigner sign --ks $keystore --ks-pass pass:lexomata --key-pass pass:lexomata --ks-key-alias lexomata --out $destApk $alignedApk
+        if ($LASTEXITCODE -ne 0) { throw 'Fallo apksigner sign' }
+        Remove-Item $alignedApk -Force -ErrorAction SilentlyContinue
+        Remove-Item "$destApk.idsig" -Force -ErrorAction SilentlyContinue
+        & $apksigner verify $destApk
+        if ($LASTEXITCODE -ne 0) { throw 'Fallo apksigner verify' }
+        Write-Host "    APK firmado y verificado: $destApk" -ForegroundColor Green
+    } else {
+        Copy-Item $apk.FullName $destApk -Force
+        Write-Host "    Copiado: $destApk" -ForegroundColor Green
+    }
 }
 
 Write-Host "==> Listo. Artefactos en $ReleaseDir" -ForegroundColor Green

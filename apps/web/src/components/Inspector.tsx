@@ -1006,9 +1006,18 @@ function BatchTab({
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const batchSignature = `${project.id}::${project.machineType}::${project.config.epsilonSymbol}::${project.config.blankSymbol}::${project.states
+    .map((s) => `${s.id}:${s.isInitial ? 1 : 0}:${s.isAccepting ? 1 : 0}`)
+    .join('|')}::${project.transitions
+    .map((t) => `${t.id}:${t.from}->${t.to}:${JSON.stringify(t.rule)}`)
+    .join('|')}::${project.testCases
+    .map((tc) => `${tc.id}:${tc.input}:${tc.expected}`)
+    .join('|')}`;
+
   useEffect(() => {
     setRows([]);
-  }, [project.id]);
+    setError(null);
+  }, [batchSignature]);
 
   const updateCase = (id: string, patch: Partial<TestCase>) => {
     onCommit((current) => ({
@@ -1091,6 +1100,11 @@ function BatchTab({
               value={testCase.input}
               placeholder="cadena"
               onChange={(event) => updateCase(testCase.id, { input: event.target.value })}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  void runAll();
+                }
+              }}
               className="mono h-7 min-w-0 flex-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-1.5 text-[11px] text-[var(--text-primary)] focus:border-[var(--accent-selection)] focus:outline-none"
             />
             <select

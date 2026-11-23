@@ -3,9 +3,8 @@ import { Check, Copy, Download, Image as ImageIcon, Loader2 } from 'lucide-react
 import type { LexoProject } from '../engine/types';
 import type { Selection } from '../uiTypes';
 import { projectFileName } from '../model/project';
+import { fileService } from '../platform/fileService';
 import {
-  downloadBlob,
-  downloadFile,
   projectToSvg,
   projectToTikz,
   svgToPngBlob,
@@ -74,17 +73,29 @@ export function ExportDialog({ project, selection, onClose, onNotify }: ExportDi
     [targetProject, includeTestCases],
   );
 
-  const exportSvg = () => {
-    downloadFile(projectFileName(project, 'svg'), svg, 'image/svg+xml');
-    onNotify('SVG exportado.');
+  const exportSvg = async () => {
+    try {
+      const saved = await fileService.saveFile(
+        projectFileName(project, 'svg'),
+        svg,
+        'image/svg+xml',
+      );
+      if (saved) {
+        onNotify('SVG exportado.');
+      }
+    } catch (error) {
+      onNotify(error instanceof Error ? error.message : 'No se pudo exportar el SVG.', 'error');
+    }
   };
 
   const exportPng = async () => {
     setBusy(true);
     try {
       const blob = await svgToPngBlob(svg, scale);
-      downloadBlob(projectFileName(project, 'png'), blob);
-      onNotify(`PNG exportado a ${scale}×.`);
+      const saved = await fileService.saveBinaryFile(projectFileName(project, 'png'), blob);
+      if (saved) {
+        onNotify(`PNG exportado a ${scale}×.`);
+      }
     } catch (error) {
       onNotify(
         error instanceof Error ? error.message : 'No se pudo exportar el PNG.',
@@ -95,9 +106,19 @@ export function ExportDialog({ project, selection, onClose, onNotify }: ExportDi
     }
   };
 
-  const exportTikz = () => {
-    downloadFile(projectFileName(project, 'tex'), tikz, 'application/x-tex');
-    onNotify('Código TikZ exportado.');
+  const exportTikz = async () => {
+    try {
+      const saved = await fileService.saveFile(
+        projectFileName(project, 'tex'),
+        tikz,
+        'application/x-tex',
+      );
+      if (saved) {
+        onNotify('Código TikZ exportado.');
+      }
+    } catch (error) {
+      onNotify(error instanceof Error ? error.message : 'No se pudo exportar TikZ.', 'error');
+    }
   };
 
   const copyTikz = async () => {
@@ -119,8 +140,8 @@ export function ExportDialog({ project, selection, onClose, onNotify }: ExportDi
       footer={
         <>
           <SecondaryButton onClick={onClose}>Cerrar</SecondaryButton>
-          <SecondaryButton onClick={exportTikz}>Descargar TikZ</SecondaryButton>
-          <SecondaryButton onClick={exportSvg}>Descargar SVG</SecondaryButton>
+          <SecondaryButton onClick={() => void exportTikz()}>Descargar TikZ</SecondaryButton>
+          <SecondaryButton onClick={() => void exportSvg()}>Descargar SVG</SecondaryButton>
           <PrimaryButton onClick={() => void exportPng()} disabled={busy}>
             {busy ? (
               <span className="flex items-center gap-1.5">

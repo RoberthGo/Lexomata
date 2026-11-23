@@ -140,6 +140,7 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
   const panRef = useRef<PanState | null>(null);
   const touchPointersRef = useRef<Map<number, Point>>(new Map());
   const pinchRef = useRef<{ distance: number; mid: Point } | null>(null);
+  const pendingTouchStateRef = useRef<{ pointerId: number; startX: number; startY: number } | null>(null);
   const spaceRef = useRef(false);
   const fittedProject = useRef<string | null>(null);
 
@@ -290,7 +291,13 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.code === 'Space') {
+      const target = event.target as HTMLElement | null;
+      const inEditable = Boolean(
+        target?.closest('input, textarea, select, [contenteditable="true"]') ||
+          target?.isContentEditable,
+      );
+      if (event.code === 'Space' && !inEditable) {
+        event.preventDefault();
         spaceRef.current = true;
       }
       if (event.key === 'Escape') {
@@ -302,23 +309,43 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
         spaceRef.current = false;
       }
     };
+    const handleBlur = () => {
+      spaceRef.current = false;
+      touchPointersRef.current.clear();
+      pinchRef.current = null;
+      pendingTouchStateRef.current = null;
+    };
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', handleBlur);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', handleBlur);
     };
   }, []);
 
   const handleBackgroundPointerDown = (event: ReactPointerEvent<SVGRectElement>) => {
     setEdgeMenu(null);
+    if (touchPointersRef.current.size >= 2) {
+      pendingTouchStateRef.current = null;
+      return;
+    }
     if (event.button !== 0 && event.button !== 1) {
       return;
     }
 
     setPendingFrom(null);
     if (event.button === 0 && !spaceRef.current && tool === 'state') {
+      if (event.pointerType === 'touch') {
+        pendingTouchStateRef.current = {
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startY: event.clientY,
+        };
+        return;
+      }
       const world = toWorld(event);
       onCreateState(
         snapEnabled ? snapToGrid(world.x) : Math.round(world.x),
@@ -364,6 +391,16 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
 
     if (touchPointersRef.current.has(event.pointerId)) {
       touchPointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (
+        pendingTouchStateRef.current &&
+        pendingTouchStateRef.current.pointerId === event.pointerId &&
+        Math.hypot(
+          event.clientX - pendingTouchStateRef.current.startX,
+          event.clientY - pendingTouchStateRef.current.startY,
+        ) > 10
+      ) {
+        pendingTouchStateRef.current = null;
+      }
       if (touchPointersRef.current.size === 2) {
         const [p1, p2] = [...touchPointersRef.current.values()];
         if (p1 && p2) {
@@ -411,6 +448,18 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
 
   const handlePointerUp = (event?: ReactPointerEvent<SVGSVGElement>) => {
     if (event) {
+      if (
+        pendingTouchStateRef.current &&
+        pendingTouchStateRef.current.pointerId === event.pointerId &&
+        touchPointersRef.current.size <= 1
+      ) {
+        const world = toWorld(event);
+        onCreateState(
+          snapEnabled ? snapToGrid(world.x) : Math.round(world.x),
+          snapEnabled ? snapToGrid(world.y) : Math.round(world.y),
+        );
+      }
+      pendingTouchStateRef.current = null;
       touchPointersRef.current.delete(event.pointerId);
       if (touchPointersRef.current.size < 2) {
         pinchRef.current = null;
@@ -509,12 +558,22 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
         className={`h-full w-full touch-none select-none ${cursorClass}`}
         role="img"
         aria-label="Lienzo del autómata"
-        onPointerDown={(event) => {
+        onPointerDownCapture={(event) => {
           if (event.pointerType === 'touch') {
             touchPointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
-            if (touchPointersRef.current.size === 2) {
-              dragRef.current = null;
+            if (touchPointersRef.current.size >= 2) {
+              pendingTouchStateRef.current = null;
+              if (dragRef.current) {
+                if (dragRef.current.moved) {
+                  const draggedState = statesById.get(dragRef.current.id);
+                  if (draggedState) {
+                    onMoveState(dragRef.current.id, draggedState.x, draggedState.y, true);
+                  }
+                }
+                dragRef.current = null;
+              }
               panRef.current = null;
+              setPanning(false);
               const [p1, p2] = [...touchPointersRef.current.values()];
               if (p1 && p2) {
                 pinchRef.current = {
@@ -528,7 +587,11 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        onPointerLeave={() => handlePointerUp()}
+        onPointerLeave={() => {
+          if (!dragRef.current && !panRef.current) {
+            setHoverWorld(null);
+          }
+        }}
       >
         <defs>
           <pattern

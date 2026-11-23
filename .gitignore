@@ -38,6 +38,8 @@ release/
 
 # Android
 .gradle/
+*.keystore
+*.jks
 **/build/
 *.apk
 *.aab

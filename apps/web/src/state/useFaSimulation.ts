@@ -26,6 +26,16 @@ export interface FaSimulation {
 
 const SPEEDS = [900, 650, 420, 220];
 
+function structureSignature(project: LexoProject): string {
+  const statesKey = project.states
+    .map((s) => `${s.id}:${s.isInitial ? 1 : 0}:${s.isAccepting ? 1 : 0}`)
+    .join('|');
+  const transKey = project.transitions
+    .map((t) => `${t.id}:${t.from}->${t.to}:${JSON.stringify(t.rule)}`)
+    .join('|');
+  return `${project.id}::${project.machineType}::${project.config.epsilonSymbol}::${statesKey}::${transKey}`;
+}
+
 export function useFaSimulation(project: LexoProject): FaSimulation {
   const [input, setInputState] = useState('');
   const [trace, setTrace] = useState<FaSimulationTrace | null>(null);
@@ -35,6 +45,7 @@ export function useFaSimulation(project: LexoProject): FaSimulation {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const generation = useRef(0);
+  const signature = structureSignature(project);
 
   useEffect(() => {
     generation.current += 1;
@@ -42,7 +53,7 @@ export function useFaSimulation(project: LexoProject): FaSimulation {
     setStepIndex(0);
     setPlaying(false);
     setError(null);
-  }, [project.id, project.machineType]);
+  }, [signature]);
 
   const setInput = useCallback((value: string) => {
     setInputState(value);
@@ -101,11 +112,29 @@ export function useFaSimulation(project: LexoProject): FaSimulation {
 
   const stepForward = useCallback(async () => {
     if (!trace) {
-      await run();
+      const current = ++generation.current;
+      setBusy(true);
+      setError(null);
+      try {
+        const next = await simulateFa(project, input, 0);
+        if (current === generation.current) {
+          setTrace(next);
+          setStepIndex(Math.min(1, Math.max(0, next.steps.length - 1)));
+        }
+      } catch (caught) {
+        if (current === generation.current) {
+          setTrace(null);
+          setError(caught instanceof Error ? caught.message : 'No se pudo simular la cadena.');
+        }
+      } finally {
+        if (current === generation.current) {
+          setBusy(false);
+        }
+      }
       return;
     }
     setStepIndex((index) => Math.min(index + 1, trace.steps.length - 1));
-  }, [trace, run]);
+  }, [trace, project, input]);
 
   const stepBack = useCallback(() => {
     setPlaying(false);
@@ -121,13 +150,19 @@ export function useFaSimulation(project: LexoProject): FaSimulation {
   }, []);
 
   const togglePlay = useCallback(() => {
-    setPlaying((current) => {
-      if (!current && !trace) {
-        void run();
-      }
-      return !current;
-    });
-  }, [trace, run]);
+    if (playing) {
+      setPlaying(false);
+      return;
+    }
+    if (!trace) {
+      void run().then(() => setPlaying(true));
+      return;
+    }
+    if (stepIndex >= trace.steps.length - 1) {
+      setStepIndex(0);
+    }
+    setPlaying(true);
+  }, [playing, trace, stepIndex, run]);
 
   useEffect(() => {
     if (!playing || !trace) {
