@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import {
   AlertTriangle,
   ArrowLeftRight,
@@ -30,6 +30,7 @@ import {
   addTransition,
   effectiveAlphabet,
   invertEdgeGroup,
+  invertTransitions,
   markInitial,
   reassignEdgeGroup,
   removeStates,
@@ -305,6 +306,13 @@ function PropertiesTab({
   onSelect: (selection: Selection) => void;
   onFocusState: (stateId: string) => void;
 }) {
+  const edgeKey = selection.kind === 'edge' ? `${selection.from}->${selection.to}` : '';
+  const [selectedRuleIds, setSelectedRuleIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    setSelectedRuleIds([]);
+  }, [edgeKey]);
+
   const commitText = (key: string, updater: (project: LexoProject) => LexoProject) => {
     if (onCommitCoalesced) {
       onCommitCoalesced(key, updater);
@@ -432,6 +440,26 @@ function PropertiesTab({
     );
 
     if (transitions.length > 0) {
+      const isSelfLoop = selection.from === selection.to;
+      const activeSelectedIds = selectedRuleIds.filter((id) =>
+        transitions.some((transition) => transition.id === id),
+      );
+      const invertSelectedRules = (ids: string[]) => {
+        if (isSelfLoop || ids.length === 0) {
+          return;
+        }
+        onCommit((current) => invertTransitions(current, ids));
+        setSelectedRuleIds([]);
+        if (ids.length >= transitions.length) {
+          onSelect({ kind: 'edge', from: selection.to, to: selection.from });
+        }
+      };
+      const toggleRuleSelect = (id: string) => {
+        setSelectedRuleIds((current) =>
+          current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
+        );
+      };
+
       return (
         <div className="space-y-4">
           <SectionTitle hint={`${transitions.length} regla(s)`}>
@@ -441,15 +469,58 @@ function PropertiesTab({
             {stateLabel(project, selection.from)} → {stateLabel(project, selection.to)}
           </div>
 
+          {activeSelectedIds.length > 0 ? (
+            <div className="flex items-center justify-between gap-2 rounded-[var(--radius-sm)] border border-[var(--accent-selection)]/40 bg-[var(--accent-selection-soft)] px-2 py-1 text-[11px]">
+              <span className="text-[var(--text-primary)]">
+                {activeSelectedIds.length} seleccionada(s)
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  disabled={isSelfLoop}
+                  onClick={() => invertSelectedRules(activeSelectedIds)}
+                  className="flex h-6 items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--accent-selection)]/50 bg-[var(--bg-surface)] px-2 text-[11px] text-[var(--accent-selection)] hover:bg-[var(--bg-surface-elevated)] disabled:opacity-40"
+                >
+                  <ArrowLeftRight aria-hidden="true" className="h-3 w-3" />
+                  Invertir
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedRuleIds([])}
+                  className="h-6 rounded-[var(--radius-sm)] px-1.5 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                >
+                  Limpiar
+                </button>
+              </div>
+            </div>
+          ) : transitions.length > 1 && !isSelfLoop ? (
+            <p className="text-[10px] text-[var(--text-muted)]">
+              Ctrl+clic en las reglas para seleccionar varias e invertirlas juntas.
+            </p>
+          ) : null}
+
           <div className="space-y-2">
-            {transitions.map((transition) => (
-              <RuleEditor
-                key={transition.id}
-                project={project}
-                transition={transition}
-                onCommit={onCommit}
-              />
-            ))}
+            {transitions.map((transition) => {
+              const isSelected = activeSelectedIds.includes(transition.id);
+              return (
+                <RuleEditor
+                  key={transition.id}
+                  project={project}
+                  transition={transition}
+                  selected={isSelected}
+                  canInvert={!isSelfLoop}
+                  onToggleSelect={() => toggleRuleSelect(transition.id)}
+                  onInvert={() => {
+                    const targetIds =
+                      isSelected && activeSelectedIds.length > 1
+                        ? activeSelectedIds
+                        : [transition.id];
+                    invertSelectedRules(targetIds);
+                  }}
+                  onCommit={onCommit}
+                />
+              );
+            })}
           </div>
 
           <button
@@ -692,15 +763,38 @@ function PropertiesTab({
 function RuleEditor({
   project,
   transition,
+  selected,
+  canInvert,
+  onToggleSelect,
+  onInvert,
   onCommit,
 }: {
   project: LexoProject;
   transition: Transition;
+  selected: boolean;
+  canInvert: boolean;
+  onToggleSelect: () => void;
+  onInvert: () => void;
   onCommit: (updater: (project: LexoProject) => LexoProject) => void;
 }) {
+  const handleRowClick = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (event.ctrlKey || event.metaKey) {
+      event.preventDefault();
+      onToggleSelect();
+    }
+  };
+
+  const rowClass = selected
+    ? 'border-[var(--accent-selection)] bg-[var(--accent-selection-soft)]'
+    : 'border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)]';
+
   if (transition.rule.kind === 'FA') {
     return (
-      <div className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] p-1.5">
+      <div
+        onClick={handleRowClick}
+        title="Ctrl+clic para seleccionar varias reglas"
+        className={`flex items-center gap-1.5 rounded-[var(--radius-sm)] border p-1.5 transition-colors ${rowClass}`}
+      >
         <input
           value={transition.rule.symbol ?? ''}
           maxLength={1}
@@ -733,6 +827,19 @@ function RuleEditor({
         </span>
         <button
           type="button"
+          disabled={!canInvert}
+          title={selected ? 'Invertir reglas seleccionadas' : 'Invertir dirección de esta regla'}
+          aria-label={selected ? 'Invertir reglas seleccionadas' : 'Invertir regla'}
+          onClick={(event) => {
+            event.stopPropagation();
+            onInvert();
+          }}
+          className="rounded-[var(--radius-sm)] p-1 text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--accent-selection)] disabled:opacity-35"
+        >
+          <ArrowLeftRight aria-hidden="true" className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
           title="Eliminar regla"
           aria-label="Eliminar regla"
           onClick={() =>
@@ -763,7 +870,11 @@ function RuleEditor({
   };
 
   return (
-    <div className="space-y-1.5 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] p-1.5">
+    <div
+      onClick={handleRowClick}
+      title="Ctrl+clic para seleccionar varias reglas"
+      className={`space-y-1.5 rounded-[var(--radius-sm)] border p-1.5 transition-colors ${rowClass}`}
+    >
       <div className="flex items-center gap-1">
         <input
           value={operation.read}
@@ -802,10 +913,23 @@ function RuleEditor({
         </button>
         <button
           type="button"
+          disabled={!canInvert}
+          title={selected ? 'Invertir reglas seleccionadas' : 'Invertir dirección de esta regla'}
+          aria-label={selected ? 'Invertir reglas seleccionadas' : 'Invertir regla'}
+          onClick={(event) => {
+            event.stopPropagation();
+            onInvert();
+          }}
+          className="ml-auto rounded-[var(--radius-sm)] p-1 text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--accent-selection)] disabled:opacity-35"
+        >
+          <ArrowLeftRight aria-hidden="true" className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
           title="Eliminar regla"
           aria-label="Eliminar regla"
           onClick={() => onCommit((current) => removeTransitions(current, [transition.id]))}
-          className="ml-auto rounded-[var(--radius-sm)] p-1 text-[var(--text-muted)] hover:bg-[var(--accent-reject-soft)] hover:text-[var(--accent-reject)]"
+          className="rounded-[var(--radius-sm)] p-1 text-[var(--text-muted)] hover:bg-[var(--accent-reject-soft)] hover:text-[var(--accent-reject)]"
         >
           <Trash2 aria-hidden="true" className="h-3.5 w-3.5" />
         </button>

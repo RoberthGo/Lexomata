@@ -6,6 +6,7 @@ import {
   effectiveAlphabet,
   groupedLabel,
   invertEdgeGroup,
+  invertTransitions,
   markInitial,
   moveStatesByDelta,
   normalizeProject,
@@ -145,6 +146,28 @@ describe('project model', () => {
 
     const cleared = updateEdgeGroupComment(noted, 's0', s2.stateId, '');
     expect(cleared.transitions[0]?.comment).toBeUndefined();
+  });
+
+  it('invierte solo las reglas seleccionadas sin alterar las demás', () => {
+    const base = createProject('NFA', 'Selectivo');
+    const s1 = addState(base, 200, 120);
+    const t0 = addTransition(s1.project, 's0', s1.stateId, { kind: 'FA', symbol: '0' });
+    const t1 = addTransition(t0.project, 's0', s1.stateId, { kind: 'FA', symbol: '1' });
+    const t2 = addTransition(t1.project, 's0', s1.stateId, { kind: 'FA', symbol: 'a' });
+
+    const partial = invertTransitions(t2.project, [t0.transitionId, t2.transitionId]);
+    expect(partial.transitions.find((t) => t.id === t0.transitionId)).toMatchObject({
+      from: s1.stateId,
+      to: 's0',
+    });
+    expect(partial.transitions.find((t) => t.id === t1.transitionId)).toMatchObject({
+      from: 's0',
+      to: s1.stateId,
+    });
+    expect(partial.transitions.find((t) => t.id === t2.transitionId)).toMatchObject({
+      from: s1.stateId,
+      to: 's0',
+    });
   });
 
   it('elige el primer símbolo libre en AFD y permite mover/pegar subgrafos', () => {

@@ -321,6 +321,31 @@ export function invertEdgeGroup(project: LexoProject, from: string, to: string):
   }));
 }
 
+export function invertTransitions(
+  project: LexoProject,
+  transitionIds: Iterable<string>,
+): LexoProject {
+  const ids = new Set(transitionIds);
+  if (ids.size === 0) {
+    return project;
+  }
+
+  let changed = false;
+  const transitions = project.transitions.map((transition) => {
+    if (!ids.has(transition.id) || transition.from === transition.to) {
+      return transition;
+    }
+    changed = true;
+    return {
+      ...transition,
+      from: transition.to,
+      to: transition.from,
+    };
+  });
+
+  return changed ? touchProject({ ...project, transitions }) : project;
+}
+
 export function reassignEdgeGroup(
   project: LexoProject,
   from: string,

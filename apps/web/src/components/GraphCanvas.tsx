@@ -9,7 +9,7 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
-import { ArrowLeftRight, CheckCircle2, Flag, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeftRight, CheckCircle2, Flag, Move, Pencil, Trash2 } from 'lucide-react';
 import type { LexoProject, State, Transition } from '../engine/types';
 import { groupedLabel } from '../model/project';
 import type { CanvasHandle, Selection, Tool } from '../uiTypes';
@@ -136,6 +136,7 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
     onEditEdge,
     onInvertEdge,
     onUpdateEdgeCurve,
+    onReassignEdge,
     onDeleteEdge,
     showGrid = true,
     snapEnabled = true,
@@ -148,6 +149,11 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
   const [size, setSize] = useState({ width: 800, height: 600 });
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, zoom: 1 });
   const [pendingFrom, setPendingFrom] = useState<string | null>(null);
+  const [relocatingEdge, setRelocatingEdge] = useState<{
+    from: string;
+    to: string;
+    nextFrom: string | null;
+  } | null>(null);
   const [hoverWorld, setHoverWorld] = useState<Point | null>(null);
   const [panning, setPanning] = useState(false);
   const [edgeMenu, setEdgeMenu] = useState<EdgeContextMenuState | null>(null);
@@ -177,7 +183,7 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
         from,
         to,
         x: Math.max(8, Math.min(rawX, Math.max(8, size.width - 216))),
-        y: Math.max(8, Math.min(rawY, Math.max(8, size.height - 150))),
+        y: Math.max(8, Math.min(rawY, Math.max(8, size.height - 185))),
       });
       onSelect({ kind: 'edge', from, to });
     },
@@ -352,6 +358,7 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
       }
       if (event.key === 'Escape') {
         setPendingFrom(null);
+        setRelocatingEdge(null);
         setEditingState(null);
       }
     };
@@ -389,6 +396,7 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
     }
 
     setPendingFrom(null);
+    setRelocatingEdge(null);
     if (event.button === 0 && !spaceRef.current && tool === 'state') {
       if (event.pointerType === 'touch') {
         pendingTouchStateRef.current = {
@@ -432,7 +440,7 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
   };
 
   const handlePointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
-    if (pendingFrom) {
+    if (pendingFrom || relocatingEdge?.nextFrom) {
       setHoverWorld(toWorld(event));
     }
 
@@ -635,6 +643,17 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
       return;
     }
 
+    if (relocatingEdge) {
+      if (!relocatingEdge.nextFrom) {
+        setRelocatingEdge({ ...relocatingEdge, nextFrom: state.id });
+        onSelect({ kind: 'state', id: state.id });
+      } else {
+        onReassignEdge?.(relocatingEdge.from, relocatingEdge.to, relocatingEdge.nextFrom, state.id);
+        setRelocatingEdge(null);
+      }
+      return;
+    }
+
     if (tool === 'erase') {
       onDeleteState(state.id);
       return;
@@ -717,7 +736,7 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
   const gridOffsetX = ((-camera.x * camera.zoom) % gridSize + gridSize) % gridSize;
   const gridOffsetY = ((-camera.y * camera.zoom) % gridSize + gridSize) % gridSize;
   const cursorClass =
-    tool === 'state' || tool === 'transition'
+    relocatingEdge || tool === 'state' || tool === 'transition'
       ? 'cursor-crosshair'
       : tool === 'erase'
         ? 'cursor-not-allowed'
@@ -725,7 +744,8 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
           ? 'cursor-grabbing'
           : 'cursor-grab';
 
-  const pendingState = pendingFrom ? statesById.get(pendingFrom) : undefined;
+  const pendingSourceId = pendingFrom ?? relocatingEdge?.nextFrom ?? null;
+  const pendingState = pendingSourceId ? statesById.get(pendingSourceId) : undefined;
   const hoverTarget = hoverWorld;
 
   return (
@@ -1108,7 +1128,13 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
         </span>
         <span>{project.states.length} estados</span>
         <span>{project.transitions.length} reglas</span>
-        {pendingFrom ? (
+        {relocatingEdge ? (
+          <span className="text-[var(--accent-active)]">
+            {relocatingEdge.nextFrom
+              ? 'reubicar: clic en nuevo destino · Esc cancela'
+              : 'reubicar: clic en nuevo origen · Esc cancela'}
+          </span>
+        ) : pendingFrom ? (
           <span className="text-[var(--accent-active)]">elige el destino · Esc cancela</span>
         ) : tool === 'state' ? (
           <span className="text-[var(--accent-selection)]">clic para crear estado</span>
@@ -1267,6 +1293,20 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
           >
             <ArrowLeftRight aria-hidden="true" className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
             Invertir
+          </button>
+
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setPendingFrom(null);
+              setRelocatingEdge({ from: edgeMenu.from, to: edgeMenu.to, nextFrom: null });
+              setEdgeMenu(null);
+            }}
+            className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]"
+          >
+            <Move aria-hidden="true" className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
+            Reubicar
           </button>
 
           <button
