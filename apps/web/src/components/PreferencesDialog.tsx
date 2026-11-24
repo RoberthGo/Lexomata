@@ -11,12 +11,18 @@ import { Modal, PrimaryButton, SecondaryButton } from './Modal';
 
 interface PreferencesDialogProps {
   theme: Theme;
-  onToggleTheme: () => void;
+  onSetTheme: (theme: Theme) => void;
   prefs: UiPrefs;
   onUpdatePrefs: (patch: Partial<UiPrefs>) => void;
   onResetPrefs: () => void;
   onClose: () => void;
 }
+
+const THEMES: Array<{ id: Theme; label: string }> = [
+  { id: 'dark', label: 'Oscuro' },
+  { id: 'soft-light', label: 'Claro suave' },
+  { id: 'light', label: 'Claro' },
+];
 
 const ACCENTS: Array<{ id: AccentPreset; label: string; swatch: string }> = [
   { id: 'cobalt', label: 'Cobalto', swatch: '#3b82f6' },
@@ -77,7 +83,7 @@ function SegmentGroup<T extends string>({
 
 export function PreferencesDialog({
   theme,
-  onToggleTheme,
+  onSetTheme,
   prefs,
   onUpdatePrefs,
   onResetPrefs,
@@ -102,42 +108,13 @@ export function PreferencesDialog({
       }
     >
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <p className="text-[11px] font-medium text-[var(--text-secondary)]">Tema</p>
-            <div className="flex items-center rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] p-0.5">
-              <button
-                type="button"
-                onClick={() => {
-                  if (theme !== 'dark') {
-                    onToggleTheme();
-                  }
-                }}
-                className={`flex-1 rounded-[4px] px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                  theme === 'dark'
-                    ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                }`}
-              >
-                Oscuro
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (theme !== 'light') {
-                    onToggleTheme();
-                  }
-                }}
-                className={`flex-1 rounded-[4px] px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                  theme === 'light'
-                    ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                }`}
-              >
-                Claro
-              </button>
-            </div>
-          </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <SegmentGroup
+            label="Tema"
+            value={theme}
+            options={THEMES}
+            onChange={(nextTheme) => onSetTheme(nextTheme)}
+          />
 
           <SegmentGroup
             label="Densidad"

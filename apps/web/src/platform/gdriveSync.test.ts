@@ -1,12 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createPkcePair,
+  getGoogleClientId,
   hasSyncConflict,
+  isDriveConfigured,
+  setGoogleClientId,
   startDriveSignIn,
 } from './gdriveSync';
 
 describe('gdriveSync', () => {
   afterEach(() => {
+    setGoogleClientId('');
     vi.restoreAllMocks();
   });
 
@@ -26,5 +30,15 @@ describe('gdriveSync', () => {
   it('detecta conflictos de sincronización cuando las marcas difieren > 2s', () => {
     expect(hasSyncConflict('2026-11-22T01:00:00.000Z', '2026-11-22T01:00:01.000Z')).toBe(false);
     expect(hasSyncConflict('2026-11-22T01:00:00.000Z', '2026-11-22T01:00:10.000Z')).toBe(true);
+  });
+
+  it('permite configurar y limpiar Google Client ID en runtime', () => {
+    expect(isDriveConfigured()).toBe(false);
+    setGoogleClientId('  demo-client-id.apps.googleusercontent.com  ');
+    expect(isDriveConfigured()).toBe(true);
+    expect(getGoogleClientId()).toBe('demo-client-id.apps.googleusercontent.com');
+
+    setGoogleClientId('');
+    expect(isDriveConfigured()).toBe(false);
   });
 });

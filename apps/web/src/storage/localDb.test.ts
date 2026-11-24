@@ -2,12 +2,15 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createProject } from '../model/project';
 import {
   deleteProjectLocal,
+  deleteProjectSnapshot,
   getLastProjectId,
+  listProjectSnapshots,
   listRecentProjects,
   loadProjectLocal,
   resetMemoryLocalDbForTests,
   saveLastProjectId,
   saveProjectLocal,
+  saveProjectSnapshot,
 } from './localDb';
 
 describe('localDb', () => {
@@ -38,5 +41,24 @@ describe('localDb', () => {
 
     await deleteProjectLocal('p-old');
     expect(await loadProjectLocal('p-old')).toBeNull();
+  });
+
+  it('guarda, ordena y poda versiones intermedias a un máximo de 15 por proyecto', async () => {
+    const project = { ...createProject('DFA', 'Snapshot Demo'), id: 'p-snap' };
+
+    for (let index = 1; index <= 17; index += 1) {
+      await saveProjectSnapshot(project, `Checkpoint ${index}`, index % 2 === 0 ? 'manual' : 'auto');
+      await new Promise((resolve) => setTimeout(resolve, 2));
+    }
+
+    const snapshots = await listProjectSnapshots('p-snap');
+    expect(snapshots).toHaveLength(15);
+    expect(snapshots[0]?.label).toBe('Checkpoint 17');
+    expect(snapshots[14]?.label).toBe('Checkpoint 3');
+
+    const firstId = snapshots[0]?.id;
+    expect(firstId).toBeDefined();
+    await deleteProjectSnapshot(firstId ?? '');
+    expect(await listProjectSnapshots('p-snap')).toHaveLength(14);
   });
 });

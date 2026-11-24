@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-export type Theme = 'dark' | 'light';
+export type Theme = 'dark' | 'light' | 'soft-light';
 
 const STORAGE_KEY = 'lexomata.theme';
 
@@ -8,10 +8,18 @@ function initialTheme(): Theme {
   if (typeof localStorage === 'undefined') {
     return 'dark';
   }
-  return localStorage.getItem(STORAGE_KEY) === 'light' ? 'light' : 'dark';
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved === 'light' || saved === 'soft-light' || saved === 'dark') {
+    return saved;
+  }
+  return 'dark';
 }
 
-export function useTheme(): { theme: Theme; toggleTheme: () => void } {
+export function useTheme(): {
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
+  toggleTheme: () => void;
+} {
   const [theme, setTheme] = useState<Theme>(initialTheme);
 
   useEffect(() => {
@@ -24,8 +32,10 @@ export function useTheme(): { theme: Theme; toggleTheme: () => void } {
   }, [theme]);
 
   const toggleTheme = useCallback(() => {
-    setTheme((current) => (current === 'dark' ? 'light' : 'dark'));
+    setTheme((current) =>
+      current === 'dark' ? 'soft-light' : current === 'soft-light' ? 'light' : 'dark',
+    );
   }, []);
 
-  return { theme, toggleTheme };
+  return { theme, setTheme, toggleTheme };
 }

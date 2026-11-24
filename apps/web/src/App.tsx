@@ -8,8 +8,10 @@ import { Inspector } from './components/Inspector';
 import { Modal, PrimaryButton, SecondaryButton } from './components/Modal';
 import { NewProjectDialog } from './components/NewProjectDialog';
 import { PreferencesDialog } from './components/PreferencesDialog';
+import { ShortcutsDialog } from './components/ShortcutsDialog';
 import { SimulationBar } from './components/SimulationBar';
 import { TopBar } from './components/TopBar';
+import { VersionHistoryDialog } from './components/VersionHistoryDialog';
 import {
   TransformationDialog,
   type TransformationReport,
@@ -51,13 +53,14 @@ import {
   loadProjectLocal,
   saveLastProjectId,
   saveProjectLocal,
+  saveProjectSnapshot,
 } from './storage/localDb';
 import type { CanvasHandle, InspectorTab, Selection, Tool } from './uiTypes';
 import { fileService } from './platform/fileService';
 import { completeWebOAuthRedirect } from './platform/gdriveSync';
 import { layoutStates, type LayoutStrategy } from './utils/layout';
 
-type Dialog = 'new' | 'export' | 'type' | 'drive' | 'prefs' | null;
+type Dialog = 'new' | 'export' | 'type' | 'drive' | 'prefs' | 'history' | 'shortcuts' | null;
 
 interface Toast {
   message: string;
@@ -68,7 +71,7 @@ export function App() {
   const store = useProjectStore();
   const { project } = store;
   const validation = useValidation(project);
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme, toggleTheme } = useTheme();
   const { prefs, updatePrefs, resetPrefs } = useUiPrefs();
   const fa = useFaSimulation(project);
   const tm = useTuringSimulation(project);
@@ -89,6 +92,9 @@ export function App() {
   const draggingRef = useRef(false);
   const toastTimer = useRef<number | null>(null);
   const restoredRef = useRef(false);
+  const projectRef = useRef(project);
+  projectRef.current = project;
+  const lastSnapshotSignatureRef = useRef('');
 
   const notify = useCallback((message: string, tone: 'info' | 'error' = 'info') => {
     setToast({ message, tone });
@@ -160,6 +166,15 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    const persistLocalNow = () => {
+      const latest = projectRef.current;
+      void saveProjectLocal(latest)
+        .then(() => saveLastProjectId(latest.id))
+        .catch(() => {
+          // Best-effort al ocultar o cerrar.
+        });
+    };
+
     const timer = window.setTimeout(() => {
       void saveProjectLocal(project)
         .then(() => saveLastProjectId(project.id))
@@ -169,8 +184,46 @@ export function App() {
           // Silencioso en entornos sin IndexedDB persistente.
         });
     }, 500);
-    return () => window.clearTimeout(timer);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        persistLocalNow();
+      }
+    };
+    window.addEventListener('beforeunload', persistLocalNow);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('beforeunload', persistLocalNow);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [project]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      const current = projectRef.current;
+      if (current.states.length <= 1 && current.transitions.length === 0) {
+        return;
+      }
+      const signature = JSON.stringify({
+        id: current.id,
+        machineType: current.machineType,
+        states: current.states,
+        transitions: current.transitions,
+        config: current.config,
+      });
+      if (signature === lastSnapshotSignatureRef.current) {
+        return;
+      }
+      lastSnapshotSignatureRef.current = signature;
+      void saveProjectSnapshot(current, 'Respaldo automático', 'auto').catch(() => {
+        // Silencioso si IndexedDB no está disponible.
+      });
+    }, 120_000);
+
+    return () => window.clearInterval(interval);
+  }, []);
 
   const loadProject = useCallback(
     (next: LexoProject) => {
@@ -480,6 +533,9 @@ export function App() {
       } else if (event.key === 'Delete' || event.key === 'Backspace') {
         event.preventDefault();
         deleteSelection();
+      } else if (event.key === '?') {
+        event.preventDefault();
+        setDialog((current) => (current === 'shortcuts' ? null : 'shortcuts'));
       } else if (event.key === 'Escape') {
         setTool('select');
         setSelection({ kind: 'none' });
@@ -517,6 +573,8 @@ export function App() {
         }}
         onOpenDrive={() => setDialog('drive')}
         onOpenPrefs={() => setDialog('prefs')}
+        onOpenHistory={() => setDialog('history')}
+        onOpenShortcuts={() => setDialog('shortcuts')}
         onNew={() => setDialog('new')}
         onOpenLexo={() => void openLexo()}
         onOpenJff={() => void openJff()}
@@ -690,12 +748,30 @@ export function App() {
       {dialog === 'prefs' ? (
         <PreferencesDialog
           theme={theme}
-          onToggleTheme={toggleTheme}
+          onSetTheme={setTheme}
           prefs={prefs}
           onUpdatePrefs={updatePrefs}
           onResetPrefs={resetPrefs}
           onClose={() => setDialog(null)}
         />
+      ) : null}
+
+      {dialog === 'history' ? (
+        <VersionHistoryDialog
+          project={project}
+          onRestore={(snapshotProject, label) => {
+            store.commit(() => normalizeProject(snapshotProject));
+            setSelection({ kind: 'none' });
+            notify(`Versión restaurada: ${label}`);
+            window.setTimeout(() => canvasRef.current?.fit(), 0);
+          }}
+          onClose={() => setDialog(null)}
+          onNotify={notify}
+        />
+      ) : null}
+
+      {dialog === 'shortcuts' ? (
+        <ShortcutsDialog onClose={() => setDialog(null)} />
       ) : null}
 
       {transformationReport ? (

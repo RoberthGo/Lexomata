@@ -5,11 +5,13 @@ import { createId } from '../model/project';
 import {
   clearAccessToken,
   downloadDriveProject,
+  getGoogleClientId,
   getStoredAccessToken,
   hasSyncConflict,
   isDriveConfigured,
   isOnline,
   listDriveProjects,
+  setGoogleClientId,
   startDriveSignIn,
   uploadDriveProject,
   type DriveConflictInfo,
@@ -36,7 +38,9 @@ export function DriveSyncDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<DriveConflictInfo | null>(null);
-  const configured = isDriveConfigured();
+  const [clientIdDraft, setClientIdDraft] = useState(getGoogleClientId);
+  const [configured, setConfigured] = useState(isDriveConfigured);
+  const [configOpen, setConfigOpen] = useState(() => !isDriveConfigured());
 
   useEffect(() => {
     const syncOnline = () => setOnline(isOnline());
@@ -173,7 +177,8 @@ export function DriveSyncDialog({
           </div>
         ) : !configured ? (
           <div className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-3 py-2 text-[12px] text-[var(--text-secondary)]">
-            Google Drive no está configurado en esta compilación (<span className="mono">VITE_GOOGLE_CLIENT_ID</span>).
+            Pega tu <span className="mono">Client ID</span> OAuth de Google abajo para conectar sin
+            recompilar.
           </div>
         ) : !token ? (
           <div className="flex items-center justify-between rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-3 py-2.5">
@@ -311,6 +316,73 @@ export function DriveSyncDialog({
         ) : null}
 
         {error ? <p className="text-[11px] text-[var(--accent-reject)]">{error}</p> : null}
+
+        <div className="border-t border-[var(--border-subtle)] pt-2">
+          <button
+            type="button"
+            onClick={() => setConfigOpen((current) => !current)}
+            className="text-[11px] font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+          >
+            {configOpen ? '▾ Ocultar configuración OAuth' : '▸ Configurar Client ID'}
+          </button>
+
+          {configOpen ? (
+            <div className="mt-2 space-y-2 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] p-2.5 text-[11px]">
+              <label className="block">
+                <span className="mb-1 block text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                  Google OAuth Client ID
+                </span>
+                <input
+                  value={clientIdDraft}
+                  placeholder="123456-abcdef.apps.googleusercontent.com"
+                  onChange={(event) => setClientIdDraft(event.target.value)}
+                  className="mono h-7 w-full rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 text-[11px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-selection)] focus:outline-none"
+                />
+              </label>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] text-[var(--text-muted)]">
+                  Solo guarda acceso a tu carpeta <span className="mono">Lexomata/</span>.
+                </span>
+                <div className="flex items-center gap-1.5">
+                  {configured ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setGoogleClientId('');
+                        clearAccessToken();
+                        setToken(null);
+                        setFiles([]);
+                        setClientIdDraft('');
+                        setConfigured(false);
+                        onNotify('Client ID eliminado.');
+                      }}
+                      className="rounded-[var(--radius-sm)] px-2 py-1 text-[10px] text-[var(--accent-reject)] hover:bg-[var(--accent-reject-soft)]"
+                    >
+                      Limpiar
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGoogleClientId(clientIdDraft);
+                      const ok = isDriveConfigured();
+                      setConfigured(ok);
+                      if (ok) {
+                        setConfigOpen(false);
+                        onNotify('Client ID de Google Drive guardado.');
+                      } else {
+                        onNotify('Ingresa un Client ID válido o déjalo vacío para limpiar.', 'error');
+                      }
+                    }}
+                    className="rounded-[var(--radius-sm)] bg-[var(--accent-selection)] px-2.5 py-1 text-[10px] font-medium text-white hover:brightness-110"
+                  >
+                    Guardar ID
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
     </Modal>
   );

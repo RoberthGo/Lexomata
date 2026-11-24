@@ -79,18 +79,31 @@ export function useProjectStore(): ProjectStore {
       return;
     }
 
-    const timer = window.setTimeout(() => {
+    const persistNow = () => {
       try {
         localStorage.setItem(
           STORAGE_KEY,
-          JSON.stringify({ version: 1, project: history.present }),
+          JSON.stringify({ version: 1, project: presentRef.current }),
         );
       } catch {
         // El autoguardado es best-effort; nunca debe romper la edición.
       }
-    }, AUTOSAVE_DELAY_MS);
+    };
 
-    return () => window.clearTimeout(timer);
+    const timer = window.setTimeout(persistNow, AUTOSAVE_DELAY_MS);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        persistNow();
+      }
+    };
+    window.addEventListener('beforeunload', persistNow);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('beforeunload', persistNow);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [history.present]);
 
   const resetProject = useCallback((project: LexoProject) => {

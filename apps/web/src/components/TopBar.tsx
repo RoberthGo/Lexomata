@@ -9,7 +9,9 @@ import {
   FileJson,
   FilePlus2,
   FolderOpen,
+  History,
   Image,
+  Keyboard,
   Layers,
   Loader2,
   Minimize2,
@@ -44,6 +46,8 @@ interface TopBarProps {
   onToggleInspector: () => void;
   onOpenDrive?: () => void;
   onOpenPrefs?: () => void;
+  onOpenHistory?: () => void;
+  onOpenShortcuts?: () => void;
   onNew: () => void;
   onOpenLexo: () => void;
   onOpenJff: () => void;
@@ -79,6 +83,8 @@ export function TopBar({
   onToggleInspector,
   onOpenDrive,
   onOpenPrefs,
+  onOpenHistory,
+  onOpenShortcuts,
   onNew,
   onOpenLexo,
   onOpenJff,
@@ -149,6 +155,9 @@ export function TopBar({
             <MenuItem icon={FolderOpen} label="Abrir .lexo" onClick={() => run(onOpenLexo)} />
             <MenuItem icon={FolderOpen} label="Importar .jff (JFLAP)" onClick={() => run(onOpenJff)} />
             <MenuItem icon={Save} label="Guardar .lexo" shortcut="Ctrl S" onClick={() => run(onSaveLexo)} />
+            {onOpenHistory ? (
+              <MenuItem icon={History} label="Historial de versiones…" onClick={() => run(onOpenHistory)} />
+            ) : null}
             <MenuItem icon={Download} label="Exportar .jff" onClick={() => run(onExportJff)} />
             <div className="my-1 border-t border-[var(--border-subtle)]" />
             <MenuItem icon={Image} label="Exportar SVG / PNG / TikZ" onClick={() => run(onOpenExport)} />
@@ -209,6 +218,12 @@ export function TopBar({
             <div className="my-1 border-t border-[var(--border-subtle)]" />
             <MenuItem icon={Layers} label="Auto-layout jerárquico" onClick={() => run(() => onLayout('layered'))} />
             <MenuItem icon={Network} label="Auto-layout circular" onClick={() => run(() => onLayout('circular'))} />
+            {onOpenShortcuts ? (
+              <>
+                <div className="my-1 border-t border-[var(--border-subtle)]" />
+                <MenuItem icon={Keyboard} label="Atajos de teclado" shortcut="?" onClick={() => run(onOpenShortcuts)} />
+              </>
+            ) : null}
           </div>
         ) : null}
       </div>

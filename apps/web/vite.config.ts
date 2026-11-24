@@ -9,7 +9,7 @@ const PRODUCTION_CSP = [
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
   "img-src 'self' data: blob:",
-  "connect-src 'self'",
+  "connect-src 'self' https://oauth2.googleapis.com https://www.googleapis.com",
 ].join('; ');
 
 const DEVELOPMENT_CSP = [

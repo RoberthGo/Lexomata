@@ -11,6 +11,7 @@ const DRIVE_UPLOAD_URL = 'https://www.googleapis.com/upload/drive/v3/files';
 const PKCE_VERIFIER_KEY = 'lexomata_gdrive_verifier';
 const PKCE_STATE_KEY = 'lexomata_gdrive_state';
 const TOKEN_STORAGE_KEY = 'lexomata_gdrive_token';
+const CLIENT_ID_STORAGE_KEY = 'lexomata_gdrive_client_id';
 
 export interface DriveFileSummary {
   id: string;
@@ -27,7 +28,31 @@ export interface DriveConflictInfo {
 }
 
 export function getGoogleClientId(): string {
+  try {
+    const stored = typeof localStorage !== 'undefined' ? localStorage.getItem(CLIENT_ID_STORAGE_KEY) : null;
+    if (stored && stored.trim().length > 0) {
+      return stored.trim();
+    }
+  } catch {
+    // localStorage opcional.
+  }
   return (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '').trim();
+}
+
+export function setGoogleClientId(clientId: string): void {
+  try {
+    if (typeof localStorage === 'undefined') {
+      return;
+    }
+    const trimmed = clientId.trim();
+    if (trimmed) {
+      localStorage.setItem(CLIENT_ID_STORAGE_KEY, trimmed);
+    } else {
+      localStorage.removeItem(CLIENT_ID_STORAGE_KEY);
+    }
+  } catch {
+    // localStorage opcional.
+  }
 }
 
 export function isDriveConfigured(): boolean {
