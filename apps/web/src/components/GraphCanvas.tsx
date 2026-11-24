@@ -36,10 +36,12 @@ interface GraphCanvasProps {
   onCreateTransition: (from: string, to: string) => void;
   onMoveState: (id: string, x: number, y: number, final: boolean) => void;
   onDeleteState: (id: string) => void;
+  onRenameState?: (id: string, label: string) => void;
   onMarkInitialState?: (id: string) => void;
   onToggleAcceptingState?: (id: string) => void;
   onEditEdge: (from: string, to: string) => void;
   onInvertEdge?: (from: string, to: string) => void;
+  onUpdateEdgeCurve?: (from: string, to: string, curveOffset: number, final: boolean) => void;
   onReassignEdge?: (from: string, to: string, nextFrom: string, nextTo: string) => void;
   onUpdateEdgeComment?: (from: string, to: string, comment?: string) => void;
   onDeleteEdge?: (from: string, to: string) => void;
@@ -126,10 +128,12 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
     onCreateTransition,
     onMoveState,
     onDeleteState,
+    onRenameState,
     onMarkInitialState,
     onToggleAcceptingState,
     onEditEdge,
     onInvertEdge,
+    onUpdateEdgeCurve,
     onDeleteEdge,
     showGrid = true,
     snapEnabled = true,
@@ -146,7 +150,9 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
   const [panning, setPanning] = useState(false);
   const [edgeMenu, setEdgeMenu] = useState<EdgeContextMenuState | null>(null);
   const [stateMenu, setStateMenu] = useState<StateContextMenuState | null>(null);
+  const [editingState, setEditingState] = useState<{ id: string; draft: string } | null>(null);
   const dragRef = useRef<DragState | null>(null);
+  const curveDragRef = useRef<{ from: string; to: string; fromPt: Point; toPt: Point } | null>(null);
   const panRef = useRef<PanState | null>(null);
   const touchPointersRef = useRef<Map<number, Point>>(new Map());
   const pinchRef = useRef<{ distance: number; mid: Point } | null>(null);
@@ -332,8 +338,16 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
         event.preventDefault();
         spaceRef.current = true;
       }
+      if (event.key === 'F2' && !inInteractive && !hasOpenDialog && selection.kind === 'state') {
+        const current = statesById.get(selection.id);
+        if (current) {
+          event.preventDefault();
+          setEditingState({ id: current.id, draft: current.label });
+        }
+      }
       if (event.key === 'Escape') {
         setPendingFrom(null);
+        setEditingState(null);
       }
     };
     const handleKeyUp = (event: KeyboardEvent) => {
@@ -356,7 +370,7 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('blur', handleBlur);
     };
-  }, []);
+  }, [selection, statesById]);
 
   const handleBackgroundPointerDown = (event: ReactPointerEvent<SVGRectElement>) => {
     setEdgeMenu(null);
@@ -406,6 +420,22 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
   const handlePointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
     if (pendingFrom) {
       setHoverWorld(toWorld(event));
+    }
+
+    const curveDrag = curveDragRef.current;
+    if (curveDrag) {
+      const world = toWorld(event);
+      const dx = curveDrag.toPt.x - curveDrag.fromPt.x;
+      const dy = curveDrag.toPt.y - curveDrag.fromPt.y;
+      const len = Math.hypot(dx, dy) || 1;
+      const mx = (curveDrag.fromPt.x + curveDrag.toPt.x) / 2;
+      const my = (curveDrag.fromPt.y + curveDrag.toPt.y) / 2;
+      const nx = -dy / len;
+      const ny = dx / len;
+      const signed = (world.x - mx) * nx + (world.y - my) * ny;
+      const clamped = Math.max(-140, Math.min(140, Math.round(signed)));
+      onUpdateEdgeCurve?.(curveDrag.from, curveDrag.to, clamped, false);
+      return;
     }
 
     const drag = dragRef.current;
@@ -497,6 +527,15 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
       if (touchPointersRef.current.size < 2) {
         pinchRef.current = null;
       }
+    }
+
+    const curveDragEnd = curveDragRef.current;
+    if (curveDragEnd) {
+      curveDragRef.current = null;
+      const first = project.transitions.find(
+        (t) => t.from === curveDragEnd.from && t.to === curveDragEnd.to,
+      );
+      onUpdateEdgeCurve?.(curveDragEnd.from, curveDragEnd.to, first?.curveOffset ?? 0, true);
     }
 
     const drag = dragRef.current;
@@ -802,6 +841,33 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
                       {edgeNote.length > 22 ? `${edgeNote.slice(0, 21)}…` : edgeNote}
                     </text>
                   ) : null}
+                  {selected && group.from !== group.to && onUpdateEdgeCurve ? (
+                    <circle
+                      cx={labelWidth / 2 + 8}
+                      cy={0}
+                      r={5}
+                      fill="var(--accent-selection)"
+                      stroke="var(--bg-surface)"
+                      strokeWidth={1.5}
+                      className="cursor-grab"
+                      onPointerDown={(event) => {
+                        event.stopPropagation();
+                        curveDragRef.current = {
+                          from: group.from,
+                          to: group.to,
+                          fromPt: { x: from.x, y: from.y },
+                          toPt: { x: to.x, y: to.y },
+                        };
+                        event.currentTarget.setPointerCapture(event.pointerId);
+                      }}
+                      onDoubleClick={(event) => {
+                        event.stopPropagation();
+                        onUpdateEdgeCurve(group.from, group.to, 0, true);
+                      }}
+                    >
+                      <title>Arrastra para curvar arista (doble clic restablece)</title>
+                    </circle>
+                  ) : null}
                 </g>
               </g>
             );
@@ -834,6 +900,9 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
                 onDoubleClick={(event) => {
                   event.stopPropagation();
                   onSelect({ kind: 'state', id: state.id });
+                  if (onRenameState) {
+                    setEditingState({ id: state.id, draft: state.label });
+                  }
                 }}
                 onContextMenu={(event) => openStateMenu(event, state.id)}
               >
@@ -933,6 +1002,47 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
           <span className="text-[var(--accent-selection)]">clic en origen → destino</span>
         ) : null}
       </div>
+
+      {editingState ? (() => {
+        const target = statesById.get(editingState.id);
+        if (!target) {
+          return null;
+        }
+        const left = (target.x - camera.x) * camera.zoom;
+        const top = (target.y - camera.y) * camera.zoom;
+        const commitRename = () => {
+          const next = editingState.draft.trim();
+          if (next && next !== target.label) {
+            onRenameState?.(target.id, next);
+          }
+          setEditingState(null);
+        };
+        return (
+          <input
+            autoFocus
+            value={editingState.draft}
+            aria-label="Renombrar estado"
+            style={{ left, top, transform: 'translate(-50%, -50%)' }}
+            onFocus={(event) => event.currentTarget.select()}
+            onPointerDown={(event) => event.stopPropagation()}
+            onChange={(event) =>
+              setEditingState((current) =>
+                current ? { ...current, draft: event.target.value } : null,
+              )
+            }
+            onBlur={commitRename}
+            onKeyDown={(event) => {
+              event.stopPropagation();
+              if (event.key === 'Enter') {
+                commitRename();
+              } else if (event.key === 'Escape') {
+                setEditingState(null);
+              }
+            }}
+            className="mono absolute z-30 h-7 w-24 rounded-[var(--radius-sm)] border border-[var(--accent-selection)] bg-[var(--bg-surface)] px-1.5 text-center text-[12px] font-semibold text-[var(--text-primary)] shadow-[var(--shadow-float)] focus:outline-none"
+          />
+        );
+      })() : null}
 
       {stateMenu ? (
         <div

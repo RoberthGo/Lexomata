@@ -1,5 +1,5 @@
-import type { LexoProject, State, Transition } from '../engine/types';
-import { groupedLabel, stateLabel } from '../model/project';
+import type { LexoProject, Transition } from '../engine/types';
+import { groupedLabel } from '../model/project';
 import { edgeGeometry, graphBounds, NODE_RADIUS } from './geometry';
 
 export type ExportTheme = 'light' | 'dark' | 'transparent';
@@ -388,12 +388,4 @@ export function downloadBlob(filename: string, blob: Blob): void {
   anchor.download = filename;
   anchor.click();
   URL.revokeObjectURL(url);
-}
-
-export function stateById(project: LexoProject, id: string): State | undefined {
-  return project.states.find((state) => state.id === id);
-}
-
-export function transitionSummary(project: LexoProject, transition: Transition): string {
-  return `${stateLabel(project, transition.from)} → ${stateLabel(project, transition.to)}`;
 }

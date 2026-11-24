@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   addState,
   addTransition,
-  changeMachineType,
   createProject,
   effectiveAlphabet,
   groupedLabel,
@@ -91,29 +90,6 @@ describe('project model', () => {
     const flexible = setFaStrictMode(strict, false);
     expect(flexible.machineType).toBe('NFA');
     expect(flexible.transitions).toHaveLength(2);
-  });
-
-  it('adapta reglas al cambiar de autómata a máquina de Turing', () => {
-    const withSecond = addState(createProject('NFA_EPSILON'), 100, 0).project;
-    const withSymbol = addTransition(withSecond, 's0', 's1').project;
-    const withEpsilon = addTransition(withSymbol, 's0', 's1').project;
-    const epsilonId = withEpsilon.transitions[1]?.id;
-    expect(epsilonId).toBeDefined();
-
-    const withEmpty = updateTransition(withEpsilon, epsilonId ?? '', {
-      rule: { kind: 'FA', symbol: null },
-    });
-    const converted = changeMachineType(withEmpty, 'TM_SINGLE');
-
-    expect(converted.machineType).toBe('TM_SINGLE');
-    expect(converted.transitions).toHaveLength(1);
-    expect(converted.transitions[0]?.rule).toEqual({
-      kind: 'TM',
-      operations: [{ read: '0', write: '0', move: 'R' }],
-    });
-
-    const back = changeMachineType(converted, 'DFA');
-    expect(back.transitions[0]?.rule).toEqual({ kind: 'FA', symbol: '0' });
   });
 
   it('calcula alfabetos efectivos y etiquetas agrupadas', () => {

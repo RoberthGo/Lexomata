@@ -199,7 +199,7 @@ export async function startDriveSignIn(): Promise<string | null> {
       prompt: 'consent',
     });
     const authUrl = `${GOOGLE_AUTH_URL}?${params.toString()}`;
-    window.open(authUrl, '_blank', 'noopener,noreferrer');
+    await invoke('open_external_url', { url: authUrl });
     const result = await invoke<{ code: string; state?: string; redirectUri: string }>(
       'await_oauth_loopback',
       { redirectUri },

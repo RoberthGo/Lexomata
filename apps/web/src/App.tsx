@@ -341,6 +341,42 @@ export function App() {
     [store],
   );
 
+  const handleUpdateEdgeCurve = useCallback(
+    (from: string, to: string, curveOffset: number, final: boolean) => {
+      userEditedRef.current = true;
+      if (final) {
+        if (draggingRef.current) {
+          store.endTransaction();
+          draggingRef.current = false;
+        } else {
+          store.commit((current) => ({
+            ...touchProject(current),
+            transitions: current.transitions.map((transition) =>
+              transition.from === from && transition.to === to
+                ? { ...transition, curveOffset }
+                : transition,
+            ),
+          }));
+        }
+        return;
+      }
+
+      if (!draggingRef.current) {
+        store.beginTransaction();
+        draggingRef.current = true;
+      }
+      store.update((current) => ({
+        ...touchProject(current),
+        transitions: current.transitions.map((transition) =>
+          transition.from === from && transition.to === to
+            ? { ...transition, curveOffset }
+            : transition,
+        ),
+      }));
+    },
+    [store],
+  );
+
   const deleteSelection = useCallback(() => {
     if (selection.kind === 'state') {
       commitProject((current) => removeStates(current, [selection.id]));
@@ -793,6 +829,9 @@ export function App() {
               onCreateTransition={handleCreateTransition}
               onMoveState={handleMoveState}
               onDeleteState={handleDeleteState}
+              onRenameState={(id, label) => {
+                commitProject((current) => updateState(current, id, { label }));
+              }}
               onMarkInitialState={(id) => {
                 commitProject((current) => markInitial(current, id));
               }}
@@ -808,6 +847,7 @@ export function App() {
                 commitProject((current) => invertEdgeGroup(current, from, to));
                 setSelection({ kind: 'edge', from: to, to: from });
               }}
+              onUpdateEdgeCurve={handleUpdateEdgeCurve}
               onReassignEdge={(from, to, nextFrom, nextTo) => {
                 commitProject((current) => reassignEdgeGroup(current, from, to, nextFrom, nextTo));
                 setSelection({ kind: 'edge', from: nextFrom, to: nextTo });

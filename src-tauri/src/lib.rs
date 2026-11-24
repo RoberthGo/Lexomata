@@ -30,6 +30,43 @@ fn show_windows_error(title: &str, message: &str) {
     }
 }
 
+#[tauri::command]
+fn open_external_url(url: String) -> Result<(), String> {
+    if !url.starts_with("https://accounts.google.com/") {
+        return Err("URL externa no permitida".to_string());
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("rundll32")
+            .args(["url.dll,FileProtocolHandler", &url])
+            .spawn()
+            .map_err(|err| format!("No se pudo abrir el navegador: {err}"))?;
+        return Ok(());
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(&url)
+            .spawn()
+            .map_err(|err| format!("No se pudo abrir el navegador: {err}"))?;
+        return Ok(());
+    }
+
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(&url)
+            .spawn()
+            .map_err(|err| format!("No se pudo abrir el navegador: {err}"))?;
+        return Ok(());
+    }
+
+    #[allow(unreachable_code)]
+    Err("Plataforma no soportada para abrir navegador externo".to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let result = tauri::Builder::default()
@@ -38,6 +75,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             oauth_loopback::reserve_oauth_loopback,
             oauth_loopback::await_oauth_loopback,
+            open_external_url,
         ])
         .run(tauri::generate_context!());
 

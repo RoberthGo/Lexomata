@@ -71,20 +71,12 @@ export function createProject(machineType: MachineType = 'DFA', name = EMPTY_PRO
   };
 }
 
-export function cloneProject(project: LexoProject): LexoProject {
-  return structuredClone(project);
-}
-
 export function touchProject(project: LexoProject): LexoProject {
   return { ...project, updatedAt: nowIso() };
 }
 
 export function stateLabel(project: LexoProject, stateId: string): string {
   return project.states.find((state) => state.id === stateId)?.label ?? stateId;
-}
-
-export function initialLabel(project: LexoProject): string {
-  return project.states.find((state) => state.isInitial)?.label ?? 'q0';
 }
 
 export function nextStateLabel(project: LexoProject): string {
@@ -303,16 +295,8 @@ export function ruleSymbolLabel(project: LexoProject, rule: TransitionRule): str
     return rule.symbol && rule.symbol.length > 0 ? rule.symbol : project.config.epsilonSymbol;
   }
   return rule.operations
-    .map((operation) => `${displaySymbol(project, operation.read)} ; ${displaySymbol(project, operation.write)}, ${operation.move}`)
+    .map((operation) => `${operation.read} ; ${operation.write}, ${operation.move}`)
     .join(' | ');
-}
-
-export function displaySymbol(project: LexoProject, symbol: string): string {
-  return symbol === project.config.blankSymbol ? project.config.blankSymbol : symbol;
-}
-
-export function operationFor(rule: TransitionRule): TmOperation | undefined {
-  return rule.kind === 'TM' ? rule.operations[0] : undefined;
 }
 
 /** Etiqueta agrupada de todas las reglas que comparten origen y destino. */
@@ -378,64 +362,6 @@ export function setFaStrictMode(project: LexoProject, strict: boolean): LexoProj
   return touchProject({
     ...project,
     machineType: nextType,
-  });
-}
-
-/** Cambia el tipo de máquina conservando estados y adaptando reglas. */
-export function changeMachineType(project: LexoProject, machineType: MachineType): LexoProject {
-  const transitions = project.transitions.flatMap<Transition>((transition) => {
-    if (isTuring(machineType)) {
-      const symbol =
-        transition.rule.kind === 'FA'
-          ? transition.rule.symbol
-          : transition.rule.operations[0]?.read;
-      if (symbol === null || symbol === undefined) {
-        return [];
-      }
-      return [
-        {
-          ...transition,
-          rule: {
-            kind: 'TM',
-            operations: [{ read: symbol, write: symbol, move: 'R' }],
-          },
-        },
-      ];
-    }
-
-    if (transition.rule.kind === 'TM') {
-      const symbol = transition.rule.operations[0]?.read;
-      if (!symbol) {
-        return [];
-      }
-      return [
-        {
-          ...transition,
-          rule: { kind: 'FA', symbol: symbol === project.config.blankSymbol ? null : symbol },
-        },
-      ];
-    }
-
-    return [transition];
-  });
-
-  const config: MachineConfig = isTuring(machineType)
-    ? {
-        ...project.config,
-        alphabet: effectiveAlphabet(project),
-        tapeAlphabet: effectiveTapeAlphabet({ ...project, config: { ...project.config, tapeAlphabet: project.config.tapeAlphabet } }),
-        tapeCount: 1,
-      }
-    : { ...project.config, tapeAlphabet: [], tapeCount: 1 };
-
-  return touchProject({
-    ...project,
-    machineType,
-    transitions,
-    config: {
-      ...config,
-      alphabet: isFiniteAutomaton(machineType) ? effectiveAlphabet({ ...project, transitions }) : config.alphabet,
-    },
   });
 }
 
