@@ -7,7 +7,9 @@ import {
   groupedLabel,
   invertEdgeGroup,
   markInitial,
+  moveStatesByDelta,
   normalizeProject,
+  pasteSubgraph,
   projectFileName,
   reassignEdgeGroup,
   removeStates,
@@ -143,5 +145,23 @@ describe('project model', () => {
 
     const cleared = updateEdgeGroupComment(noted, 's0', s2.stateId, '');
     expect(cleared.transitions[0]?.comment).toBeUndefined();
+  });
+
+  it('elige el primer símbolo libre en AFD y permite mover/pegar subgrafos', () => {
+    const base = createProject('DFA', 'SmartDFA');
+    const s1 = addState(base, 200, 120);
+    const first = addTransition(s1.project, 's0', s1.stateId);
+    expect(first.project.transitions[0]?.rule).toEqual({ kind: 'FA', symbol: '0' });
+
+    const second = addTransition(first.project, 's0', s1.stateId);
+    expect(second.project.transitions[1]?.rule).toEqual({ kind: 'FA', symbol: '1' });
+
+    const moved = moveStatesByDelta(second.project, ['s0', s1.stateId], 20, -10);
+    expect(moved.states.find((s) => s.id === s1.stateId)).toMatchObject({ x: 220, y: 110 });
+
+    const pasted = pasteSubgraph(moved, moved.states, moved.transitions, 40, 40);
+    expect(pasted.stateIds).toHaveLength(2);
+    expect(pasted.project.states).toHaveLength(4);
+    expect(pasted.project.transitions).toHaveLength(4);
   });
 });

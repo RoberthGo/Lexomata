@@ -25,7 +25,11 @@ function sliceSelection(project: LexoProject, selection?: Selection): LexoProjec
   }
 
   const allowedStates = new Set<string>(
-    selection.kind === 'state' ? [selection.id] : [selection.from, selection.to],
+    selection.kind === 'state'
+      ? [selection.id]
+      : selection.kind === 'multi'
+        ? selection.stateIds
+        : [selection.from, selection.to],
   );
   const transitions =
     selection.kind === 'edge'
@@ -45,6 +49,7 @@ function sliceSelection(project: LexoProject, selection?: Selection): LexoProjec
 
 const THEMES: Array<{ id: ExportTheme; label: string }> = [
   { id: 'light', label: 'Claro' },
+  { id: 'soft-light', label: 'Claro suave' },
   { id: 'dark', label: 'Oscuro' },
   { id: 'transparent', label: 'Transparente' },
 ];

@@ -134,6 +134,23 @@ export function defaultRuleFor(project: LexoProject, symbol?: string): Transitio
   return { kind: 'FA', symbol: symbol ?? null };
 }
 
+function nextFreeFaSymbol(project: LexoProject, from: string): string | undefined {
+  const candidates = project.config.alphabet.filter(Boolean);
+  if (candidates.length === 0) {
+    return undefined;
+  }
+  if (project.machineType !== 'DFA') {
+    return candidates[0];
+  }
+  const used = new Set(
+    project.transitions
+      .filter((t) => t.from === from && t.rule.kind === 'FA' && t.rule.symbol !== null)
+      .map((t) => (t.rule.kind === 'FA' ? t.rule.symbol : null))
+      .filter((symbol): symbol is string => symbol !== null),
+  );
+  return candidates.find((symbol) => !used.has(symbol)) ?? candidates[0];
+}
+
 export function addTransition(
   project: LexoProject,
   from: string,
@@ -145,13 +162,83 @@ export function addTransition(
     from,
     to,
     curveOffset: 0,
-    rule: rule ?? defaultRuleFor(project, project.config.alphabet[0]),
+    rule: rule ?? defaultRuleFor(project, nextFreeFaSymbol(project, from)),
   };
 
   return {
     project: touchProject({ ...project, transitions: [...project.transitions, transition] }),
     transitionId: transition.id,
   };
+}
+
+export function moveStatesByDelta(
+  project: LexoProject,
+  stateIds: Iterable<string>,
+  dx: number,
+  dy: number,
+  snap?: (value: number) => number,
+): LexoProject {
+  const targets = new Set(stateIds);
+  if (targets.size === 0 || (dx === 0 && dy === 0)) {
+    return project;
+  }
+  return touchProject({
+    ...project,
+    states: project.states.map((state) => {
+      if (!targets.has(state.id)) {
+        return state;
+      }
+      const nextX = snap ? snap(state.x + dx) : Math.round(state.x + dx);
+      const nextY = snap ? snap(state.y + dy) : Math.round(state.y + dy);
+      return { ...state, x: nextX, y: nextY };
+    }),
+  });
+}
+
+export function pasteSubgraph(
+  project: LexoProject,
+  sourceStates: State[],
+  sourceTransitions: Transition[],
+  offsetX = 40,
+  offsetY = 40,
+): { project: LexoProject; stateIds: string[] } {
+  if (sourceStates.length === 0) {
+    return { project, stateIds: [] };
+  }
+
+  let current = project;
+  const idMap = new Map<string, string>();
+  const createdIds: string[] = [];
+
+  for (const state of sourceStates) {
+    const added = addState(current, Math.round(state.x + offsetX), Math.round(state.y + offsetY));
+    idMap.set(state.id, added.stateId);
+    createdIds.push(added.stateId);
+    current = updateState(added.project, added.stateId, {
+      isAccepting: state.isAccepting,
+      comment: state.comment,
+    });
+  }
+
+  for (const transition of sourceTransitions) {
+    const mappedFrom = idMap.get(transition.from);
+    const mappedTo = idMap.get(transition.to);
+    if (!mappedFrom || !mappedTo) {
+      continue;
+    }
+    const added = addTransition(
+      current,
+      mappedFrom,
+      mappedTo,
+      JSON.parse(JSON.stringify(transition.rule)) as TransitionRule,
+    );
+    current = updateTransition(added.project, added.transitionId, {
+      curveOffset: transition.curveOffset,
+      comment: transition.comment,
+    });
+  }
+
+  return { project: current, stateIds: createdIds };
 }
 
 export function updateState(

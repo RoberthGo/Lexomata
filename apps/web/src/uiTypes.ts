@@ -3,6 +3,7 @@ export type Tool = 'select' | 'state' | 'transition' | 'erase';
 export type Selection =
   | { kind: 'none' }
   | { kind: 'state'; id: string }
+  | { kind: 'multi'; stateIds: string[] }
   | { kind: 'edge'; from: string; to: string };
 
 export type InspectorTab = 'properties' | 'delta' | 'formal' | 'batch';

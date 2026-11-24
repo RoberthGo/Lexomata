@@ -2,7 +2,7 @@ import type { LexoProject, Transition } from '../engine/types';
 import { groupedLabel } from '../model/project';
 import { edgeGeometry, graphBounds, NODE_RADIUS } from './geometry';
 
-export type ExportTheme = 'light' | 'dark' | 'transparent';
+export type ExportTheme = 'light' | 'soft-light' | 'dark' | 'transparent';
 
 interface ThemePalette {
   background: string | null;
@@ -21,8 +21,17 @@ const PALETTES: Record<ExportTheme, ThemePalette> = {
     nodeStroke: '#0f172a',
     text: '#0f172a',
     edge: '#475569',
-    accent: '#4f46e5',
-    muted: '#94a3b8',
+    accent: '#2563eb',
+    muted: '#64748b',
+  },
+  'soft-light': {
+    background: '#f2efe9',
+    nodeFill: '#f8f6f1',
+    nodeStroke: '#1c1917',
+    text: '#1c1917',
+    edge: '#57534e',
+    accent: '#2563eb',
+    muted: '#57534e',
   },
   dark: {
     background: '#0b0f19',
@@ -30,7 +39,7 @@ const PALETTES: Record<ExportTheme, ThemePalette> = {
     nodeStroke: '#94a3b8',
     text: '#f1f5f9',
     edge: '#64748b',
-    accent: '#818cf8',
+    accent: '#38bdf8',
     muted: '#64748b',
   },
   transparent: {
@@ -39,8 +48,8 @@ const PALETTES: Record<ExportTheme, ThemePalette> = {
     nodeStroke: '#0f172a',
     text: '#0f172a',
     edge: '#475569',
-    accent: '#4f46e5',
-    muted: '#94a3b8',
+    accent: '#2563eb',
+    muted: '#64748b',
   },
 };
 
@@ -343,6 +352,17 @@ export function downloadFile(filename: string, content: string, mimeType: string
   URL.revokeObjectURL(url);
 }
 
+const MAX_PNG_CANVAS_DIM = 8192;
+const MAX_PNG_CANVAS_AREA = 33_554_432;
+
+export function clampPngScale(width: number, height: number, requestedScale: number): number {
+  const safeW = Math.max(1, width);
+  const safeH = Math.max(1, height);
+  const dimScale = Math.min(MAX_PNG_CANVAS_DIM / safeW, MAX_PNG_CANVAS_DIM / safeH);
+  const areaScale = Math.sqrt(MAX_PNG_CANVAS_AREA / (safeW * safeH));
+  return Math.max(0.25, Math.min(requestedScale, dimScale, areaScale));
+}
+
 /** Rasteriza un SVG a PNG usando canvas local (sin red). */
 export async function svgToPngBlob(svg: string, scale = 2): Promise<Blob> {
   const parser = new DOMParser();
@@ -350,6 +370,7 @@ export async function svgToPngBlob(svg: string, scale = 2): Promise<Blob> {
   const root = document.documentElement;
   const width = Number(root.getAttribute('width')) || 800;
   const height = Number(root.getAttribute('height')) || 600;
+  const effectiveScale = clampPngScale(width, height, scale);
 
   const image = new Image();
   const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
@@ -358,13 +379,13 @@ export async function svgToPngBlob(svg: string, scale = 2): Promise<Blob> {
   try {
     await image.decode();
     const canvas = document.createElement('canvas');
-    canvas.width = Math.round(width * scale);
-    canvas.height = Math.round(height * scale);
+    canvas.width = Math.max(1, Math.round(width * effectiveScale));
+    canvas.height = Math.max(1, Math.round(height * effectiveScale));
     const context = canvas.getContext('2d');
     if (!context) {
       throw new Error('No se pudo crear el contexto 2D para exportar PNG.');
     }
-    context.scale(scale, scale);
+    context.scale(effectiveScale, effectiveScale);
     context.drawImage(image, 0, 0, width, height);
 
     return await new Promise<Blob>((resolve, reject) => {

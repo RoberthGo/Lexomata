@@ -54,6 +54,7 @@ interface InspectorProps {
   onResizeWidth?: (nextWidth: number) => void;
   onTabChange: (tab: InspectorTab) => void;
   onCommit: (updater: (project: LexoProject) => LexoProject) => void;
+  onCommitCoalesced?: (key: string, updater: (project: LexoProject) => LexoProject) => void;
   onSelect: (selection: Selection) => void;
   onFocusState: (stateId: string) => void;
   onClose: () => void;
@@ -76,6 +77,7 @@ export function Inspector({
   onResizeWidth,
   onTabChange,
   onCommit,
+  onCommitCoalesced,
   onSelect,
   onFocusState,
   onClose,
@@ -157,6 +159,7 @@ export function Inspector({
             report={report}
             validationError={validationError}
             onCommit={onCommit}
+            onCommitCoalesced={onCommitCoalesced}
             onSelect={onSelect}
             onFocusState={onFocusState}
           />
@@ -289,6 +292,7 @@ function PropertiesTab({
   report,
   validationError,
   onCommit,
+  onCommitCoalesced,
   onSelect,
   onFocusState,
 }: {
@@ -297,9 +301,55 @@ function PropertiesTab({
   report: ValidationReport | null;
   validationError: string | null;
   onCommit: (updater: (project: LexoProject) => LexoProject) => void;
+  onCommitCoalesced?: (key: string, updater: (project: LexoProject) => LexoProject) => void;
   onSelect: (selection: Selection) => void;
   onFocusState: (stateId: string) => void;
 }) {
+  const commitText = (key: string, updater: (project: LexoProject) => LexoProject) => {
+    if (onCommitCoalesced) {
+      onCommitCoalesced(key, updater);
+    } else {
+      onCommit(updater);
+    }
+  };
+
+  if (selection.kind === 'multi') {
+    const selectedStates = project.states.filter((state) =>
+      selection.stateIds.includes(state.id),
+    );
+    return (
+      <div className="space-y-4">
+        <SectionTitle hint={`${selectedStates.length} estados`}>Selección múltiple</SectionTitle>
+        <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
+          Arrastra cualquiera de los estados seleccionados para moverlos en bloque, usa{' '}
+          <span className="mono text-[var(--text-primary)]">Ctrl+C / Ctrl+V</span> para duplicar el
+          subgrafo o exporta esta selección desde <span className="font-medium">Exportar</span>.
+        </p>
+        <div className="flex flex-wrap gap-1">
+          {selectedStates.map((state) => (
+            <span
+              key={state.id}
+              className="mono rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-1.5 py-0.5 text-[10px] text-[var(--text-primary)]"
+            >
+              {state.label}
+            </span>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            onCommit((current) => removeStates(current, selection.stateIds));
+            onSelect({ kind: 'none' });
+          }}
+          className="flex h-7 items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--accent-reject)]/40 px-2.5 text-[11px] text-[var(--accent-reject)] hover:bg-[var(--accent-reject-soft)]"
+        >
+          <Trash2 aria-hidden="true" className="h-3 w-3" />
+          Eliminar {selectedStates.length} estados
+        </button>
+      </div>
+    );
+  }
+
   if (selection.kind === 'state') {
     const state = project.states.find((candidate) => candidate.id === selection.id);
     if (state) {
@@ -310,7 +360,11 @@ function PropertiesTab({
             label="Etiqueta"
             value={state.label}
             mono
-            onChange={(label) => onCommit((current) => updateState(current, state.id, { label }))}
+            onChange={(label) =>
+              commitText(`state-label-${state.id}`, (current) =>
+                updateState(current, state.id, { label }),
+              )
+            }
           />
           <div className="grid grid-cols-2 gap-2">
             <Toggle
@@ -338,7 +392,7 @@ function PropertiesTab({
               value={state.comment ?? ''}
               rows={3}
               onChange={(event) =>
-                onCommit((current) =>
+                commitText(`state-note-${state.id}`, (current) =>
                   updateState(current, state.id, {
                     comment: event.target.value || undefined,
                   }),
@@ -1011,6 +1065,8 @@ function BatchTab({
   const [rows, setRows] = useState<BatchRow[]>([]);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkText, setBulkText] = useState('');
 
   const batchSignature = `${project.id}::${project.machineType}::${project.config.epsilonSymbol}::${project.config.blankSymbol}::${project.states
     .map((s) => `${s.id}:${s.isInitial ? 1 : 0}:${s.isAccepting ? 1 : 0}`)
@@ -1164,6 +1220,13 @@ function BatchTab({
         </button>
         <button
           type="button"
+          onClick={() => setBulkOpen((current) => !current)}
+          className="flex h-7 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 text-[10px] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+        >
+          Pegar lista
+        </button>
+        <button
+          type="button"
           onClick={() => void runAll()}
           disabled={running || project.testCases.length === 0}
           className="flex h-7 flex-1 items-center justify-center gap-1 rounded-[var(--radius-sm)] bg-[var(--accent-selection)] text-[11px] font-medium text-white disabled:opacity-40"
@@ -1173,6 +1236,67 @@ function BatchTab({
         </button>
       </div>
 
+      {bulkOpen ? (
+        <div className="space-y-1.5 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] p-2">
+          <p className="text-[10px] text-[var(--text-muted)]">
+            1 cadena por línea (opcional: <span className="mono">cadena, RECHAZAR</span>).
+          </p>
+          <textarea
+            value={bulkText}
+            rows={4}
+            placeholder={'01\n101, ACEPTAR\n100, RECHAZAR'}
+            onChange={(event) => setBulkText(event.target.value)}
+            className="mono w-full resize-none rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-1.5 text-[11px] text-[var(--text-primary)] focus:border-[var(--accent-selection)] focus:outline-none"
+          />
+          <div className="flex justify-end gap-1.5">
+            <button
+              type="button"
+              onClick={() => setBulkOpen(false)}
+              className="rounded px-2 py-1 text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const lines = bulkText
+                  .split(/\r?\n/)
+                  .map((line) => line.trim())
+                  .filter(Boolean);
+                if (lines.length === 0) {
+                  return;
+                }
+                const imported: TestCase[] = lines.map((line, index) => {
+                  const [rawInput, rawVerdict] = line.split(/[,\t;]/);
+                  const verdictText = (rawVerdict ?? '').trim().toUpperCase();
+                  const expected: ExpectedVerdict =
+                    verdictText.startsWith('REJ') || verdictText.startsWith('RECH')
+                      ? 'REJECT'
+                      : 'ACCEPT';
+                  const cleanedInput = (rawInput ?? '').trim();
+                  return {
+                    id: `tc-bulk-${Date.now()}-${index}`,
+                    input: cleanedInput === 'ε' ? '' : cleanedInput,
+                    expected,
+                  };
+                });
+                onCommit((current) =>
+                  touchProject({
+                    ...current,
+                    testCases: [...current.testCases, ...imported],
+                  }),
+                );
+                setBulkText('');
+                setBulkOpen(false);
+              }}
+              className="rounded-[var(--radius-sm)] bg-[var(--accent-selection)] px-2.5 py-1 text-[10px] font-medium text-white"
+            >
+              Añadir casos
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {error ? (
         <p className="rounded-[var(--radius-sm)] border border-[var(--accent-reject)]/40 bg-[var(--accent-reject-soft)] px-2 py-1.5 text-[11px] text-[var(--accent-reject)]">
           {error}
@@ -1181,9 +1305,38 @@ function BatchTab({
 
       {rows.length > 0 ? (
         <>
-          <p className="mono text-[11px] text-[var(--text-secondary)]">
-            {passed}/{rows.length} pasadas
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="mono text-[11px] text-[var(--text-secondary)]">
+              {passed}/{rows.length} pasadas
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                const csv = [
+                  'Cadena,Esperado,Real,Pasos,Resultado',
+                  ...rows.map((row) =>
+                    [
+                      JSON.stringify(row.input),
+                      row.expected,
+                      row.actual,
+                      String(row.steps),
+                      row.passed ? 'OK' : 'FALLO',
+                    ].join(','),
+                  ),
+                ].join('\n');
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `${project.name.trim() || 'lexomata'}-lotes.csv`;
+                link.click();
+                URL.revokeObjectURL(url);
+              }}
+              className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-0.5 text-[10px] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+            >
+              Exportar CSV
+            </button>
+          </div>
           <table className="w-full border-collapse text-left">
             <thead>
               <tr className="text-[10px] uppercase tracking-[0.06em] text-[var(--text-muted)]">

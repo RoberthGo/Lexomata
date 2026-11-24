@@ -60,6 +60,7 @@ interface TopBarProps {
   onRequestMachineFamily: (family: 'FA' | 'TM') => void;
   onToggleFaStrict: () => void;
   onConvertNfa: () => void;
+  onConvertNfaComplete?: () => void;
   onMinimizeDfa: () => void;
   onLayout: (strategy: LayoutStrategy) => void;
 }
@@ -99,6 +100,7 @@ export function TopBar({
   onRequestMachineFamily,
   onToggleFaStrict,
   onConvertNfa,
+  onConvertNfaComplete,
   onMinimizeDfa,
   onLayout,
 }: TopBarProps) {
@@ -225,6 +227,15 @@ export function TopBar({
               disabled={!isNfa}
               onClick={() => run(onConvertNfa)}
             />
+            {onConvertNfaComplete ? (
+              <MenuItem
+                icon={Network}
+                label="AFN → AFD (con sumidero)"
+                hint={isNfa ? undefined : 'Desactiva AFD estricto'}
+                disabled={!isNfa}
+                onClick={() => run(onConvertNfaComplete)}
+              />
+            ) : null}
             <MenuItem
               icon={Minimize2}
               label="Minimizar AFD"

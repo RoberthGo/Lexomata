@@ -35,6 +35,7 @@ interface GraphCanvasProps {
   onCreateState: (x: number, y: number) => void;
   onCreateTransition: (from: string, to: string) => void;
   onMoveState: (id: string, x: number, y: number, final: boolean) => void;
+  onMoveStates?: (ids: string[], dx: number, dy: number, final: boolean) => void;
   onDeleteState: (id: string) => void;
   onRenameState?: (id: string, label: string) => void;
   onMarkInitialState?: (id: string) => void;
@@ -127,6 +128,7 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
     onCreateState,
     onCreateTransition,
     onMoveState,
+    onMoveStates,
     onDeleteState,
     onRenameState,
     onMarkInitialState,
@@ -151,7 +153,10 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
   const [edgeMenu, setEdgeMenu] = useState<EdgeContextMenuState | null>(null);
   const [stateMenu, setStateMenu] = useState<StateContextMenuState | null>(null);
   const [editingState, setEditingState] = useState<{ id: string; draft: string } | null>(null);
+  const [marquee, setMarquee] = useState<{ start: Point; current: Point } | null>(null);
   const dragRef = useRef<DragState | null>(null);
+  const multiDragRef = useRef<{ ids: string[]; lastWorld: Point; moved: boolean } | null>(null);
+  const marqueeRef = useRef<{ start: Point; current: Point } | null>(null);
   const curveDragRef = useRef<{ from: string; to: string; fromPt: Point; toPt: Point } | null>(null);
   const panRef = useRef<PanState | null>(null);
   const touchPointersRef = useRef<Map<number, Point>>(new Map());
@@ -401,6 +406,15 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
       return;
     }
 
+    if (event.button === 0 && event.shiftKey && tool === 'select') {
+      const world = toWorld(event);
+      const box = { start: world, current: world };
+      marqueeRef.current = box;
+      setMarquee(box);
+      event.currentTarget.setPointerCapture(event.pointerId);
+      return;
+    }
+
     const shouldPan = event.button === 1 || spaceRef.current || tool === 'select' || tool === 'erase';
     if (!shouldPan) {
       return;
@@ -420,6 +434,28 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
   const handlePointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
     if (pendingFrom) {
       setHoverWorld(toWorld(event));
+    }
+
+    const activeMarquee = marqueeRef.current;
+    if (activeMarquee) {
+      const world = toWorld(event);
+      const nextBox = { start: activeMarquee.start, current: world };
+      marqueeRef.current = nextBox;
+      setMarquee(nextBox);
+      return;
+    }
+
+    const multiDrag = multiDragRef.current;
+    if (multiDrag) {
+      const world = toWorld(event);
+      const dx = world.x - multiDrag.lastWorld.x;
+      const dy = world.y - multiDrag.lastWorld.y;
+      if (Math.abs(dx) >= 1 || Math.abs(dy) >= 1) {
+        multiDrag.moved = true;
+        multiDrag.lastWorld = world;
+        onMoveStates?.(multiDrag.ids, dx, dy, false);
+      }
+      return;
     }
 
     const curveDrag = curveDragRef.current;
@@ -529,6 +565,34 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
       }
     }
 
+    const finishedMarquee = marqueeRef.current;
+    if (finishedMarquee) {
+      marqueeRef.current = null;
+      setMarquee(null);
+      const minX = Math.min(finishedMarquee.start.x, finishedMarquee.current.x);
+      const maxX = Math.max(finishedMarquee.start.x, finishedMarquee.current.x);
+      const minY = Math.min(finishedMarquee.start.y, finishedMarquee.current.y);
+      const maxY = Math.max(finishedMarquee.start.y, finishedMarquee.current.y);
+      const hitIds = project.states
+        .filter((s) => s.x >= minX && s.x <= maxX && s.y >= minY && s.y <= maxY)
+        .map((s) => s.id);
+      if (hitIds.length > 1) {
+        onSelect({ kind: 'multi', stateIds: hitIds });
+      } else if (hitIds.length === 1 && hitIds[0]) {
+        onSelect({ kind: 'state', id: hitIds[0] });
+      } else {
+        onSelect({ kind: 'none' });
+      }
+    }
+
+    const finishedMulti = multiDragRef.current;
+    if (finishedMulti) {
+      multiDragRef.current = null;
+      if (finishedMulti.moved) {
+        onMoveStates?.(finishedMulti.ids, 0, 0, true);
+      }
+    }
+
     const curveDragEnd = curveDragRef.current;
     if (curveDragEnd) {
       curveDragRef.current = null;
@@ -589,6 +653,41 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
 
     if (tool === 'state') {
       onSelect({ kind: 'state', id: state.id });
+      return;
+    }
+
+    if (event.shiftKey) {
+      const currentIds =
+        selection.kind === 'multi'
+          ? [...selection.stateIds]
+          : selection.kind === 'state'
+            ? [selection.id]
+            : [];
+      const nextSet = new Set(currentIds);
+      if (nextSet.has(state.id)) {
+        nextSet.delete(state.id);
+      } else {
+        nextSet.add(state.id);
+      }
+      const nextIds = [...nextSet];
+      if (nextIds.length > 1) {
+        onSelect({ kind: 'multi', stateIds: nextIds });
+      } else if (nextIds.length === 1 && nextIds[0]) {
+        onSelect({ kind: 'state', id: nextIds[0] });
+      } else {
+        onSelect({ kind: 'none' });
+      }
+      return;
+    }
+
+    if (selection.kind === 'multi' && selection.stateIds.includes(state.id) && onMoveStates) {
+      const world = toWorld(event);
+      multiDragRef.current = {
+        ids: selection.stateIds,
+        lastWorld: world,
+        moved: false,
+      };
+      event.currentTarget.setPointerCapture(event.pointerId);
       return;
     }
 
@@ -888,7 +987,9 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
 
           {project.states.map((state) => {
             const active = activeStates.has(state.id);
-            const selected = selection.kind === 'state' && selection.id === state.id;
+            const selected =
+              (selection.kind === 'state' && selection.id === state.id) ||
+              (selection.kind === 'multi' && selection.stateIds.includes(state.id));
             const pending = pendingFrom === state.id;
 
             return (
@@ -979,6 +1080,19 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
               </g>
             );
           })}
+          {marquee ? (
+            <rect
+              x={Math.min(marquee.start.x, marquee.current.x)}
+              y={Math.min(marquee.start.y, marquee.current.y)}
+              width={Math.abs(marquee.current.x - marquee.start.x)}
+              height={Math.abs(marquee.current.y - marquee.start.y)}
+              fill="var(--accent-selection-soft)"
+              stroke="var(--accent-selection)"
+              strokeWidth={1.2}
+              strokeDasharray="4 3"
+              className="pointer-events-none"
+            />
+          ) : null}
         </g>
       </svg>
 

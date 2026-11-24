@@ -56,7 +56,12 @@ export class EngineClientError extends Error {
  */
 export function initEngine(): Promise<void> {
   if (!initialization) {
-    initialization = init().then(() => undefined);
+    initialization = init()
+      .then(() => undefined)
+      .catch((error) => {
+        initialization = null;
+        throw error;
+      });
   }
   return initialization;
 }

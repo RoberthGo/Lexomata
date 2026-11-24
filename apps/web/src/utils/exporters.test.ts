@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { addState, addTransition, createProject, updateState } from '../model/project';
-import { projectToSvg, projectToTikz } from './exporters';
+import { clampPngScale, projectToSvg, projectToTikz } from './exporters';
 
 function sampleProject() {
   const withSecond = addState(createProject('DFA', 'Prueba <&>'), 520, 260).project;
@@ -66,5 +66,16 @@ describe('exporters', () => {
     expect(svg).toContain('ACCEPT');
     expect(tikz).toContain('\\begin{tabular}{ll}');
     expect(tikz).toContain('$\\varepsilon$ & REJECT');
+  });
+
+  it('protege escala PNG contra desbordamiento de canvas y soporta tema soft-light', () => {
+    expect(clampPngScale(800, 600, 4)).toBe(4);
+    const clamped = clampPngScale(10000, 8000, 4);
+    expect(clamped).toBeLessThan(1);
+    expect(10000 * clamped).toBeLessThanOrEqual(8192);
+
+    const project = createProject('DFA', 'Suave');
+    const svg = projectToSvg(project, 'soft-light');
+    expect(svg).toContain('#f2efe9');
   });
 });

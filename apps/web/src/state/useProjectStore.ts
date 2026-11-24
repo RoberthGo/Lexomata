@@ -50,6 +50,8 @@ export interface ProjectStore {
   resetProject: (project: LexoProject) => void;
   /** Aplica un cambio registrando un punto de deshacer. */
   commit: (updater: ProjectUpdater) => void;
+  /** Agrupa cambios consecutivos del mismo campo en un solo paso de deshacer. */
+  commitCoalesced: (key: string, updater: ProjectUpdater, windowMs?: number) => void;
   /** Aplica un cambio sin registrar historial (arrastres). */
   update: (updater: ProjectUpdater) => void;
   /** Marca el inicio de una transacción de arrastre. */
@@ -69,6 +71,7 @@ export function useProjectStore(): ProjectStore {
 
   const presentRef = useRef(history.present);
   const transactionStart = useRef<LexoProject | null>(null);
+  const coalesceRef = useRef<{ key: string; at: number } | null>(null);
 
   useEffect(() => {
     presentRef.current = history.present;
@@ -113,6 +116,7 @@ export function useProjectStore(): ProjectStore {
   }, []);
 
   const commit = useCallback((updater: ProjectUpdater) => {
+    coalesceRef.current = null;
     setHistory((current) => {
       const next = updater(current.present);
       if (next === current.present) {
@@ -126,6 +130,38 @@ export function useProjectStore(): ProjectStore {
       };
     });
   }, []);
+
+  const commitCoalesced = useCallback(
+    (key: string, updater: ProjectUpdater, windowMs = 600) => {
+      const now = Date.now();
+      const canCoalesce =
+        coalesceRef.current !== null &&
+        coalesceRef.current.key === key &&
+        now - coalesceRef.current.at <= windowMs;
+      coalesceRef.current = { key, at: now };
+
+      setHistory((current) => {
+        const next = updater(current.present);
+        if (next === current.present) {
+          return current;
+        }
+        presentRef.current = next;
+        if (canCoalesce && current.past.length > 0) {
+          return {
+            past: current.past,
+            present: next,
+            future: [],
+          };
+        }
+        return {
+          past: pushPast(current.past, current.present),
+          present: next,
+          future: [],
+        };
+      });
+    },
+    [],
+  );
 
   const update = useCallback((updater: ProjectUpdater) => {
     setHistory((current) => {
@@ -198,6 +234,7 @@ export function useProjectStore(): ProjectStore {
     canRedo: history.future.length > 0,
     resetProject,
     commit,
+    commitCoalesced,
     update,
     beginTransaction,
     endTransaction,

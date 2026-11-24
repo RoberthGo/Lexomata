@@ -23,7 +23,14 @@ import {
   importJflap,
   minimizeDfa,
 } from './engine/wasmAdapter';
-import { isTuring, type ExampleEntry, type LexoProject, type MachineType } from './engine/types';
+import {
+  isTuring,
+  type ExampleEntry,
+  type LexoProject,
+  type MachineType,
+  type State,
+  type Transition,
+} from './engine/types';
 import {
   addState,
   addTransition,
@@ -31,7 +38,9 @@ import {
   createProject,
   invertEdgeGroup,
   markInitial,
+  moveStatesByDelta,
   normalizeProject,
+  pasteSubgraph,
   projectFileName,
   reassignEdgeGroup,
   removeStates,
@@ -58,8 +67,9 @@ import {
   saveProjectSnapshot,
 } from './storage/localDb';
 import type { CanvasHandle, InspectorTab, Selection, Tool } from './uiTypes';
-import { fileService } from './platform/fileService';
+import { fileService, isTauriRuntime } from './platform/fileService';
 import { completeWebOAuthRedirect } from './platform/gdriveSync';
+import { snapToGrid } from './utils/geometry';
 import { layoutStates, type LayoutStrategy } from './utils/layout';
 
 type Dialog = 'new' | 'export' | 'type' | 'drive' | 'prefs' | 'history' | 'shortcuts' | null;
@@ -99,9 +109,11 @@ export function App() {
   const [recentProjects, setRecentProjects] = useState<LexoProject[]>([]);
   const [toast, setToast] = useState<Toast | null>(null);
   const [opening, setOpening] = useState(false);
+  const [dragFileOver, setDragFileOver] = useState(false);
 
   const canvasRef = useRef<CanvasHandle>(null);
   const draggingRef = useRef(false);
+  const clipboardRef = useRef<{ states: State[]; transitions: Transition[] } | null>(null);
   const toastTimer = useRef<number | null>(null);
   const restoredRef = useRef(false);
   const userEditedRef = useRef(false);
@@ -341,6 +353,34 @@ export function App() {
     [store],
   );
 
+  const handleMoveStates = useCallback(
+    (ids: string[], dx: number, dy: number, final: boolean) => {
+      userEditedRef.current = true;
+      if (final) {
+        if (draggingRef.current) {
+          store.endTransaction();
+          draggingRef.current = false;
+        }
+        return;
+      }
+
+      if (!draggingRef.current) {
+        store.beginTransaction();
+        draggingRef.current = true;
+      }
+      store.update((current) =>
+        moveStatesByDelta(
+          current,
+          ids,
+          dx,
+          dy,
+          prefs.snapToGrid ? snapToGrid : undefined,
+        ),
+      );
+    },
+    [store, prefs.snapToGrid],
+  );
+
   const handleUpdateEdgeCurve = useCallback(
     (from: string, to: string, curveOffset: number, final: boolean) => {
       userEditedRef.current = true;
@@ -380,6 +420,8 @@ export function App() {
   const deleteSelection = useCallback(() => {
     if (selection.kind === 'state') {
       commitProject((current) => removeStates(current, [selection.id]));
+    } else if (selection.kind === 'multi') {
+      commitProject((current) => removeStates(current, selection.stateIds));
     } else if (selection.kind === 'edge') {
       commitProject((current) =>
         removeTransitions(
@@ -507,22 +549,80 @@ export function App() {
     }
   }, [loadProject, notify]);
 
-  const convertNfa = useCallback(async () => {
-    try {
-      const sourceLabels = Object.fromEntries(
-        project.states.map((state) => [state.id, state.label]),
-      );
-      const result = await convertNfaToDfa(project, false);
-      store.commit(() => result.dfa);
-      setSelection({ kind: 'none' });
-      setInspectorTab('properties');
-      setTransformationReport({ kind: 'nfaToDfa', result, sourceLabels });
-      notify(`AFD generado con ${result.dfa.states.length} estados.`);
-      window.setTimeout(() => canvasRef.current?.fit(), 0);
-    } catch (error) {
-      notify(error instanceof Error ? error.message : 'No se pudo convertir el AFN.', 'error');
+  const openFileByContent = useCallback(
+    async (name: string, content: string) => {
+      setOpening(true);
+      try {
+        if (name.toLowerCase().endsWith('.jff')) {
+          const imported = await importJflap(content);
+          fileService.clearActiveHandle();
+          loadProject({ ...imported, id: createId('project') });
+          notify(`Importado desde JFLAP: ${name}`);
+        } else {
+          const parsed: unknown = JSON.parse(content);
+          const next = normalizeProject(parsed);
+          fileService.clearActiveHandle();
+          loadProject(next);
+          notify(`Abierto: ${name}`);
+        }
+      } catch (error) {
+        notify(
+          error instanceof Error ? `No se pudo abrir ${name}: ${error.message}` : 'Archivo inválido.',
+          'error',
+        );
+      } finally {
+        setOpening(false);
+      }
+    },
+    [loadProject, notify],
+  );
+
+  useEffect(() => {
+    if (!isTauriRuntime()) {
+      return;
     }
-  }, [project, store, notify]);
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { invoke } = await import('@tauri-apps/api/core');
+        const launchFile = await invoke<{ name: string; content: string } | null>(
+          'take_launch_file',
+        );
+        if (launchFile && !cancelled) {
+          await openFileByContent(launchFile.name, launchFile.content);
+        }
+      } catch {
+        // Apertura por argumento CLI opcional.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [openFileByContent]);
+
+  const convertNfa = useCallback(
+    async (complete = false) => {
+      try {
+        const sourceLabels = Object.fromEntries(
+          project.states.map((state) => [state.id, state.label]),
+        );
+        const result = await convertNfaToDfa(project, complete);
+        store.commit(() => result.dfa);
+        setSelection({ kind: 'none' });
+        setInspectorTab('properties');
+        setTransformationReport({ kind: 'nfaToDfa', result, sourceLabels });
+        notify(
+          complete
+            ? `AFD completo generado con ${result.dfa.states.length} estados.`
+            : `AFD generado con ${result.dfa.states.length} estados.`,
+        );
+        window.setTimeout(() => canvasRef.current?.fit(), 0);
+      } catch (error) {
+        notify(error instanceof Error ? error.message : 'No se pudo convertir el AFN.', 'error');
+      }
+    },
+    [project, store, notify],
+  );
 
   const minimize = useCallback(async () => {
     try {
@@ -633,24 +733,77 @@ export function App() {
         return;
       }
 
-      if (modifier && key === 'd') {
-        if (selection.kind === 'state') {
+      if (modifier && key === 'c') {
+        const selectedIds =
+          selection.kind === 'state'
+            ? [selection.id]
+            : selection.kind === 'multi'
+              ? selection.stateIds
+              : [];
+        if (selectedIds.length > 0) {
           event.preventDefault();
-          let duplicatedId: string | null = null;
+          const idSet = new Set(selectedIds);
+          const current = projectRef.current;
+          clipboardRef.current = {
+            states: current.states.filter((s) => idSet.has(s.id)),
+            transitions: current.transitions.filter(
+              (t) => idSet.has(t.from) && idSet.has(t.to),
+            ),
+          };
+          notify(
+            selectedIds.length === 1
+              ? 'Estado copiado (Ctrl+V para pegar).'
+              : `${selectedIds.length} estados copiados (Ctrl+V para pegar).`,
+          );
+        }
+        return;
+      }
+
+      if (modifier && key === 'v') {
+        const clip = clipboardRef.current;
+        if (clip && clip.states.length > 0) {
+          event.preventDefault();
+          let pastedIds: string[] = [];
           commitProject((current) => {
-            const source = current.states.find((state) => state.id === selection.id);
-            if (!source) {
-              return current;
-            }
-            const added = addState(current, source.x + 40, source.y + 40);
-            duplicatedId = added.stateId;
-            return updateState(added.project, added.stateId, {
-              isAccepting: source.isAccepting,
-              comment: source.comment,
-            });
+            const pasted = pasteSubgraph(current, clip.states, clip.transitions, 40, 40);
+            pastedIds = pasted.stateIds;
+            return pasted.project;
           });
-          if (duplicatedId) {
-            setSelection({ kind: 'state', id: duplicatedId });
+          if (pastedIds.length > 1) {
+            setSelection({ kind: 'multi', stateIds: pastedIds });
+          } else if (pastedIds.length === 1 && pastedIds[0]) {
+            setSelection({ kind: 'state', id: pastedIds[0] });
+          }
+        }
+        return;
+      }
+
+      if (modifier && key === 'd') {
+        const selectedIds =
+          selection.kind === 'state'
+            ? [selection.id]
+            : selection.kind === 'multi'
+              ? selection.stateIds
+              : [];
+        if (selectedIds.length > 0) {
+          event.preventDefault();
+          const idSet = new Set(selectedIds);
+          let pastedIds: string[] = [];
+          commitProject((current) => {
+            const pasted = pasteSubgraph(
+              current,
+              current.states.filter((s) => idSet.has(s.id)),
+              current.transitions.filter((t) => idSet.has(t.from) && idSet.has(t.to)),
+              40,
+              40,
+            );
+            pastedIds = pasted.stateIds;
+            return pasted.project;
+          });
+          if (pastedIds.length > 1) {
+            setSelection({ kind: 'multi', stateIds: pastedIds });
+          } else if (pastedIds.length === 1 && pastedIds[0]) {
+            setSelection({ kind: 'state', id: pastedIds[0] });
           }
         }
         return;
@@ -748,7 +901,41 @@ export function App() {
   ]);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-[var(--bg-canvas)] text-[var(--text-primary)]">
+    <div
+      className="relative flex h-full flex-col overflow-hidden bg-[var(--bg-canvas)] text-[var(--text-primary)]"
+      onDragOver={(event) => {
+        if (event.dataTransfer.types.includes('Files')) {
+          event.preventDefault();
+          setDragFileOver(true);
+        }
+      }}
+      onDragLeave={(event) => {
+        if (event.currentTarget === event.target) {
+          setDragFileOver(false);
+        }
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        setDragFileOver(false);
+        const file = event.dataTransfer.files?.[0];
+        if (!file) {
+          return;
+        }
+        if (!/\.(lexo|jff|json|xml)$/i.test(file.name)) {
+          notify('Formato no soportado. Suelta un archivo .lexo o .jff.', 'error');
+          return;
+        }
+        void file.text().then((content) => openFileByContent(file.name, content));
+      }}
+    >
+      {dragFileOver ? (
+        <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-xs">
+          <div className="rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--accent-selection)] bg-[var(--bg-surface)] px-6 py-4 text-[13px] font-medium text-[var(--text-primary)] shadow-[var(--shadow-panel)]">
+            Suelta tu archivo <span className="mono">.lexo</span> o{' '}
+            <span className="mono">.jff</span> para abrirlo
+          </div>
+        </div>
+      ) : null}
       <TopBar
         project={project}
         canUndo={store.canUndo}
@@ -791,7 +978,8 @@ export function App() {
         }}
         onRequestMachineFamily={handleRequestMachineFamily}
         onToggleFaStrict={handleToggleFaStrict}
-        onConvertNfa={() => void convertNfa()}
+        onConvertNfa={() => void convertNfa(false)}
+        onConvertNfaComplete={() => void convertNfa(true)}
         onMinimizeDfa={() => void minimize()}
         onLayout={applyLayout}
       />
@@ -828,6 +1016,7 @@ export function App() {
               onCreateState={handleCreateState}
               onCreateTransition={handleCreateTransition}
               onMoveState={handleMoveState}
+              onMoveStates={handleMoveStates}
               onDeleteState={handleDeleteState}
               onRenameState={(id, label) => {
                 commitProject((current) => updateState(current, id, { label }));
@@ -908,6 +1097,10 @@ export function App() {
                 onResizeWidth={(inspectorWidth) => updatePrefs({ inspectorWidth })}
                 onTabChange={setInspectorTab}
                 onCommit={commitProject}
+                onCommitCoalesced={(key, updater) => {
+                  userEditedRef.current = true;
+                  store.commitCoalesced(key, updater);
+                }}
                 onSelect={setSelection}
                 onFocusState={(stateId) => canvasRef.current?.centerOnState(stateId)}
                 onClose={() => setInspectorOpen(false)}

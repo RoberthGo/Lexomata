@@ -1,5 +1,40 @@
 mod oauth_loopback;
 
+use std::path::PathBuf;
+use std::sync::Mutex;
+
+#[derive(serde::Serialize)]
+struct LaunchFilePayload {
+    name: String,
+    content: String,
+}
+
+static LAUNCH_FILE: Mutex<Option<PathBuf>> = Mutex::new(None);
+
+#[tauri::command]
+fn take_launch_file() -> Result<Option<LaunchFilePayload>, String> {
+    let path = {
+        let mut guard = LAUNCH_FILE
+            .lock()
+            .map_err(|_| "No se pudo leer el archivo inicial".to_string())?;
+        guard.take()
+    };
+
+    let Some(file_path) = path else {
+        return Ok(None);
+    };
+
+    let content = std::fs::read_to_string(&file_path)
+        .map_err(|err| format!("No se pudo leer el archivo inicial: {err}"))?;
+    let name = file_path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or("proyecto.lexo")
+        .to_string();
+
+    Ok(Some(LaunchFilePayload { name, content }))
+}
+
 #[cfg(target_os = "windows")]
 fn show_windows_error(title: &str, message: &str) {
     use std::ffi::OsStr;
@@ -69,6 +104,20 @@ fn open_external_url(url: String) -> Result<(), String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    if let Some(arg) = std::env::args_os().skip(1).find_map(|raw| {
+        let candidate = PathBuf::from(raw);
+        let ext = candidate.extension()?.to_str()?.to_ascii_lowercase();
+        if (ext == "lexo" || ext == "jff") && candidate.is_file() {
+            Some(candidate)
+        } else {
+            None
+        }
+    }) {
+        if let Ok(mut guard) = LAUNCH_FILE.lock() {
+            *guard = Some(arg);
+        }
+    }
+
     let result = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
@@ -76,6 +125,7 @@ pub fn run() {
             oauth_loopback::reserve_oauth_loopback,
             oauth_loopback::await_oauth_loopback,
             open_external_url,
+            take_launch_file,
         ])
         .run(tauri::generate_context!());
 
