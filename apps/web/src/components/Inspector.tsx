@@ -25,7 +25,7 @@ import type {
   Transition,
   ValidationReport,
 } from '../engine/types';
-import { isTuring } from '../engine/types';
+import { isFiniteAutomaton, isTuring, machineTypeLabel } from '../engine/types';
 import {
   addTransition,
   effectiveAlphabet,
@@ -33,6 +33,7 @@ import {
   markInitial,
   reassignEdgeGroup,
   removeStates,
+  setFaStrictMode,
   removeTransitions,
   ruleSymbolLabel,
   updateEdgeGroupComment,
@@ -496,7 +497,28 @@ function PropertiesTab({
 
   return (
     <div className="space-y-4">
-      <SectionTitle hint={project.machineType}>Proyecto</SectionTitle>
+      <SectionTitle hint={machineTypeLabel(project.machineType)}>Proyecto</SectionTitle>
+
+      {isFiniteAutomaton(project.machineType) ? (
+        <label className="flex cursor-pointer items-center justify-between rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-2.5 py-2 text-[11px] text-[var(--text-primary)]">
+          <span>
+            Modo estricto AFD
+            <span className="block text-[10px] text-[var(--text-muted)]">
+              {project.machineType === 'DFA'
+                ? '1 flecha por símbolo, sin ε'
+                : 'Desactivado: permite múltiples flechas y ε (AFN)'}
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={project.machineType === 'DFA'}
+            onChange={(event) =>
+              onCommit((current) => setFaStrictMode(current, event.target.checked))
+            }
+            className="h-3.5 w-3.5 accent-[var(--accent-selection)]"
+          />
+        </label>
+      ) : null}
 
       <div className="space-y-2">
         <CsvField

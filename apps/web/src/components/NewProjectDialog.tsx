@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Binary, CircleDot, Cpu, Trash2 } from 'lucide-react';
+import { CircleDot, Cpu, Trash2 } from 'lucide-react';
 import type { LexoProject, MachineType } from '../engine/types';
 import { Modal, PrimaryButton, SecondaryButton } from './Modal';
 
@@ -11,28 +11,22 @@ interface NewProjectDialogProps {
   onCreate: (machineType: MachineType, name: string) => void;
 }
 
-const OPTIONS: Array<{
-  type: MachineType;
+const FAMILIES: Array<{
+  family: 'FA' | 'TM';
   title: string;
   description: string;
   icon: typeof CircleDot;
 }> = [
   {
-    type: 'DFA',
-    title: 'AFD',
-    description: 'Autómata finito determinista: una transición por símbolo.',
+    family: 'FA',
+    title: 'Autómata Finito (AF)',
+    description: 'Reconoce lenguajes regulares. Puedes activar modo estricto AFD o permitir ε y múltiples caminos (AFN).',
     icon: CircleDot,
   },
   {
-    type: 'NFA',
-    title: 'AFN',
-    description: 'No determinista (permite múltiples caminos y transiciones ε).',
-    icon: Binary,
-  },
-  {
-    type: 'TM_SINGLE',
-    title: 'Máquina de Turing',
-    description: 'Una cinta infinita con lectura, escritura y movimiento.',
+    family: 'TM',
+    title: 'Máquina de Turing (MT)',
+    description: 'Cinta infinita con lectura, escritura y movimiento del cabezal (L, R, S).',
     icon: Cpu,
   },
 ];
@@ -44,18 +38,21 @@ export function NewProjectDialog({
   onClose,
   onCreate,
 }: NewProjectDialogProps) {
-  const [machineType, setMachineType] = useState<MachineType>('DFA');
+  const [family, setFamily] = useState<'FA' | 'TM'>('FA');
+  const [strictDfa, setStrictDfa] = useState(true);
   const [name, setName] = useState('');
+
+  const resolvedType: MachineType = family === 'TM' ? 'TM_SINGLE' : strictDfa ? 'DFA' : 'NFA';
 
   return (
     <Modal
       title="Nuevo proyecto"
-      subtitle="Elige el modelo formal. Podrás cambiarlo después desde la barra superior."
+      subtitle="Elige el tipo de máquina. En AF puedes activar o desactivar AFD estricto en cualquier momento."
       onClose={onClose}
       footer={
         <>
           <SecondaryButton onClick={onClose}>Cancelar</SecondaryButton>
-          <PrimaryButton onClick={() => onCreate(machineType, name.trim() || 'Proyecto sin título')}>
+          <PrimaryButton onClick={() => onCreate(resolvedType, name.trim() || 'Proyecto sin título')}>
             Crear proyecto
           </PrimaryButton>
         </>
@@ -75,27 +72,42 @@ export function NewProjectDialog({
           />
         </label>
 
-        <div className="grid gap-2 sm:grid-cols-3">
-          {OPTIONS.map(({ type, title, description, icon: Icon }) => (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {FAMILIES.map(({ family: candidate, title, description, icon: Icon }) => (
             <button
-              key={type}
+              key={candidate}
               type="button"
-              onClick={() => setMachineType(type)}
+              onClick={() => setFamily(candidate)}
               className={`rounded-[var(--radius-md)] border p-3 text-left transition-colors ${
-                machineType === type
+                family === candidate
                   ? 'border-[var(--accent-selection)] bg-[var(--accent-selection-soft)]'
                   : 'border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] hover:border-[var(--border-strong)]'
               }`}
             >
               <Icon
                 aria-hidden="true"
-                className={`h-4 w-4 ${machineType === type ? 'text-[var(--accent-selection)]' : 'text-[var(--text-secondary)]'}`}
+                className={`h-4 w-4 ${family === candidate ? 'text-[var(--accent-selection)]' : 'text-[var(--text-secondary)]'}`}
               />
               <p className="mt-2 text-[12px] font-semibold text-[var(--text-primary)]">{title}</p>
               <p className="mt-1 text-[10px] leading-snug text-[var(--text-secondary)]">{description}</p>
             </button>
           ))}
         </div>
+
+        {family === 'FA' ? (
+          <label className="flex cursor-pointer items-center justify-between rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-2.5 py-2 text-[11px] text-[var(--text-primary)]">
+            <span>
+              Modo estricto AFD{' '}
+              <span className="text-[var(--text-muted)]">(1 transición por símbolo, sin ε)</span>
+            </span>
+            <input
+              type="checkbox"
+              checked={strictDfa}
+              onChange={(event) => setStrictDfa(event.target.checked)}
+              className="h-3.5 w-3.5 accent-[var(--accent-selection)]"
+            />
+          </label>
+        ) : null}
 
         <p className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-2 py-1.5 text-[10px] leading-relaxed text-[var(--text-muted)]">
           Se creará un estado inicial q0. Usa la herramienta <span className="mono">S</span> para añadir

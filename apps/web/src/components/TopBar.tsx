@@ -23,8 +23,8 @@ import {
   Undo2,
   Wand2,
 } from 'lucide-react';
-import type { ExampleEntry, LexoProject, MachineType, ValidationReport } from '../engine/types';
-import { machineTypeLabel } from '../engine/types';
+import type { ExampleEntry, LexoProject, ValidationReport } from '../engine/types';
+import { isFiniteAutomaton, isTuring, machineTypeLabel } from '../engine/types';
 import type { Theme } from '../state/useTheme';
 import type { LayoutStrategy } from '../utils/layout';
 
@@ -51,16 +51,16 @@ interface TopBarProps {
   onExportJff: () => void;
   onOpenExport: () => void;
   onLoadExample: (entry: ExampleEntry) => void;
-  onRequestMachineType: (type: MachineType) => void;
+  onRequestMachineFamily: (family: 'FA' | 'TM') => void;
+  onToggleFaStrict: () => void;
   onConvertNfa: () => void;
   onMinimizeDfa: () => void;
   onLayout: (strategy: LayoutStrategy) => void;
 }
 
-const MACHINE_OPTIONS: Array<{ value: MachineType; label: string }> = [
-  { value: 'DFA', label: 'AFD' },
-  { value: 'NFA', label: 'AFN' },
-  { value: 'TM_SINGLE', label: 'MT' },
+const FAMILY_OPTIONS: Array<{ value: 'FA' | 'TM'; label: string }> = [
+  { value: 'FA', label: 'AF' },
+  { value: 'TM', label: 'MT' },
 ];
 
 export function TopBar({
@@ -86,7 +86,8 @@ export function TopBar({
   onExportJff,
   onOpenExport,
   onLoadExample,
-  onRequestMachineType,
+  onRequestMachineFamily,
+  onToggleFaStrict,
   onConvertNfa,
   onMinimizeDfa,
   onLayout,
@@ -109,7 +110,10 @@ export function TopBar({
     action();
   };
 
+  const isFa = isFiniteAutomaton(project.machineType);
+  const isStrictDfa = project.machineType === 'DFA';
   const isNfa = project.machineType === 'NFA' || project.machineType === 'NFA_EPSILON';
+  const activeFamily: 'FA' | 'TM' = isTuring(project.machineType) ? 'TM' : 'FA';
 
   return (
     <header
@@ -191,15 +195,15 @@ export function TopBar({
             <MenuItem
               icon={Network}
               label="AFN → AFD"
-              hint={isNfa ? undefined : 'Solo AFN'}
+              hint={isNfa ? undefined : 'Desactiva AFD estricto'}
               disabled={!isNfa}
               onClick={() => run(onConvertNfa)}
             />
             <MenuItem
               icon={Minimize2}
               label="Minimizar AFD"
-              hint={project.machineType === 'DFA' ? undefined : 'Solo AFD'}
-              disabled={project.machineType !== 'DFA'}
+              hint={isStrictDfa ? undefined : 'Activa AFD estricto'}
+              disabled={!isStrictDfa}
               onClick={() => run(onMinimizeDfa)}
             />
             <div className="my-1 border-t border-[var(--border-subtle)]" />
@@ -214,35 +218,14 @@ export function TopBar({
       <ProjectName name={project.name} onRename={onRename} />
 
       <div className="ml-auto flex items-center gap-1.5">
-        <select
-          aria-label="Modo de máquina"
-          value={
-            project.machineType === 'NFA_EPSILON'
-              ? 'NFA'
-              : project.machineType === 'TM_MULTI'
-                ? 'TM_SINGLE'
-                : project.machineType
-          }
-          onChange={(event) => onRequestMachineType(event.target.value as MachineType)}
-          className="h-7 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-1.5 text-[11px] font-medium text-[var(--text-primary)] focus:border-[var(--accent-selection)] focus:outline-none md:hidden"
-        >
-          {MACHINE_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-
-        <div className="hidden items-center rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] p-0.5 md:flex">
-          {MACHINE_OPTIONS.map((option) => (
+        <div className="flex items-center rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] p-0.5">
+          {FAMILY_OPTIONS.map((option) => (
             <button
               key={option.value}
               type="button"
-              onClick={() => onRequestMachineType(option.value)}
+              onClick={() => onRequestMachineFamily(option.value)}
               className={`rounded-[4px] px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
-                project.machineType === option.value ||
-                (option.value === 'NFA' && project.machineType === 'NFA_EPSILON') ||
-                (option.value === 'TM_SINGLE' && project.machineType === 'TM_MULTI')
+                activeFamily === option.value
                   ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm'
                   : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
               }`}
@@ -251,6 +234,22 @@ export function TopBar({
             </button>
           ))}
         </div>
+
+        {isFa ? (
+          <button
+            type="button"
+            aria-pressed={isStrictDfa}
+            onClick={onToggleFaStrict}
+            title="Modo estricto AFD: valida 1 transición por símbolo y sin ε. Desactívalo para AFN."
+            className={`h-6 rounded-[var(--radius-sm)] border px-1.5 text-[10px] font-medium transition-colors ${
+              isStrictDfa
+                ? 'border-[var(--accent-selection)]/50 bg-[var(--accent-selection-soft)] text-[var(--accent-selection)]'
+                : 'border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+            }`}
+          >
+            AFD estricto
+          </button>
+        ) : null}
 
         <ValidationBadge
           validation={validation}

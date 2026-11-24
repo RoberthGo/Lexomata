@@ -12,6 +12,7 @@ import {
   projectFileName,
   reassignEdgeGroup,
   removeStates,
+  setFaStrictMode,
   toggleAccepting,
   updateEdgeGroupComment,
   updateTransition,
@@ -70,6 +71,26 @@ describe('project model', () => {
 
     expect(removed.states.map((state) => state.id)).toEqual(['s0']);
     expect(removed.transitions).toHaveLength(0);
+  });
+
+  it('alterna modo estricto AFD sin perder transiciones ε ni no deterministas', () => {
+    const withSecond = addState(createProject('NFA_EPSILON'), 100, 0).project;
+    const withSymbol = addTransition(withSecond, 's0', 's1').project;
+    const withEpsilon = addTransition(withSymbol, 's0', 's1').project;
+    const epsilonId = withEpsilon.transitions[1]?.id ?? '';
+
+    const withEmpty = updateTransition(withEpsilon, epsilonId, {
+      rule: { kind: 'FA', symbol: null },
+    });
+
+    const strict = setFaStrictMode(withEmpty, true);
+    expect(strict.machineType).toBe('DFA');
+    expect(strict.transitions).toHaveLength(2);
+    expect(strict.transitions[1]?.rule).toEqual({ kind: 'FA', symbol: null });
+
+    const flexible = setFaStrictMode(strict, false);
+    expect(flexible.machineType).toBe('NFA');
+    expect(flexible.transitions).toHaveLength(2);
   });
 
   it('adapta reglas al cambiar de autómata a máquina de Turing', () => {

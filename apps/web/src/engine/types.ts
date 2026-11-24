@@ -257,13 +257,12 @@ export function isTuring(type: MachineType): boolean {
 export function machineTypeLabel(type: MachineType): string {
   switch (type) {
     case 'DFA':
-      return 'AFD';
+      return 'AF (AFD)';
     case 'NFA':
     case 'NFA_EPSILON':
-      return 'AFN';
+      return 'AF (AFN)';
     case 'TM_SINGLE':
-      return 'MT 1 cinta';
     case 'TM_MULTI':
-      return 'MT multicinta';
+      return 'MT';
   }
 }

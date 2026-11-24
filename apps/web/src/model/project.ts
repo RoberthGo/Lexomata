@@ -366,6 +366,21 @@ export function effectiveTapeAlphabet(project: LexoProject): string[] {
   return [...symbols].sort();
 }
 
+/** Alterna entre modo estricto AFD ('DFA') y flexible AFN ('NFA') sin alterar transiciones. */
+export function setFaStrictMode(project: LexoProject, strict: boolean): LexoProject {
+  if (!isFiniteAutomaton(project.machineType)) {
+    return project;
+  }
+  const nextType: MachineType = strict ? 'DFA' : 'NFA';
+  if (project.machineType === nextType) {
+    return project;
+  }
+  return touchProject({
+    ...project,
+    machineType: nextType,
+  });
+}
+
 /** Cambia el tipo de máquina conservando estados y adaptando reglas. */
 export function changeMachineType(project: LexoProject, machineType: MachineType): LexoProject {
   const transitions = project.transitions.flatMap<Transition>((transition) => {

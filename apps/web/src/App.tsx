@@ -21,11 +21,10 @@ import {
   importJflap,
   minimizeDfa,
 } from './engine/wasmAdapter';
-import { machineTypeLabel, type ExampleEntry, type LexoProject, type MachineType } from './engine/types';
+import { isTuring, type ExampleEntry, type LexoProject, type MachineType } from './engine/types';
 import {
   addState,
   addTransition,
-  changeMachineType,
   createId,
   createProject,
   invertEdgeGroup,
@@ -34,6 +33,7 @@ import {
   reassignEdgeGroup,
   removeStates,
   removeTransitions,
+  setFaStrictMode,
   touchProject,
   updateEdgeGroupComment,
   updateState,
@@ -79,7 +79,7 @@ export function App() {
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>('properties');
   const [dialog, setDialog] = useState<Dialog>(null);
   const [transformationReport, setTransformationReport] = useState<TransformationReport | null>(null);
-  const [pendingType, setPendingType] = useState<MachineType | null>(null);
+  const [pendingFamily, setPendingFamily] = useState<'FA' | 'TM' | null>(null);
   const [examples, setExamples] = useState<ExampleEntry[]>([]);
   const [recentProjects, setRecentProjects] = useState<LexoProject[]>([]);
   const [toast, setToast] = useState<Toast | null>(null);
@@ -182,39 +182,48 @@ export function App() {
     [store],
   );
 
-  const applyMachineType = useCallback(
-    (type: MachineType) => {
-      const droppedEpsilon = project.transitions.some(
-        (transition) => transition.rule.kind === 'FA' && transition.rule.symbol === null,
-      );
-      store.commit((current) => changeMachineType(current, type));
+  const switchToFamily = useCallback(
+    (family: 'FA' | 'TM') => {
+      const targetType: MachineType = family === 'TM' ? 'TM_SINGLE' : 'DFA';
+      fileService.clearActiveHandle();
+      loadProject(createProject(targetType, project.name));
       setDialog(null);
-      setPendingType(null);
-      setSelection({ kind: 'none' });
-      if (droppedEpsilon && (type === 'TM_SINGLE' || type === 'TM_MULTI')) {
-        notify('Se descartaron las transiciones ε al convertir a máquina de Turing.');
-      } else {
-        notify('Tipo de máquina actualizado.');
-      }
+      setPendingFamily(null);
+      notify(
+        family === 'TM'
+          ? 'Nuevo proyecto de Máquina de Turing listo.'
+          : 'Nuevo proyecto de Autómata Finito listo.',
+      );
       window.setTimeout(() => canvasRef.current?.fit(), 0);
     },
-    [project.transitions, store, notify],
+    [project.name, loadProject, notify],
   );
 
-  const handleRequestMachineType = useCallback(
-    (type: MachineType) => {
-      if (type === project.machineType) {
+  const handleRequestMachineFamily = useCallback(
+    (family: 'FA' | 'TM') => {
+      const currentFamily: 'FA' | 'TM' = isTuring(project.machineType) ? 'TM' : 'FA';
+      if (family === currentFamily) {
         return;
       }
-      if (project.transitions.length > 0) {
-        setPendingType(type);
-        setDialog('type');
+      if (project.transitions.length === 0 && project.states.length <= 1) {
+        switchToFamily(family);
       } else {
-        applyMachineType(type);
+        setPendingFamily(family);
+        setDialog('type');
       }
     },
-    [project.machineType, project.transitions.length, applyMachineType],
+    [project.machineType, project.transitions.length, project.states.length, switchToFamily],
   );
+
+  const handleToggleFaStrict = useCallback(() => {
+    const nextStrict = project.machineType !== 'DFA';
+    store.commit((current) => setFaStrictMode(current, nextStrict));
+    notify(
+      nextStrict
+        ? 'Modo estricto AFD activado.'
+        : 'Modo flexible AFN activado (permite ε y múltiples aristas).',
+    );
+  }, [project.machineType, store, notify]);
 
   const handleCreateState = useCallback(
     (x: number, y: number) => {
@@ -519,7 +528,8 @@ export function App() {
           loadProject({ ...entry.project, id: createId('project') });
           notify(`Ejemplo cargado: ${entry.project.name}`);
         }}
-        onRequestMachineType={handleRequestMachineType}
+        onRequestMachineFamily={handleRequestMachineFamily}
+        onToggleFaStrict={handleToggleFaStrict}
         onConvertNfa={() => void convertNfa()}
         onMinimizeDfa={() => void minimize()}
         onLayout={applyLayout}
@@ -699,47 +709,42 @@ export function App() {
         />
       ) : null}
 
-      {dialog === 'type' && pendingType ? (
+      {dialog === 'type' && pendingFamily ? (
         <Modal
-          title="Cambiar tipo de máquina"
-          subtitle="Las transiciones existentes se adaptarán al nuevo modelo."
+          title={
+            pendingFamily === 'TM'
+              ? 'Cambiar a Máquina de Turing (MT)'
+              : 'Cambiar a Autómata Finito (AF)'
+          }
+          subtitle="Autómata Finito y Máquina de Turing son modelos distintos y no comparten reglas."
           onClose={() => {
             setDialog(null);
-            setPendingType(null);
+            setPendingFamily(null);
           }}
           footer={
             <>
               <SecondaryButton
                 onClick={() => {
                   setDialog(null);
-                  setPendingType(null);
+                  setPendingFamily(null);
                 }}
               >
                 Cancelar
               </SecondaryButton>
-              <PrimaryButton onClick={() => applyMachineType(pendingType)}>
-                Convertir
+              <PrimaryButton onClick={() => switchToFamily(pendingFamily)}>
+                Crear proyecto nuevo
               </PrimaryButton>
             </>
           }
         >
           <p className="text-[12px] leading-relaxed text-[var(--text-secondary)]">
-            Vas a cambiar de{' '}
-            <span className="mono text-[var(--text-primary)]">
-              {machineTypeLabel(project.machineType)}
+            Se abrirá un proyecto limpio de{' '}
+            <span className="font-semibold text-[var(--text-primary)]">
+              {pendingFamily === 'TM' ? 'Máquina de Turing' : 'Autómata Finito'}
             </span>{' '}
-            a <span className="mono text-[var(--text-primary)]">{machineTypeLabel(pendingType)}</span>.
-            Las reglas de autómata finito se convertirán en operaciones de cinta (leyendo el mismo
-            símbolo, moviendo a la derecha) y viceversa.
+            con estado inicial <span className="mono text-[var(--text-primary)]">q0</span>. Tu proyecto
+            actual queda guardado automáticamente en <span className="font-medium">Recientes</span>.
           </p>
-          {project.transitions.some(
-            (transition) => transition.rule.kind === 'FA' && transition.rule.symbol === null,
-          ) && (pendingType === 'TM_SINGLE' || pendingType === 'TM_MULTI') ? (
-            <p className="mt-3 flex items-start gap-1.5 rounded-[var(--radius-sm)] border border-[var(--accent-warning)]/40 bg-[var(--accent-warning-soft)] px-2 py-1.5 text-[11px] text-[var(--accent-warning)]">
-              <AlertTriangle aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              Las transiciones ε no tienen equivalente directo en una máquina de Turing y se descartarán.
-            </p>
-          ) : null}
         </Modal>
       ) : null}
 
