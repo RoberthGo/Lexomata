@@ -242,6 +242,7 @@ pub fn minimize_dfa(project: &LexoProject) -> Result<MinimizeResult, EngineError
                 rule: TransitionRule::Fa {
                     symbol: Some(symbol.clone()),
                 },
+                comment: None,
             });
             transition_counter += 1;
         }

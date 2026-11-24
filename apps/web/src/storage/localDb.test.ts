@@ -61,4 +61,24 @@ describe('localDb', () => {
     await deleteProjectSnapshot(firstId ?? '');
     expect(await listProjectSnapshots('p-snap')).toHaveLength(14);
   });
+
+  it('elimina en cascada los snapshots al borrar un proyecto local', async () => {
+    const target = { ...createProject('DFA', 'Para borrar'), id: 'p-delete' };
+    const other = { ...createProject('DFA', 'Conservar'), id: 'p-keep' };
+
+    await saveProjectLocal(target);
+    await saveProjectLocal(other);
+    await saveProjectSnapshot(target, 'Snap 1', 'manual');
+    await saveProjectSnapshot(target, 'Snap 2', 'auto');
+    await saveProjectSnapshot(other, 'Snap Otro', 'manual');
+
+    expect(await listProjectSnapshots('p-delete')).toHaveLength(2);
+    expect(await listProjectSnapshots('p-keep')).toHaveLength(1);
+
+    await deleteProjectLocal('p-delete');
+
+    expect(await loadProjectLocal('p-delete')).toBeNull();
+    expect(await listProjectSnapshots('p-delete')).toHaveLength(0);
+    expect(await listProjectSnapshots('p-keep')).toHaveLength(1);
+  });
 });

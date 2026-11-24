@@ -536,6 +536,7 @@ mod tests {
                 rule: TransitionRule::Fa {
                     symbol: Some("á".to_owned()),
                 },
+                comment: None,
             },
             crate::model::Transition {
                 id: "t1".to_owned(),
@@ -545,6 +546,7 @@ mod tests {
                 rule: TransitionRule::Fa {
                     symbol: Some("é".to_owned()),
                 },
+                comment: None,
             },
         ];
 

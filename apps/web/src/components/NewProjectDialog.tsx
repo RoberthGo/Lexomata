@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CircleDot, Cpu, Trash2 } from 'lucide-react';
 import type { LexoProject, MachineType } from '../engine/types';
+import { machineTypeLabel } from '../engine/types';
 import { Modal, PrimaryButton, SecondaryButton } from './Modal';
 
 interface NewProjectDialogProps {
@@ -132,7 +133,7 @@ export function NewProjectDialog({
                   >
                     <span className="truncate font-medium text-[var(--text-primary)]">{item.name}</span>
                     <span className="mono shrink-0 text-[10px] text-[var(--text-muted)]">
-                      {item.machineType}
+                      {machineTypeLabel(item.machineType)}
                     </span>
                   </button>
                   {onDeleteRecent ? (

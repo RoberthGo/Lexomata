@@ -245,10 +245,13 @@ const LATEX_ESCAPES: Record<string, string> = {
   '}': '\\}',
   '^': '\\^{}',
   '~': '\\~{}',
+  'ε': '\\varepsilon',
+  '□': '\\square',
+  '→': '\\to',
 };
 
 function escapeLatex(value: string): string {
-  return value.replace(/[\\_&%$#{}^~]/g, (character) => LATEX_ESCAPES[character] ?? character);
+  return value.replace(/[\\_&%$#{}^~ε□→]/g, (character) => LATEX_ESCAPES[character] ?? character);
 }
 
 /** Genera código TikZ listo para compilar con LaTeX. */

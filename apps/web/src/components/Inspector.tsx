@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ArrowLeftRight,
@@ -25,7 +25,7 @@ import type {
   Transition,
   ValidationReport,
 } from '../engine/types';
-import { isFiniteAutomaton, isTuring, machineTypeLabel } from '../engine/types';
+import { isTuring, machineTypeLabel } from '../engine/types';
 import {
   addTransition,
   effectiveAlphabet,
@@ -33,12 +33,12 @@ import {
   markInitial,
   reassignEdgeGroup,
   removeStates,
-  setFaStrictMode,
   removeTransitions,
   ruleSymbolLabel,
   updateEdgeGroupComment,
   stateLabel,
   toggleAccepting,
+  touchProject,
   updateState,
   updateTransition,
 } from '../model/project';
@@ -114,11 +114,18 @@ export function Inspector({
         />
       ) : null}
       <div className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-[var(--border-subtle)] px-3">
-        <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
+        <div
+          role="tablist"
+          aria-label="Secciones del inspector"
+          className="flex min-w-0 items-center gap-1 overflow-x-auto"
+        >
           {TABS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               type="button"
+              role="tab"
+              aria-selected={tab === id}
+              aria-label={label}
               onClick={() => onTabChange(id)}
               title={label}
               className={`flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-[11px] font-medium transition-colors ${
@@ -499,27 +506,6 @@ function PropertiesTab({
     <div className="space-y-4">
       <SectionTitle hint={machineTypeLabel(project.machineType)}>Proyecto</SectionTitle>
 
-      {isFiniteAutomaton(project.machineType) ? (
-        <label className="flex cursor-pointer items-center justify-between rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-2.5 py-2 text-[11px] text-[var(--text-primary)]">
-          <span>
-            Modo estricto AFD
-            <span className="block text-[10px] text-[var(--text-muted)]">
-              {project.machineType === 'DFA'
-                ? '1 flecha por símbolo, sin ε'
-                : 'Desactivado: permite múltiples flechas y ε (AFN)'}
-            </span>
-          </span>
-          <input
-            type="checkbox"
-            checked={project.machineType === 'DFA'}
-            onChange={(event) =>
-              onCommit((current) => setFaStrictMode(current, event.target.checked))
-            }
-            className="h-3.5 w-3.5 accent-[var(--accent-selection)]"
-          />
-        </label>
-      ) : null}
-
       <div className="space-y-2">
         <CsvField
           label="Alfabeto Σ"
@@ -678,6 +664,7 @@ function RuleEditor({
         <button
           type="button"
           title="Convertir en ε"
+          aria-label="Convertir en ε"
           onClick={() =>
             onCommit((current) =>
               updateTransition(current, transition.id, { rule: { kind: 'FA', symbol: null } }),
@@ -693,6 +680,7 @@ function RuleEditor({
         <button
           type="button"
           title="Eliminar regla"
+          aria-label="Eliminar regla"
           onClick={() =>
             onCommit((current) => removeTransitions(current, [transition.id]))
           }
@@ -752,6 +740,7 @@ function RuleEditor({
         <button
           type="button"
           title="Insertar blanco"
+          aria-label="Insertar símbolo blanco"
           onClick={() => updateOperation({ read: project.config.blankSymbol, write: project.config.blankSymbol })}
           className="mono h-7 w-7 rounded-[var(--radius-sm)] border border-[var(--accent-epsilon)]/40 text-[11px] text-[var(--accent-epsilon)] hover:bg-[var(--accent-epsilon-soft)]"
         >
@@ -760,6 +749,7 @@ function RuleEditor({
         <button
           type="button"
           title="Eliminar regla"
+          aria-label="Eliminar regla"
           onClick={() => onCommit((current) => removeTransitions(current, [transition.id]))}
           className="ml-auto rounded-[var(--radius-sm)] p-1 text-[var(--text-muted)] hover:bg-[var(--accent-reject-soft)] hover:text-[var(--accent-reject)]"
         >
@@ -782,7 +772,11 @@ function DeltaTab({
   const alphabet = useMemo(() => effectiveAlphabet(project), [project]);
 
   if (project.transitions.length === 0) {
-    return <p className="text-[12px] text-[var(--text-muted)]">Todavía no hay transiciones.</p>;
+    return (
+      <p className="text-[12px] text-[var(--text-muted)]">
+        Sin transiciones todavía. Usa la herramienta Transición (<span className="mono">T</span>) para conectar estados.
+      </p>
+    );
   }
 
   if (isTuring(project.machineType)) {
@@ -887,16 +881,29 @@ function targetsFor(project: LexoProject, stateId: string, symbol: string | null
     .map((transition) => stateLabel(project, transition.to));
 }
 
+function formalStructureSignature(project: LexoProject): string {
+  const statesKey = project.states
+    .map((s) => `${s.id}:${s.label}:${s.isInitial ? 1 : 0}:${s.isAccepting ? 1 : 0}`)
+    .join('|');
+  const transKey = project.transitions
+    .map((t) => `${t.id}:${t.from}->${t.to}:${JSON.stringify(t.rule)}`)
+    .join('|');
+  return `${project.id}::${project.machineType}::${JSON.stringify(project.config)}::${statesKey}::${transKey}`;
+}
+
 function FormalTab({ project }: { project: LexoProject }) {
   const [formal, setFormal] = useState<FormalDefinition | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<'text' | 'latex'>('text');
   const [copied, setCopied] = useState(false);
+  const projectRef = useRef(project);
+  projectRef.current = project;
+  const signature = formalStructureSignature(project);
 
   useEffect(() => {
     let cancelled = false;
     const timer = window.setTimeout(() => {
-      getFormalDefinition(project)
+      getFormalDefinition(projectRef.current)
         .then((definition) => {
           if (!cancelled) {
             setFormal(definition);
@@ -915,7 +922,7 @@ function FormalTab({ project }: { project: LexoProject }) {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [project]);
+  }, [signature]);
 
   const content = formal ? (mode === 'text' ? formal.text : formal.latex) : '';
 
@@ -966,7 +973,8 @@ function FormalTab({ project }: { project: LexoProject }) {
           <button
             type="button"
             onClick={() => void copy()}
-            title="Copiar"
+            title="Copiar definición formal"
+            aria-label="Copiar definición formal"
             className="rounded-[var(--radius-sm)] p-1 text-[var(--text-secondary)] hover:bg-[var(--bg-surface-elevated)] hover:text-[var(--text-primary)]"
           >
             {copied ? (
@@ -978,33 +986,9 @@ function FormalTab({ project }: { project: LexoProject }) {
         </div>
       </div>
 
-      <pre className="mono max-h-[280px] overflow-auto whitespace-pre-wrap rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] p-2 text-[10px] leading-relaxed text-[var(--text-primary)]">
+      <pre className="mono max-h-[380px] overflow-auto whitespace-pre-wrap rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] p-2 text-[10px] leading-relaxed text-[var(--text-primary)]">
         {content}
       </pre>
-
-      <div>
-        <SectionTitle hint={`${formal.transitions.length} filas`}>Tabla de transición</SectionTitle>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left">
-            <thead>
-              <tr className="text-[10px] uppercase tracking-[0.06em] text-[var(--text-muted)]">
-                <th className="border-b border-[var(--border-subtle)] pb-1">δ</th>
-                <th className="border-b border-[var(--border-subtle)] pb-1">Etiqueta</th>
-                <th className="border-b border-[var(--border-subtle)] pb-1">Destino</th>
-              </tr>
-            </thead>
-            <tbody className="mono text-[10px]">
-              {formal.transitions.map((row) => (
-                <tr key={row.transitionId} className="border-b border-[var(--border-subtle)]/60">
-                  <td className="py-1 text-[var(--text-secondary)]">{row.from}</td>
-                  <td className="py-1 text-[var(--text-primary)]">{row.label}</td>
-                  <td className="py-1 text-[var(--text-secondary)]">{row.to}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   );
 }
@@ -1042,32 +1026,36 @@ function BatchTab({
   }, [batchSignature]);
 
   const updateCase = (id: string, patch: Partial<TestCase>) => {
-    onCommit((current) => ({
-      ...current,
-      testCases: current.testCases.map((testCase) =>
-        testCase.id === id ? { ...testCase, ...patch } : testCase,
-      ),
-    }));
+    onCommit((current) =>
+      touchProject({
+        ...current,
+        testCases: current.testCases.map((testCase) =>
+          testCase.id === id ? { ...testCase, ...patch } : testCase,
+        ),
+      }),
+    );
   };
 
   const addCase = () => {
     onCommit((current) => {
       const index = current.testCases.length;
-      return {
+      return touchProject({
         ...current,
         testCases: [
           ...current.testCases,
           { id: `tc-${Date.now()}-${index}`, input: '', expected: 'ACCEPT' },
         ],
-      };
+      });
     });
   };
 
   const removeCase = (id: string) => {
-    onCommit((current) => ({
-      ...current,
-      testCases: current.testCases.filter((testCase) => testCase.id !== id),
-    }));
+    onCommit((current) =>
+      touchProject({
+        ...current,
+        testCases: current.testCases.filter((testCase) => testCase.id !== id),
+      }),
+    );
   };
 
   const runAll = async () => {
@@ -1091,13 +1079,19 @@ function BatchTab({
       setRows(
         project.testCases.map((testCase, index) => {
           const result = results[index];
-          const accepted = result?.verdict === 'ACCEPTED';
+          const actual = result?.verdict ?? 'REJECTED';
+          const passed =
+            actual === 'STEP_LIMIT'
+              ? false
+              : testCase.expected === 'ACCEPT'
+                ? actual === 'ACCEPTED'
+                : actual === 'REJECTED';
           return {
             input: testCase.input,
             expected: testCase.expected,
-            actual: result?.verdict ?? 'REJECTED',
+            actual,
             steps: result?.steps ?? 0,
-            passed: testCase.expected === 'ACCEPT' ? accepted : !accepted,
+            passed,
           };
         }),
       );
@@ -1115,6 +1109,12 @@ function BatchTab({
     <div className="space-y-3">
       <SectionTitle hint={`${project.testCases.length} casos`}>Ejecución por lotes</SectionTitle>
 
+      {project.testCases.length === 0 ? (
+        <p className="text-[12px] text-[var(--text-muted)]">
+          Sin casos todavía. Añade cadenas para validar aceptación y rechazo en lote.
+        </p>
+      ) : null}
+
       <div className="space-y-1.5">
         {project.testCases.map((testCase) => (
           <div key={testCase.id} className="flex items-center gap-1">
@@ -1131,6 +1131,7 @@ function BatchTab({
             />
             <select
               value={testCase.expected}
+              aria-label="Resultado esperado"
               onChange={(event) =>
                 updateCase(testCase.id, { expected: event.target.value as ExpectedVerdict })
               }
@@ -1142,6 +1143,7 @@ function BatchTab({
             <button
               type="button"
               title="Eliminar caso"
+              aria-label="Eliminar caso"
               onClick={() => removeCase(testCase.id)}
               className="rounded-[var(--radius-sm)] p-1 text-[var(--text-muted)] hover:bg-[var(--accent-reject-soft)] hover:text-[var(--accent-reject)]"
             >
@@ -1201,10 +1203,17 @@ function BatchTab({
                     {row.expected === 'ACCEPT' ? 'ACEPTAR' : 'RECHAZAR'}
                   </td>
                   <td
-                    className={`py-1 font-medium ${row.passed ? 'text-[var(--accent-accept)]' : 'text-[var(--accent-reject)]'}`}
+                    className={`py-1 font-medium ${
+                      row.actual === 'STEP_LIMIT'
+                        ? 'text-[var(--accent-warning)]'
+                        : row.passed
+                          ? 'text-[var(--accent-accept)]'
+                          : 'text-[var(--accent-reject)]'
+                    }`}
                   >
-                    {row.passed ? '✓ ' : '✗ '}
-                    {row.actual === 'ACCEPTED' ? 'ACEPTADA' : 'RECHAZADA'}
+                    {row.actual === 'STEP_LIMIT'
+                      ? '⚠ LÍMITE'
+                      : `${row.passed ? '✓ ' : '✗ '}${row.actual === 'ACCEPTED' ? 'ACEPTADA' : 'RECHAZADA'}`}
                   </td>
                   <td className="py-1 text-[var(--text-secondary)]">{row.steps}</td>
                 </tr>

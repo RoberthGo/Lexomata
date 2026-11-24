@@ -139,6 +139,7 @@ pub fn nfa_to_dfa_with_dead_state(
                 rule: TransitionRule::Fa {
                     symbol: Some(symbol.clone()),
                 },
+                comment: None,
             });
             transition_counter += 1;
         }
@@ -299,6 +300,7 @@ mod tests {
             to: "s1".to_owned(),
             curve_offset: 0.0,
             rule: TransitionRule::Fa { symbol: None },
+            comment: None,
         });
 
         let result = nfa_to_dfa(&source).expect("convertir");

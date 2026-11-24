@@ -49,7 +49,7 @@ describe('App', () => {
     const fileButton = screen.getByRole('button', { name: /archivo/i });
     fileButton.click();
 
-    const newProject = await screen.findByRole('button', { name: /nuevo proyecto/i });
+    const newProject = await screen.findByRole('menuitem', { name: /nuevo proyecto/i });
     newProject.click();
 
     expect(await screen.findByRole('dialog', { name: 'Nuevo proyecto' })).toBeInTheDocument();

@@ -4,7 +4,6 @@ import type {
   AccentPreset,
   DockPosition,
   SimPosition,
-  UiDensity,
   UiPrefs,
 } from '../state/useUiPrefs';
 import { Modal, PrimaryButton, SecondaryButton } from './Modal';
@@ -40,11 +39,6 @@ const DOCK_POSITIONS: Array<{ id: DockPosition; label: string }> = [
 const SIM_POSITIONS: Array<{ id: SimPosition; label: string }> = [
   { id: 'bottom', label: 'Inferior' },
   { id: 'top', label: 'Superior' },
-];
-
-const DENSITIES: Array<{ id: UiDensity; label: string }> = [
-  { id: 'comfortable', label: 'Cómoda' },
-  { id: 'compact', label: 'Compacta' },
 ];
 
 function SegmentGroup<T extends string>({
@@ -108,21 +102,12 @@ export function PreferencesDialog({
       }
     >
       <div className="space-y-4">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <SegmentGroup
-            label="Tema"
-            value={theme}
-            options={THEMES}
-            onChange={(nextTheme) => onSetTheme(nextTheme)}
-          />
-
-          <SegmentGroup
-            label="Densidad"
-            value={prefs.density}
-            options={DENSITIES}
-            onChange={(density) => onUpdatePrefs({ density })}
-          />
-        </div>
+        <SegmentGroup
+          label="Tema"
+          value={theme}
+          options={THEMES}
+          onChange={(nextTheme) => onSetTheme(nextTheme)}
+        />
 
         <div className="space-y-1.5">
           <p className="text-[11px] font-medium text-[var(--text-secondary)]">Color de acento</p>
@@ -161,22 +146,6 @@ export function PreferencesDialog({
             value={prefs.simPosition}
             options={SIM_POSITIONS}
             onChange={(simPosition) => onUpdatePrefs({ simPosition })}
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="font-medium text-[var(--text-secondary)]">Ancho del Inspector</span>
-            <span className="mono text-[var(--text-muted)]">{prefs.inspectorWidth}px</span>
-          </div>
-          <input
-            type="range"
-            min={280}
-            max={520}
-            step={8}
-            value={prefs.inspectorWidth}
-            onChange={(event) => onUpdatePrefs({ inspectorWidth: Number(event.target.value) })}
-            className="w-full accent-[var(--accent-selection)]"
           />
         </div>
 

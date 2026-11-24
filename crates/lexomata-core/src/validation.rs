@@ -594,6 +594,7 @@ mod tests {
             to: "s1".to_owned(),
             curve_offset: 0.0,
             rule: TransitionRule::Fa { symbol: None },
+            comment: None,
         });
 
         let report = validate_machine(&project);
@@ -616,6 +617,7 @@ mod tests {
             rule: TransitionRule::Fa {
                 symbol: Some("0".to_owned()),
             },
+            comment: None,
         });
 
         let report = validate_machine(&project);
@@ -743,6 +745,7 @@ mod tests {
                     r#move: crate::model::TapeMove::R,
                 }],
             },
+            comment: None,
         });
 
         let report = validate_machine(&project);
@@ -779,6 +782,7 @@ mod tests {
                     r#move: crate::model::TapeMove::S,
                 }],
             },
+            comment: None,
         });
 
         let report = validate_machine(&project);
@@ -805,6 +809,7 @@ mod tests {
                     r#move: crate::model::TapeMove::S,
                 }],
             },
+            comment: None,
         });
 
         let report = validate_machine(&project);

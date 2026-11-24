@@ -86,28 +86,32 @@ export const fileService: FileService = {
 
   async openFile(accept) {
     if (isTauriRuntime()) {
-      const [{ open }, { readTextFile }] = await Promise.all([
-        import('@tauri-apps/plugin-dialog'),
-        import('@tauri-apps/plugin-fs'),
-      ]);
-      const selected = await open({
-        multiple: false,
-        filters: [
-          {
-            name: accept === '.lexo' ? 'Lexomata' : 'JFLAP',
-            extensions: [accept.slice(1)],
-          },
-        ],
-      });
-      if (!selected || Array.isArray(selected)) {
-        return null;
+      try {
+        const [{ open }, { readTextFile }] = await Promise.all([
+          import('@tauri-apps/plugin-dialog'),
+          import('@tauri-apps/plugin-fs'),
+        ]);
+        const selected = await open({
+          multiple: false,
+          filters: [
+            {
+              name: accept === '.lexo' ? 'Lexomata' : 'JFLAP',
+              extensions: [accept.slice(1)],
+            },
+          ],
+        });
+        if (!selected || Array.isArray(selected)) {
+          return null;
+        }
+        const content = await readTextFile(selected);
+        const name = selected.split(/[/\\]/).pop() ?? `proyecto${accept}`;
+        if (accept === '.lexo') {
+          activeTauriPath = selected;
+        }
+        return { name, content, path: selected };
+      } catch {
+        // Fallback seguro en entornos móviles/Android donde el diálogo nativo puede no estar disponible.
       }
-      const content = await readTextFile(selected);
-      const name = selected.split(/[/\\]/).pop() ?? `proyecto${accept}`;
-      if (accept === '.lexo') {
-        activeTauriPath = selected;
-      }
-      return { name, content, path: selected };
     }
 
     const pickerWin = window as PickerWindow;
@@ -140,22 +144,26 @@ export const fileService: FileService = {
     const isLexo = suggestedName.endsWith('.lexo');
     const meta = filterMetaForFileName(suggestedName);
     if (isTauriRuntime()) {
-      const [{ save }, { writeTextFile }] = await Promise.all([
-        import('@tauri-apps/plugin-dialog'),
-        import('@tauri-apps/plugin-fs'),
-      ]);
-      const target = await save({
-        defaultPath: suggestedName,
-        filters: [{ name: meta.label, extensions: [meta.ext] }],
-      });
-      if (!target) {
-        return false;
+      try {
+        const [{ save }, { writeTextFile }] = await Promise.all([
+          import('@tauri-apps/plugin-dialog'),
+          import('@tauri-apps/plugin-fs'),
+        ]);
+        const target = await save({
+          defaultPath: suggestedName,
+          filters: [{ name: meta.label, extensions: [meta.ext] }],
+        });
+        if (!target) {
+          return false;
+        }
+        await writeTextFile(target, content);
+        if (isLexo) {
+          activeTauriPath = target;
+        }
+        return true;
+      } catch {
+        // Fallback seguro en entornos móviles/Android.
       }
-      await writeTextFile(target, content);
-      if (isLexo) {
-        activeTauriPath = target;
-      }
-      return true;
     }
 
     const pickerWin = window as PickerWindow;
@@ -186,20 +194,24 @@ export const fileService: FileService = {
   async saveBinaryFile(suggestedName, blob) {
     const meta = filterMetaForFileName(suggestedName);
     if (isTauriRuntime()) {
-      const [{ save }, { writeFile }] = await Promise.all([
-        import('@tauri-apps/plugin-dialog'),
-        import('@tauri-apps/plugin-fs'),
-      ]);
-      const target = await save({
-        defaultPath: suggestedName,
-        filters: [{ name: meta.label, extensions: [meta.ext] }],
-      });
-      if (!target) {
-        return false;
+      try {
+        const [{ save }, { writeFile }] = await Promise.all([
+          import('@tauri-apps/plugin-dialog'),
+          import('@tauri-apps/plugin-fs'),
+        ]);
+        const target = await save({
+          defaultPath: suggestedName,
+          filters: [{ name: meta.label, extensions: [meta.ext] }],
+        });
+        if (!target) {
+          return false;
+        }
+        const bytes = new Uint8Array(await blob.arrayBuffer());
+        await writeFile(target, bytes);
+        return true;
+      } catch {
+        // Fallback seguro en entornos móviles/Android.
       }
-      const bytes = new Uint8Array(await blob.arrayBuffer());
-      await writeFile(target, bytes);
-      return true;
     }
 
     const pickerWin = window as PickerWindow;
@@ -226,9 +238,13 @@ export const fileService: FileService = {
 
   async saveCurrentFile(suggestedName, content, mimeType) {
     if (isTauriRuntime() && activeTauriPath) {
-      const { writeTextFile } = await import('@tauri-apps/plugin-fs');
-      await writeTextFile(activeTauriPath, content);
-      return true;
+      try {
+        const { writeTextFile } = await import('@tauri-apps/plugin-fs');
+        await writeTextFile(activeTauriPath, content);
+        return true;
+      } catch {
+        activeTauriPath = null;
+      }
     }
 
     if (activeWebHandle) {

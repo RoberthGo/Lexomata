@@ -34,7 +34,7 @@ test.describe('Lexomata PWA Offline E2E', () => {
 
     // 1. Cargar ejemplo AFD y simular cadena aceptada y rechazada.
     await page.getByRole('button', { name: /archivo/i }).click();
-    await page.getByRole('button', { name: /afd/i }).first().click();
+    await page.getByRole('menuitem', { name: /afd/i }).first().click();
 
     const faInput = page.getByPlaceholder('cadena de entrada');
     await faInput.fill('101');
@@ -47,7 +47,7 @@ test.describe('Lexomata PWA Offline E2E', () => {
 
     // 2. Cargar ejemplo de Máquina de Turing (0^n 1^n), avanzar/retroceder y ejecutar rápido.
     await page.getByRole('button', { name: /archivo/i }).click();
-    await page.getByRole('button', { name: /0\^n 1\^n|0ⁿ1ⁿ|turing/i }).first().click();
+    await page.getByRole('menuitem', { name: /0\^n 1\^n|0ⁿ1ⁿ|turing/i }).first().click();
 
     const tmInput = page.getByPlaceholder('entrada inicial');
     await tmInput.fill('0011');
@@ -63,7 +63,7 @@ test.describe('Lexomata PWA Offline E2E', () => {
     await expect(page.getByText('ACEPTADA')).toBeVisible();
 
     // 3. Ejecutar Batch Runner (Lotes).
-    await page.getByRole('button', { name: 'Lotes' }).click();
+    await page.getByRole('tab', { name: 'Lotes' }).click();
     const runBatch = page.getByRole('button', { name: 'Ejecutar', exact: true });
     if (await runBatch.isDisabled()) {
       await page.getByRole('button', { name: 'Caso' }).click();
@@ -83,7 +83,7 @@ test.describe('Lexomata PWA Offline E2E', () => {
 
     // 5. Guardar versión intermedia en Historial de versiones.
     await page.getByRole('button', { name: /archivo/i }).click();
-    await page.getByRole('button', { name: /historial de versiones/i }).click();
+    await page.getByRole('menuitem', { name: /historial de versiones/i }).click();
     await expect(page.getByRole('dialog', { name: 'Historial de versiones' })).toBeVisible();
     await page.getByPlaceholder(/etiqueta opcional/i).fill('Checkpoint E2E');
     await page.getByRole('button', { name: 'Guardar versión' }).click();

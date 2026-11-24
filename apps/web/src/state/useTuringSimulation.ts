@@ -325,7 +325,7 @@ export function useTuringSimulation(project: LexoProject): TuringSimulation {
       const nextRuntime: TmRuntimeState = {
         ...runtime,
         tape,
-        status: runtime.status === 'RUNNING' ? 'RUNNING' : runtime.status,
+        status: 'RUNNING',
       };
 
       setRuntime(nextRuntime);
@@ -333,6 +333,7 @@ export function useTuringSimulation(project: LexoProject): TuringSimulation {
         current
           ? {
               ...current,
+              status: 'RUNNING',
               tape: {
                 cells: tape,
                 minIndex: bounds.minIndex,

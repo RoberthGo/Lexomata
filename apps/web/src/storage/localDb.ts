@@ -108,9 +108,18 @@ export async function listRecentProjects(limit = 10): Promise<LexoProject[]> {
 
 export async function deleteProjectLocal(id: string): Promise<void> {
   memoryProjects.delete(id);
+  for (const [snapshotId, snapshot] of memorySnapshots.entries()) {
+    if (snapshot.projectId === id) {
+      memorySnapshots.delete(snapshotId);
+    }
+  }
   const db = await getDb();
   if (db) {
     await db.delete('projects', id);
+    const snapshots = await db.getAllFromIndex('snapshots', 'by-project', id);
+    for (const snapshot of snapshots) {
+      await db.delete('snapshots', snapshot.id);
+    }
   }
 }
 

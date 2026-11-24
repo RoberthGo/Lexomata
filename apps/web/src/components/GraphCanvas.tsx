@@ -9,7 +9,7 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
-import { ArrowLeftRight, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeftRight, CheckCircle2, Flag, Pencil, Trash2 } from 'lucide-react';
 import type { LexoProject, State, Transition } from '../engine/types';
 import { groupedLabel } from '../model/project';
 import type { CanvasHandle, Selection, Tool } from '../uiTypes';
@@ -17,6 +17,7 @@ import {
   clampZoom,
   edgeGeometry,
   fitCamera,
+  GRID_SIZE,
   NODE_RADIUS,
   screenToWorld,
   snapToGrid,
@@ -35,6 +36,8 @@ interface GraphCanvasProps {
   onCreateTransition: (from: string, to: string) => void;
   onMoveState: (id: string, x: number, y: number, final: boolean) => void;
   onDeleteState: (id: string) => void;
+  onMarkInitialState?: (id: string) => void;
+  onToggleAcceptingState?: (id: string) => void;
   onEditEdge: (from: string, to: string) => void;
   onInvertEdge?: (from: string, to: string) => void;
   onReassignEdge?: (from: string, to: string, nextFrom: string, nextTo: string) => void;
@@ -48,6 +51,12 @@ interface GraphCanvasProps {
 interface EdgeContextMenuState {
   from: string;
   to: string;
+  x: number;
+  y: number;
+}
+
+interface StateContextMenuState {
+  stateId: string;
   x: number;
   y: number;
 }
@@ -117,10 +126,10 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
     onCreateTransition,
     onMoveState,
     onDeleteState,
+    onMarkInitialState,
+    onToggleAcceptingState,
     onEditEdge,
     onInvertEdge,
-    onReassignEdge,
-    onUpdateEdgeComment,
     onDeleteEdge,
     showGrid = true,
     snapEnabled = true,
@@ -136,6 +145,7 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
   const [hoverWorld, setHoverWorld] = useState<Point | null>(null);
   const [panning, setPanning] = useState(false);
   const [edgeMenu, setEdgeMenu] = useState<EdgeContextMenuState | null>(null);
+  const [stateMenu, setStateMenu] = useState<StateContextMenuState | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const panRef = useRef<PanState | null>(null);
   const touchPointersRef = useRef<Map<number, Point>>(new Map());
@@ -151,29 +161,49 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
       const rect = containerRef.current?.getBoundingClientRect();
       const rawX = rect ? event.clientX - rect.left : event.clientX;
       const rawY = rect ? event.clientY - rect.top : event.clientY;
+      setStateMenu(null);
       setEdgeMenu({
         from,
         to,
-        x: Math.max(8, Math.min(rawX, Math.max(8, size.width - 248))),
-        y: Math.max(8, Math.min(rawY, Math.max(8, size.height - 220))),
+        x: Math.max(8, Math.min(rawX, Math.max(8, size.width - 216))),
+        y: Math.max(8, Math.min(rawY, Math.max(8, size.height - 150))),
       });
       onSelect({ kind: 'edge', from, to });
     },
     [onSelect, size.height, size.width],
   );
 
+  const openStateMenu = useCallback(
+    (event: ReactMouseEvent, stateId: string) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const rect = containerRef.current?.getBoundingClientRect();
+      const rawX = rect ? event.clientX - rect.left : event.clientX;
+      const rawY = rect ? event.clientY - rect.top : event.clientY;
+      setEdgeMenu(null);
+      setStateMenu({
+        stateId,
+        x: Math.max(8, Math.min(rawX, Math.max(8, size.width - 216))),
+        y: Math.max(8, Math.min(rawY, Math.max(8, size.height - 150))),
+      });
+      onSelect({ kind: 'state', id: stateId });
+    },
+    [onSelect, size.height, size.width],
+  );
+
   useEffect(() => {
-    if (!edgeMenu) {
+    if (!edgeMenu && !stateMenu) {
       return;
     }
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setEdgeMenu(null);
+        setStateMenu(null);
       }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [edgeMenu]);
+  }, [edgeMenu, stateMenu]);
 
   const activeStates = useMemo(() => new Set(activeStateIds), [activeStateIds]);
   const firedEdges = useMemo(() => new Set(firedTransitionIds), [firedTransitionIds]);
@@ -292,11 +322,13 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
-      const inEditable = Boolean(
-        target?.closest('input, textarea, select, [contenteditable="true"]') ||
-          target?.isContentEditable,
+      const inInteractive = Boolean(
+        target?.closest(
+          'input, textarea, select, [contenteditable="true"], button, a, summary, [role="button"], [role="menuitem"], input[type="checkbox"]',
+        ) || target?.isContentEditable,
       );
-      if (event.code === 'Space' && !inEditable) {
+      const hasOpenDialog = Boolean(document.querySelector('[role="dialog"]'));
+      if (event.code === 'Space' && !event.shiftKey && !inInteractive && !hasOpenDialog) {
         event.preventDefault();
         spaceRef.current = true;
       }
@@ -328,6 +360,7 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
 
   const handleBackgroundPointerDown = (event: ReactPointerEvent<SVGRectElement>) => {
     setEdgeMenu(null);
+    setStateMenu(null);
     if (touchPointersRef.current.size >= 2) {
       pendingTouchStateRef.current = null;
       return;
@@ -492,6 +525,12 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
     state: State,
   ) => {
     event.stopPropagation();
+    setEdgeMenu(null);
+    setStateMenu(null);
+
+    if (event.button === 2) {
+      return;
+    }
 
     if (tool === 'erase') {
       onDeleteState(state.id);
@@ -536,7 +575,7 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
     );
   };
 
-  const gridSize = 24 * camera.zoom;
+  const gridSize = GRID_SIZE * camera.zoom;
   const gridOffsetX = ((-camera.x * camera.zoom) % gridSize + gridSize) % gridSize;
   const gridOffsetY = ((-camera.y * camera.zoom) % gridSize + gridSize) % gridSize;
   const cursorClass =
@@ -684,6 +723,12 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
                   className="cursor-pointer"
                   onPointerDown={(event) => {
                     event.stopPropagation();
+                    setEdgeMenu(null);
+                    setStateMenu(null);
+                    if (tool === 'erase') {
+                      onDeleteEdge?.(group.from, group.to);
+                      return;
+                    }
                     onSelect({ kind: 'edge', from: group.from, to: group.to });
                   }}
                   onDoubleClick={(event) => {
@@ -709,6 +754,11 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
                   onPointerDown={(event) => {
                     event.stopPropagation();
                     setEdgeMenu(null);
+                    setStateMenu(null);
+                    if (tool === 'erase') {
+                      onDeleteEdge?.(group.from, group.to);
+                      return;
+                    }
                     onSelect({ kind: 'edge', from: group.from, to: group.to });
                   }}
                   onDoubleClick={(event) => {
@@ -785,6 +835,7 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
                   event.stopPropagation();
                   onSelect({ kind: 'state', id: state.id });
                 }}
+                onContextMenu={(event) => openStateMenu(event, state.id)}
               >
                 {active ? (
                   <circle
@@ -862,6 +913,12 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
         </g>
       </svg>
 
+      {project.states.length <= 1 && project.transitions.length === 0 ? (
+        <div className="pointer-events-none absolute top-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface)]/85 px-3 py-1 text-[11px] text-[var(--text-muted)] backdrop-blur">
+          Doble clic para crear un estado · <span className="mono">T</span> para conectar · clic derecho para acciones
+        </div>
+      ) : null}
+
       <div className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-2 text-[10px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
         <span className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]/80 px-1.5 py-0.5 backdrop-blur">
           {Math.round(camera.zoom * 100)}%
@@ -877,15 +934,77 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
         ) : null}
       </div>
 
+      {stateMenu ? (
+        <div
+          role="menu"
+          aria-label="Acciones de estado"
+          style={{ left: stateMenu.x, top: stateMenu.y }}
+          onPointerDown={(event) => event.stopPropagation()}
+          className="absolute z-30 w-52 space-y-1 rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--bg-surface)] p-2 text-[12px] shadow-[var(--shadow-panel)]"
+        >
+          <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-1">
+            <span className="mono text-[11px] font-medium text-[var(--text-secondary)]">
+              {statesById.get(stateMenu.stateId)?.label ?? stateMenu.stateId}
+            </span>
+            <button
+              type="button"
+              onClick={() => setStateMenu(null)}
+              className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            >
+              Esc
+            </button>
+          </div>
+
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              onMarkInitialState?.(stateMenu.stateId);
+              setStateMenu(null);
+            }}
+            className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]"
+          >
+            <Flag aria-hidden="true" className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
+            Marcar inicial
+          </button>
+
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              onToggleAcceptingState?.(stateMenu.stateId);
+              setStateMenu(null);
+            }}
+            className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]"
+          >
+            <CheckCircle2 aria-hidden="true" className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
+            Alternar aceptación
+          </button>
+
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              onDeleteState(stateMenu.stateId);
+              setStateMenu(null);
+            }}
+            className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-[var(--accent-reject)] hover:bg-[var(--accent-reject-soft)]"
+          >
+            <Trash2 aria-hidden="true" className="h-3.5 w-3.5" />
+            Eliminar
+          </button>
+        </div>
+      ) : null}
+
       {edgeMenu ? (
         <div
           role="menu"
           aria-label="Acciones de arista"
           style={{ left: edgeMenu.x, top: edgeMenu.y }}
           onPointerDown={(event) => event.stopPropagation()}
-          className="absolute z-30 w-60 space-y-2 rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--bg-surface)] p-2.5 text-[12px] shadow-[var(--shadow-panel)]"
+          className="absolute z-30 w-52 space-y-1 rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--bg-surface)] p-2 text-[12px] shadow-[var(--shadow-panel)]"
         >
-          <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-1.5">
+          <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-1">
             <span className="mono text-[11px] font-medium text-[var(--text-secondary)]">
               {statesById.get(edgeMenu.from)?.label ?? edgeMenu.from} →{' '}
               {statesById.get(edgeMenu.to)?.label ?? edgeMenu.to}
@@ -901,6 +1020,7 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
 
           <button
             type="button"
+            role="menuitem"
             onClick={() => {
               onEditEdge(edgeMenu.from, edgeMenu.to);
               setEdgeMenu(null);
@@ -908,11 +1028,12 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
             className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)]"
           >
             <Pencil aria-hidden="true" className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
-            Editar transiciones
+            Editar reglas
           </button>
 
           <button
             type="button"
+            role="menuitem"
             disabled={edgeMenu.from === edgeMenu.to}
             onClick={() => {
               onInvertEdge?.(edgeMenu.from, edgeMenu.to);
@@ -921,71 +1042,12 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
             className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-[var(--text-primary)] hover:bg-[var(--bg-surface-elevated)] disabled:opacity-40"
           >
             <ArrowLeftRight aria-hidden="true" className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
-            Invertir dirección
+            Invertir
           </button>
-
-          {onReassignEdge ? (
-            <div className="grid grid-cols-2 gap-1.5 pt-0.5">
-              <label className="space-y-0.5">
-                <span className="text-[10px] text-[var(--text-muted)]">Origen</span>
-                <select
-                  value={edgeMenu.from}
-                  onChange={(event) => {
-                    const nextFrom = event.target.value;
-                    onReassignEdge(edgeMenu.from, edgeMenu.to, nextFrom, edgeMenu.to);
-                    setEdgeMenu((current) => (current ? { ...current, from: nextFrom } : null));
-                  }}
-                  className="mono h-7 w-full rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-1 text-[11px] text-[var(--text-primary)]"
-                >
-                  {project.states.map((state) => (
-                    <option key={state.id} value={state.id}>
-                      {state.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="space-y-0.5">
-                <span className="text-[10px] text-[var(--text-muted)]">Destino</span>
-                <select
-                  value={edgeMenu.to}
-                  onChange={(event) => {
-                    const nextTo = event.target.value;
-                    onReassignEdge(edgeMenu.from, edgeMenu.to, edgeMenu.from, nextTo);
-                    setEdgeMenu((current) => (current ? { ...current, to: nextTo } : null));
-                  }}
-                  className="mono h-7 w-full rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-1 text-[11px] text-[var(--text-primary)]"
-                >
-                  {project.states.map((state) => (
-                    <option key={state.id} value={state.id}>
-                      {state.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          ) : null}
-
-          {onUpdateEdgeComment ? (
-            <label className="block space-y-0.5 pt-0.5">
-              <span className="text-[10px] text-[var(--text-muted)]">Nota</span>
-              <input
-                type="text"
-                value={
-                  project.transitions.find(
-                    (item) => item.from === edgeMenu.from && item.to === edgeMenu.to && item.comment,
-                  )?.comment ?? ''
-                }
-                placeholder="Anotación opcional…"
-                onChange={(event) =>
-                  onUpdateEdgeComment(edgeMenu.from, edgeMenu.to, event.target.value)
-                }
-                className="h-7 w-full rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-2 text-[11px] text-[var(--text-primary)] focus:border-[var(--border-strong)] focus:outline-none"
-              />
-            </label>
-          ) : null}
 
           <button
             type="button"
+            role="menuitem"
             onClick={() => {
               onDeleteEdge?.(edgeMenu.from, edgeMenu.to);
               setEdgeMenu(null);
@@ -993,7 +1055,7 @@ export const GraphCanvas = forwardRef<CanvasHandle, GraphCanvasProps>(function G
             className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-[var(--accent-reject)] hover:bg-[var(--accent-reject-soft)]"
           >
             <Trash2 aria-hidden="true" className="h-3.5 w-3.5" />
-            Eliminar arista
+            Eliminar
           </button>
         </div>
       ) : null}

@@ -16,7 +16,7 @@ export interface FaSimulation {
   firedTransitionIds: string[];
   consumedCount: number;
   verdict: FaVerdict | null;
-  run: () => Promise<void>;
+  run: () => Promise<boolean>;
   fastRun: () => Promise<void>;
   stepForward: () => Promise<void>;
   stepBack: () => void;
@@ -63,7 +63,7 @@ export function useFaSimulation(project: LexoProject): FaSimulation {
     setError(null);
   }, []);
 
-  const run = useCallback(async () => {
+  const run = useCallback(async (): Promise<boolean> => {
     const current = ++generation.current;
     setBusy(true);
     setError(null);
@@ -73,12 +73,15 @@ export function useFaSimulation(project: LexoProject): FaSimulation {
       if (current === generation.current) {
         setTrace(next);
         setStepIndex(0);
+        return true;
       }
+      return false;
     } catch (caught) {
       if (current === generation.current) {
         setTrace(null);
         setError(caught instanceof Error ? caught.message : 'No se pudo simular la cadena.');
       }
+      return false;
     } finally {
       if (current === generation.current) {
         setBusy(false);
@@ -155,7 +158,11 @@ export function useFaSimulation(project: LexoProject): FaSimulation {
       return;
     }
     if (!trace) {
-      void run().then(() => setPlaying(true));
+      void run().then((ok) => {
+        if (ok) {
+          setPlaying(true);
+        }
+      });
       return;
     }
     if (stepIndex >= trace.steps.length - 1) {

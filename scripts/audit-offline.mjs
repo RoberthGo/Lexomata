@@ -25,7 +25,7 @@ const REMOTE_PATTERNS = [
   { label: 'url() remota en CSS', pattern: /url\(\s*["']?https?:\/\//gi },
   { label: '@import remoto', pattern: /@import\s+(?:url\()?["']?https?:\/\//gi },
   { label: 'fetch remoto', pattern: /\bfetch\(\s*["'`]https?:\/\//gi },
-  { label: 'CDN conocido', pattern: /\b(?:cdn\.jsdelivr\.net|unpkg\.com|cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)\b/gi },
+  { label: 'CDN conocido', pattern: /\b(?:cdn\.jsdelivr\.net|unpkg\.com|cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com|esm\.sh|cdn\.tailwindcss\.com|accounts\.google\.com\/gsi)\b/gi },
 ];
 
 function walk(directory) {

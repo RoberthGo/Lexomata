@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ChevronDown,
   ChevronLeft,
@@ -15,10 +15,10 @@ import type { FaSimulation } from '../state/useFaSimulation';
 import type { TuringSimulation } from '../state/useTuringSimulation';
 
 const SPEED_OPTIONS = [
-  { label: '0.5×', value: 900 },
-  { label: '1×', value: 650 },
-  { label: '2×', value: 420 },
-  { label: '5×', value: 220 },
+  { label: '0.5×', value: 1200 },
+  { label: '1×', value: 600 },
+  { label: '2×', value: 300 },
+  { label: '4×', value: 150 },
 ];
 
 interface SimulationProps {
@@ -71,7 +71,7 @@ export function SimulationBar({
   return (
     <div
       className={`relative ${
-        onToggleCollapse ? '[&>section>div:first-child]:sm:pr-9' : ''
+        onToggleCollapse ? '[&>section>div:first-child]:pr-9' : ''
       } ${
         position === 'top'
           ? 'border-b border-[var(--border-subtle)] [&>section]:border-t-0'
@@ -84,7 +84,7 @@ export function SimulationBar({
           onClick={onToggleCollapse}
           title="Ocultar barra de simulación"
           aria-label="Ocultar barra de simulación"
-          className="absolute right-2 top-1.5 z-10 hidden h-6 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 text-[10px] text-[var(--text-muted)] hover:bg-[var(--bg-surface-elevated)] hover:text-[var(--text-primary)] sm:flex"
+          className="absolute right-2 top-1.5 z-10 flex h-6 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 text-[10px] text-[var(--text-muted)] hover:bg-[var(--bg-surface-elevated)] hover:text-[var(--text-primary)]"
         >
           {position === 'top' ? (
             <ChevronUp aria-hidden="true" className="h-3 w-3" />
@@ -104,11 +104,13 @@ export function SimulationBar({
 
 function ControlButton({
   label,
+  title,
   onClick,
   disabled,
   children,
 }: {
   label: string;
+  title?: string;
   onClick: () => void;
   disabled?: boolean;
   children: React.ReactNode;
@@ -116,7 +118,7 @@ function ControlButton({
   return (
     <button
       type="button"
-      title={label}
+      title={title ?? label}
       aria-label={label}
       onClick={onClick}
       disabled={disabled}
@@ -199,7 +201,10 @@ function VerdictPill({
 }) {
   if (!verdict) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-[var(--radius-pill)] border border-[var(--border-subtle)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-muted)]">
+      <span
+        aria-live="polite"
+        className="inline-flex items-center gap-1 rounded-[var(--radius-pill)] border border-[var(--border-subtle)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-muted)]"
+      >
         En espera
       </span>
     );
@@ -225,6 +230,7 @@ function VerdictPill({
 
   return (
     <span
+      aria-live="polite"
       className={`inline-flex items-center gap-1 rounded-[var(--radius-pill)] border px-2 py-0.5 text-[10px] font-semibold tracking-[0.04em] ${style}`}
       data-kind={kind}
     >
@@ -270,6 +276,7 @@ function FaSimulationBar({
         </span>
         <div className="flex h-7 min-w-[150px] flex-1 items-center rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-2 sm:max-w-[260px]">
           <input
+            aria-label="Cadena de entrada"
             value={simulation.input}
             placeholder="cadena de entrada"
             onChange={(event) => simulation.setInput(event.target.value)}
@@ -291,17 +298,22 @@ function FaSimulationBar({
         </div>
 
         <div className="flex items-center gap-1">
-          <ControlButton label="Reiniciar" onClick={simulation.reset}>
+          <ControlButton label="Reiniciar" title="Reiniciar (R)" onClick={simulation.reset}>
             <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" />
           </ControlButton>
           <ControlButton
             label="Paso atrás"
+            title="Paso atrás (←)"
             onClick={simulation.stepBack}
             disabled={!trace || stepIndex === 0}
           >
             <ChevronLeft aria-hidden="true" className="h-3.5 w-3.5" />
           </ControlButton>
-          <ControlButton label={simulation.playing ? 'Pausa' : 'Reproducir'} onClick={simulation.togglePlay}>
+          <ControlButton
+            label={simulation.playing ? 'Pausa' : 'Reproducir'}
+            title={simulation.playing ? 'Pausa (Shift+Espacio)' : 'Reproducir (Shift+Espacio)'}
+            onClick={simulation.togglePlay}
+          >
             {simulation.playing ? (
               <Pause aria-hidden="true" className="h-3.5 w-3.5" />
             ) : (
@@ -310,12 +322,17 @@ function FaSimulationBar({
           </ControlButton>
           <ControlButton
             label="Paso adelante"
+            title="Paso adelante (→)"
             onClick={() => void simulation.stepForward()}
             disabled={simulation.busy}
           >
             <ChevronRight aria-hidden="true" className="h-3.5 w-3.5" />
           </ControlButton>
-          <ControlButton label="Ejecutar rápido" onClick={() => void simulation.fastRun()}>
+          <ControlButton
+            label="Ejecutar rápido"
+            title="Ejecutar rápido (Ctrl+Enter)"
+            onClick={() => void simulation.fastRun()}
+          >
             <Zap aria-hidden="true" className="h-3.5 w-3.5" />
           </ControlButton>
         </div>
@@ -389,10 +406,19 @@ function TuringSimulationBar({
 }) {
   const [editing, setEditing] = useState<number | null>(null);
   const [draft, setDraft] = useState('');
+  const headCellRef = useRef<HTMLDivElement>(null);
   const snapshot = simulation.snapshot;
   const head = snapshot?.tape.headIndex ?? 0;
   const cells = snapshot?.tape.cells ?? {};
   const inputLength = simulation.input.length;
+
+  useEffect(() => {
+    headCellRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      inline: 'center',
+      block: 'nearest',
+    });
+  }, [head]);
 
   const min = Math.min(head - 9, snapshot ? snapshot.tape.minIndex - 2 : 0, -1);
   const max = Math.max(head + 9, snapshot ? snapshot.tape.maxIndex + 2 : 0, inputLength + 1);
@@ -418,6 +444,7 @@ function TuringSimulationBar({
         </span>
         <div className="flex h-7 min-w-[150px] flex-1 items-center rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-2 sm:max-w-[230px]">
           <input
+            aria-label="Entrada inicial de la cinta"
             value={simulation.input}
             placeholder="entrada inicial"
             onChange={(event) => simulation.setInput(event.target.value)}
@@ -431,17 +458,26 @@ function TuringSimulationBar({
         </div>
 
         <div className="flex items-center gap-1">
-          <ControlButton label="Reiniciar cinta" onClick={() => void simulation.reset()}>
+          <ControlButton
+            label="Reiniciar cinta"
+            title="Reiniciar cinta (R)"
+            onClick={() => void simulation.reset()}
+          >
             <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" />
           </ControlButton>
           <ControlButton
             label="Paso atrás"
+            title="Paso atrás (←)"
             onClick={() => void simulation.stepBack()}
             disabled={simulation.busy || (snapshot?.stepIndex ?? 0) === 0}
           >
             <ChevronLeft aria-hidden="true" className="h-3.5 w-3.5" />
           </ControlButton>
-          <ControlButton label={simulation.playing ? 'Pausa' : 'Reproducir'} onClick={simulation.togglePlay}>
+          <ControlButton
+            label={simulation.playing ? 'Pausa' : 'Reproducir'}
+            title={simulation.playing ? 'Pausa (Shift+Espacio)' : 'Reproducir (Shift+Espacio)'}
+            onClick={simulation.togglePlay}
+          >
             {simulation.playing ? (
               <Pause aria-hidden="true" className="h-3.5 w-3.5" />
             ) : (
@@ -450,12 +486,17 @@ function TuringSimulationBar({
           </ControlButton>
           <ControlButton
             label="Paso adelante"
+            title="Paso adelante (→)"
             onClick={() => void simulation.stepForward()}
             disabled={simulation.busy || snapshot?.status === 'ACCEPTED' || snapshot?.status === 'REJECTED'}
           >
             <ChevronRight aria-hidden="true" className="h-3.5 w-3.5" />
           </ControlButton>
-          <ControlButton label="Ejecutar rápido" onClick={() => void simulation.fastRun()}>
+          <ControlButton
+            label="Ejecutar rápido"
+            title="Ejecutar rápido (Ctrl+Enter)"
+            onClick={() => void simulation.fastRun()}
+          >
             <Zap aria-hidden="true" className="h-3.5 w-3.5" />
           </ControlButton>
         </div>
@@ -471,16 +512,20 @@ function TuringSimulationBar({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 px-3 pb-2">
-        <div className="flex min-h-[38px] flex-wrap items-center gap-1">
-          <span className="mono text-[10px] text-[var(--text-muted)]">…</span>
+        <div className="flex min-h-[46px] min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-x-auto pb-0.5">
+          <span className="mono shrink-0 text-[10px] text-[var(--text-muted)]">…</span>
           {indices.map((index) => {
             const symbol = cells[String(index)] ?? project.config.blankSymbol;
             const isHead = index === head;
             return (
-              <div key={index} className="flex flex-col items-center">
+              <div
+                key={index}
+                ref={isHead ? headCellRef : undefined}
+                className="flex shrink-0 flex-col items-center"
+              >
                 <button
                   type="button"
-                  title={`Celda ${index} · doble clic para editar`}
+                  title={`Celda ${index} · Clic en cabezal o doble clic para editar`}
                   onClick={() => {
                     if (isHead) {
                       setEditing(index);
@@ -525,7 +570,7 @@ function TuringSimulationBar({
               </div>
             );
           })}
-          <span className="mono text-[10px] text-[var(--text-muted)]">…</span>
+          <span className="mono shrink-0 text-[10px] text-[var(--text-muted)]">…</span>
         </div>
 
         <div className="ml-auto flex flex-wrap items-center gap-2 text-[10px] text-[var(--text-secondary)]">

@@ -5,13 +5,16 @@ import { createId } from '../model/project';
 import {
   clearAccessToken,
   downloadDriveProject,
+  findMatchingDriveFile,
   getGoogleClientId,
+  getLastSyncedRemoteModifiedTime,
   getStoredAccessToken,
   hasSyncConflict,
   isDriveConfigured,
   isOnline,
   listDriveProjects,
   setGoogleClientId,
+  setLastSyncedRemoteModifiedTime,
   startDriveSignIn,
   uploadDriveProject,
   type DriveConflictInfo,
@@ -97,9 +100,9 @@ export function DriveSyncDialog({
     setBusy(true);
     setError(null);
     try {
-      const expectedName = `${project.name.trim() || 'proyecto'}.lexo`;
-      const existing = files.find((item) => item.name === expectedName);
-      if (existing && hasSyncConflict(project.updatedAt, existing.modifiedTime)) {
+      const existing = findMatchingDriveFile(files, project);
+      const lastSynced = getLastSyncedRemoteModifiedTime(project.id);
+      if (existing && hasSyncConflict(project.updatedAt, existing.modifiedTime, lastSynced)) {
         const remoteProject = await downloadDriveProject(token, existing.id);
         setConflict({
           fileId: existing.id,
@@ -129,7 +132,11 @@ export function DriveSyncDialog({
     setError(null);
     try {
       const remoteProject = await downloadDriveProject(token, file.id);
-      if (remoteProject.id === project.id && hasSyncConflict(project.updatedAt, file.modifiedTime)) {
+      const lastSynced = getLastSyncedRemoteModifiedTime(remoteProject.id);
+      if (
+        remoteProject.id === project.id &&
+        hasSyncConflict(project.updatedAt, file.modifiedTime, lastSynced)
+      ) {
         setConflict({
           fileId: file.id,
           fileName: file.name,
@@ -139,6 +146,7 @@ export function DriveSyncDialog({
         });
         return;
       }
+      setLastSyncedRemoteModifiedTime(remoteProject.id, file.modifiedTime);
       onLoadProject(remoteProject);
       onNotify(`Cargado desde Drive: ${file.name}`);
       onClose();
@@ -276,11 +284,17 @@ export function DriveSyncDialog({
                     return;
                   }
                   setBusy(true);
+                  setError(null);
                   void uploadDriveProject(token, conflict.localProject, conflict.fileId)
                     .then(() => {
                       setConflict(null);
                       onNotify('Se conservó y subió la versión local.');
                       return refresh(token);
+                    })
+                    .catch((err) => {
+                      setError(
+                        err instanceof Error ? err.message : 'Error al subir a Google Drive.',
+                      );
                     })
                     .finally(() => setBusy(false));
                 }}
@@ -289,6 +303,10 @@ export function DriveSyncDialog({
               </SecondaryButton>
               <SecondaryButton
                 onClick={() => {
+                  setLastSyncedRemoteModifiedTime(
+                    conflict.remoteProject.id,
+                    conflict.remoteModifiedTime,
+                  );
                   onLoadProject(conflict.remoteProject);
                   setConflict(null);
                   onNotify('Se cargó la versión de Google Drive.');

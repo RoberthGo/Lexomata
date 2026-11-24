@@ -246,19 +246,6 @@ export function ExportDialog({ project, selection, onClose, onNotify }: ExportDi
               Incluir tabla Multi-Run ({project.testCases.length})
             </label>
           ) : null}
-
-          <button
-            type="button"
-            onClick={() => void copyTikz()}
-            className="ml-auto flex h-7 items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 text-[10px] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
-          >
-            {copied ? (
-              <Check aria-hidden="true" className="h-3 w-3 text-[var(--accent-accept)]" />
-            ) : (
-              <Copy aria-hidden="true" className="h-3 w-3" />
-            )}
-            Copiar TikZ
-          </button>
         </div>
 
         <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-muted)]">
@@ -271,8 +258,24 @@ export function ExportDialog({ project, selection, onClose, onNotify }: ExportDi
         </div>
 
         <details className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)]">
-          <summary className="cursor-pointer px-2 py-1.5 text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--text-muted)]">
-            Código TikZ
+          <summary className="flex cursor-pointer items-center justify-between gap-2 px-2 py-1.5 text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--text-muted)]">
+            <span>Código TikZ</span>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                void copyTikz();
+              }}
+              className="flex h-6 items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 text-[10px] normal-case tracking-normal text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+            >
+              {copied ? (
+                <Check aria-hidden="true" className="h-3 w-3 text-[var(--accent-accept)]" />
+              ) : (
+                <Copy aria-hidden="true" className="h-3 w-3" />
+              )}
+              Copiar TikZ
+            </button>
           </summary>
           <pre className="mono max-h-48 overflow-auto border-t border-[var(--border-subtle)] p-2 text-[10px] text-[var(--text-primary)]">
             {tikz}

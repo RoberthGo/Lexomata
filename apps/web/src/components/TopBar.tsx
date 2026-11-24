@@ -4,7 +4,6 @@ import {
   CheckCircle2,
   ChevronDown,
   Cloud,
-  Code2,
   Download,
   FileJson,
   FilePlus2,
@@ -22,6 +21,7 @@ import {
   Save,
   SlidersHorizontal,
   Sun,
+  SunDim,
   Undo2,
   Wand2,
 } from 'lucide-react';
@@ -44,6 +44,7 @@ interface TopBarProps {
   onRedo: () => void;
   onToggleTheme: () => void;
   onToggleInspector: () => void;
+  onOpenDiagnostics?: () => void;
   onOpenDrive?: () => void;
   onOpenPrefs?: () => void;
   onOpenHistory?: () => void;
@@ -52,6 +53,7 @@ interface TopBarProps {
   onOpenLexo: () => void;
   onOpenJff: () => void;
   onSaveLexo: () => void;
+  onSaveLexoAs?: () => void;
   onExportJff: () => void;
   onOpenExport: () => void;
   onLoadExample: (entry: ExampleEntry) => void;
@@ -81,6 +83,7 @@ export function TopBar({
   onRedo,
   onToggleTheme,
   onToggleInspector,
+  onOpenDiagnostics,
   onOpenDrive,
   onOpenPrefs,
   onOpenHistory,
@@ -89,6 +92,7 @@ export function TopBar({
   onOpenLexo,
   onOpenJff,
   onSaveLexo,
+  onSaveLexoAs,
   onExportJff,
   onOpenExport,
   onLoadExample,
@@ -138,6 +142,8 @@ export function TopBar({
       <div className="relative">
         <button
           type="button"
+          aria-expanded={openMenu === 'file'}
+          aria-haspopup="menu"
           onClick={() => setOpenMenu((current) => (current === 'file' ? null : 'file'))}
           className={`flex h-7 items-center gap-1 rounded-[var(--radius-sm)] px-2 text-[12px] transition-colors ${
             openMenu === 'file'
@@ -150,17 +156,25 @@ export function TopBar({
         </button>
 
         {openMenu === 'file' ? (
-          <div className="surface-panel absolute left-0 top-8 w-64 p-1">
+          <div role="menu" className="surface-panel absolute left-0 top-8 w-64 p-1">
             <MenuItem icon={FilePlus2} label="Nuevo proyecto" shortcut="Ctrl N" onClick={() => run(onNew)} />
-            <MenuItem icon={FolderOpen} label="Abrir .lexo" onClick={() => run(onOpenLexo)} />
+            <MenuItem icon={FolderOpen} label="Abrir .lexo" shortcut="Ctrl O" onClick={() => run(onOpenLexo)} />
             <MenuItem icon={FolderOpen} label="Importar .jff (JFLAP)" onClick={() => run(onOpenJff)} />
             <MenuItem icon={Save} label="Guardar .lexo" shortcut="Ctrl S" onClick={() => run(onSaveLexo)} />
+            {onSaveLexoAs ? (
+              <MenuItem
+                icon={Save}
+                label="Guardar como…"
+                shortcut="Ctrl Shift S"
+                onClick={() => run(onSaveLexoAs)}
+              />
+            ) : null}
             {onOpenHistory ? (
               <MenuItem icon={History} label="Historial de versiones…" onClick={() => run(onOpenHistory)} />
             ) : null}
             <MenuItem icon={Download} label="Exportar .jff" onClick={() => run(onExportJff)} />
             <div className="my-1 border-t border-[var(--border-subtle)]" />
-            <MenuItem icon={Image} label="Exportar SVG / PNG / TikZ" onClick={() => run(onOpenExport)} />
+            <MenuItem icon={Image} label="Exportar SVG / PNG / TikZ" shortcut="Ctrl E" onClick={() => run(onOpenExport)} />
             <div className="my-1 border-t border-[var(--border-subtle)]" />
             <p className="px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
               Ejemplos integrados
@@ -170,6 +184,7 @@ export function TopBar({
                 <button
                   key={entry.id}
                   type="button"
+                  role="menuitem"
                   onClick={() => run(() => onLoadExample(entry))}
                   className="flex w-full items-center justify-between gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 text-left text-[11px] text-[var(--text-secondary)] hover:bg-[var(--bg-surface-elevated)] hover:text-[var(--text-primary)]"
                 >
@@ -187,6 +202,8 @@ export function TopBar({
       <div className="relative">
         <button
           type="button"
+          aria-expanded={openMenu === 'tools'}
+          aria-haspopup="menu"
           onClick={() => setOpenMenu((current) => (current === 'tools' ? null : 'tools'))}
           className={`flex h-7 items-center gap-1 rounded-[var(--radius-sm)] px-2 text-[12px] transition-colors ${
             openMenu === 'tools'
@@ -200,7 +217,7 @@ export function TopBar({
         </button>
 
         {openMenu === 'tools' ? (
-          <div className="surface-panel absolute left-0 top-8 w-64 p-1">
+          <div role="menu" className="surface-panel absolute left-0 top-8 w-64 p-1">
             <MenuItem
               icon={Network}
               label="AFN → AFD"
@@ -269,9 +286,7 @@ export function TopBar({
         <ValidationBadge
           validation={validation}
           error={validationError}
-          onClick={() => {
-            onToggleInspector();
-          }}
+          onClick={() => (onOpenDiagnostics ? onOpenDiagnostics() : onToggleInspector())}
           inspectorOpen={inspectorOpen}
         />
 
@@ -290,21 +305,37 @@ export function TopBar({
           </IconButton>
         ) : null}
 
+        {onOpenShortcuts ? (
+          <IconButton
+            label="Atajos de teclado"
+            title="Atajos de teclado (?)"
+            onClick={onOpenShortcuts}
+          >
+            <Keyboard aria-hidden="true" className="h-3.5 w-3.5" />
+          </IconButton>
+        ) : null}
+
         {onOpenPrefs ? (
           <IconButton label="Personalizar interfaz" onClick={onOpenPrefs}>
             <SlidersHorizontal aria-hidden="true" className="h-3.5 w-3.5" />
           </IconButton>
         ) : null}
 
-        <IconButton label="Cambiar tema" onClick={onToggleTheme}>
+        <IconButton
+          label="Cambiar tema"
+          title={`Tema: ${theme === 'dark' ? 'Oscuro' : theme === 'soft-light' ? 'Claro suave' : 'Claro'}`}
+          onClick={onToggleTheme}
+        >
           {theme === 'dark' ? (
-            <Sun aria-hidden="true" className="h-3.5 w-3.5" />
-          ) : (
             <Moon aria-hidden="true" className="h-3.5 w-3.5" />
+          ) : theme === 'soft-light' ? (
+            <SunDim aria-hidden="true" className="h-3.5 w-3.5" />
+          ) : (
+            <Sun aria-hidden="true" className="h-3.5 w-3.5" />
           )}
         </IconButton>
 
-        <IconButton label="Inspector" onClick={onToggleInspector} active={inspectorOpen}>
+        <IconButton label="Inspector" title="Inspector (Ctrl+B)" onClick={onToggleInspector} active={inspectorOpen}>
           <PanelRight aria-hidden="true" className="h-3.5 w-3.5" />
         </IconButton>
 
@@ -313,7 +344,7 @@ export function TopBar({
           onClick={onOpenExport}
           className="hidden h-7 items-center gap-1 rounded-[var(--radius-sm)] bg-[var(--accent-selection)] px-2 text-[11px] font-medium text-white hover:opacity-90 sm:flex"
         >
-          <Code2 aria-hidden="true" className="h-3 w-3" />
+          <Download aria-hidden="true" className="h-3 w-3" />
           Exportar
         </button>
       </div>
@@ -449,6 +480,7 @@ function MenuItem({
   return (
     <button
       type="button"
+      role="menuitem"
       onClick={onClick}
       disabled={disabled}
       className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 text-left text-[11px] text-[var(--text-secondary)] hover:bg-[var(--bg-surface-elevated)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
@@ -467,12 +499,14 @@ function MenuItem({
 
 function IconButton({
   label,
+  title,
   onClick,
   disabled,
   active,
   children,
 }: {
   label: string;
+  title?: string;
   onClick: () => void;
   disabled?: boolean;
   active?: boolean;
@@ -481,7 +515,7 @@ function IconButton({
   return (
     <button
       type="button"
-      title={label}
+      title={title ?? label}
       aria-label={label}
       onClick={onClick}
       disabled={disabled}

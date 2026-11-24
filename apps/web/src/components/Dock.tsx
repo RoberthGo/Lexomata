@@ -81,7 +81,7 @@ export function Dock({
 
       <button
         type="button"
-        title="Acercar"
+        title="Acercar (+)"
         aria-label="Acercar"
         onClick={onZoomIn}
         className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-sm)] text-[var(--text-secondary)] hover:bg-[var(--bg-surface-elevated)] hover:text-[var(--text-primary)] lg:h-7 lg:w-8"
@@ -90,7 +90,7 @@ export function Dock({
       </button>
       <button
         type="button"
-        title="Alejar"
+        title="Alejar (-)"
         aria-label="Alejar"
         onClick={onZoomOut}
         className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-sm)] text-[var(--text-secondary)] hover:bg-[var(--bg-surface-elevated)] hover:text-[var(--text-primary)] lg:h-7 lg:w-8"

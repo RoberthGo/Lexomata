@@ -117,6 +117,8 @@ pub struct Transition {
     #[serde(default)]
     pub curve_offset: f64,
     pub rule: TransitionRule,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub comment: Option<String>,
 }
 
 /// Configuración global de la máquina.

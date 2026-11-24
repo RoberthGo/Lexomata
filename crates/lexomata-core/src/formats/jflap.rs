@@ -184,6 +184,7 @@ fn import_fa(automaton: Node<'_, '_>) -> Result<LexoProject, EngineError> {
             to,
             curve_offset: 0.0,
             rule: TransitionRule::Fa { symbol },
+            comment: None,
         });
     }
 
@@ -260,6 +261,7 @@ fn import_turing(automaton: Node<'_, '_>) -> Result<LexoProject, EngineError> {
                     r#move: movement,
                 }],
             },
+            comment: None,
         });
     }
 

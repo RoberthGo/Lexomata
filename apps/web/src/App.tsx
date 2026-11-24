@@ -30,12 +30,14 @@ import {
   createId,
   createProject,
   invertEdgeGroup,
+  markInitial,
   normalizeProject,
   projectFileName,
   reassignEdgeGroup,
   removeStates,
   removeTransitions,
   setFaStrictMode,
+  toggleAccepting,
   touchProject,
   updateEdgeGroupComment,
   updateState,
@@ -67,6 +69,16 @@ interface Toast {
   tone: 'info' | 'error';
 }
 
+function projectSnapshotSignature(current: LexoProject): string {
+  return JSON.stringify({
+    id: current.id,
+    machineType: current.machineType,
+    states: current.states,
+    transitions: current.transitions,
+    config: current.config,
+  });
+}
+
 export function App() {
   const store = useProjectStore();
   const { project } = store;
@@ -92,9 +104,18 @@ export function App() {
   const draggingRef = useRef(false);
   const toastTimer = useRef<number | null>(null);
   const restoredRef = useRef(false);
+  const userEditedRef = useRef(false);
   const projectRef = useRef(project);
   projectRef.current = project;
   const lastSnapshotSignatureRef = useRef('');
+
+  const commitProject = useCallback(
+    (updater: (current: LexoProject) => LexoProject) => {
+      userEditedRef.current = true;
+      store.commit(updater);
+    },
+    [store],
+  );
 
   const notify = useCallback((message: string, tone: 'info' | 'error' = 'info') => {
     setToast({ message, tone });
@@ -135,9 +156,11 @@ export function App() {
         const lastId = await getLastProjectId();
         if (lastId && !cancelled) {
           const saved = await loadProjectLocal(lastId);
-          if (saved && !cancelled && !restoredRef.current) {
+          if (saved && !cancelled && !restoredRef.current && !userEditedRef.current) {
             restoredRef.current = true;
-            store.resetProject(normalizeProject(saved));
+            const normalized = normalizeProject(saved);
+            lastSnapshotSignatureRef.current = projectSnapshotSignature(normalized);
+            store.resetProject(normalized);
           }
         }
         const recent = await listRecentProjects(8);
@@ -206,13 +229,7 @@ export function App() {
       if (current.states.length <= 1 && current.transitions.length === 0) {
         return;
       }
-      const signature = JSON.stringify({
-        id: current.id,
-        machineType: current.machineType,
-        states: current.states,
-        transitions: current.transitions,
-        config: current.config,
-      });
+      const signature = projectSnapshotSignature(current);
       if (signature === lastSnapshotSignatureRef.current) {
         return;
       }
@@ -227,6 +244,8 @@ export function App() {
 
   const loadProject = useCallback(
     (next: LexoProject) => {
+      userEditedRef.current = true;
+      lastSnapshotSignatureRef.current = projectSnapshotSignature(next);
       store.resetProject(next);
       setSelection({ kind: 'none' });
       setTool('select');
@@ -270,35 +289,41 @@ export function App() {
 
   const handleToggleFaStrict = useCallback(() => {
     const nextStrict = project.machineType !== 'DFA';
-    store.commit((current) => setFaStrictMode(current, nextStrict));
+    commitProject((current) => setFaStrictMode(current, nextStrict));
     notify(
       nextStrict
         ? 'Modo estricto AFD activado.'
         : 'Modo flexible AFN activado (permite ε y múltiples aristas).',
     );
-  }, [project.machineType, store, notify]);
+  }, [project.machineType, commitProject, notify]);
 
   const handleCreateState = useCallback(
     (x: number, y: number) => {
-      const result = addState(project, x, y);
-      store.commit(() => result.project);
-      setSelection({ kind: 'state', id: result.stateId });
+      let createdId = '';
+      commitProject((current) => {
+        const result = addState(current, x, y);
+        createdId = result.stateId;
+        return result.project;
+      });
+      if (createdId) {
+        setSelection({ kind: 'state', id: createdId });
+      }
     },
-    [project, store],
+    [commitProject],
   );
 
   const handleCreateTransition = useCallback(
     (from: string, to: string) => {
-      const result = addTransition(project, from, to);
-      store.commit(() => result.project);
+      commitProject((current) => addTransition(current, from, to).project);
       setSelection({ kind: 'edge', from, to });
       setInspectorTab('properties');
     },
-    [project, store],
+    [commitProject],
   );
 
   const handleMoveState = useCallback(
     (id: string, x: number, y: number, final: boolean) => {
+      userEditedRef.current = true;
       if (final) {
         if (draggingRef.current) {
           store.endTransaction();
@@ -318,9 +343,9 @@ export function App() {
 
   const deleteSelection = useCallback(() => {
     if (selection.kind === 'state') {
-      store.commit((current) => removeStates(current, [selection.id]));
+      commitProject((current) => removeStates(current, [selection.id]));
     } else if (selection.kind === 'edge') {
-      store.commit((current) =>
+      commitProject((current) =>
         removeTransitions(
           current,
           current.transitions
@@ -335,26 +360,47 @@ export function App() {
       return;
     }
     setSelection({ kind: 'none' });
-  }, [selection, store]);
+  }, [selection, commitProject]);
 
   const handleDeleteState = useCallback(
     (id: string) => {
-      store.commit((current) => removeStates(current, [id]));
+      commitProject((current) => removeStates(current, [id]));
       setSelection({ kind: 'none' });
     },
-    [store],
+    [commitProject],
   );
 
   const handleRename = useCallback(
     (name: string) => {
-      store.commit((current) => touchProject({ ...current, name }));
+      commitProject((current) => touchProject({ ...current, name }));
     },
-    [store],
+    [commitProject],
   );
+
+  const handleOpenDiagnostics = useCallback(() => {
+    setInspectorOpen(true);
+    setInspectorTab('properties');
+    setSelection({ kind: 'none' });
+  }, []);
 
   const saveLexo = useCallback(async () => {
     try {
       const saved = await fileService.saveCurrentFile(
+        projectFileName(project, 'lexo'),
+        JSON.stringify(project, null, 2),
+        'application/json',
+      );
+      if (saved) {
+        notify('Proyecto guardado como .lexo.');
+      }
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'No se pudo guardar el archivo.', 'error');
+    }
+  }, [project, notify]);
+
+  const saveLexoAs = useCallback(async () => {
+    try {
+      const saved = await fileService.saveFile(
         projectFileName(project, 'lexo'),
         JSON.stringify(project, null, 2),
         'application/json',
@@ -392,7 +438,7 @@ export function App() {
       }
       const parsed: unknown = JSON.parse(opened.content);
       const next = normalizeProject(parsed);
-      loadProject({ ...next, id: createId('project') });
+      loadProject(next);
       notify(`Abierto: ${opened.name}`);
     } catch (error) {
       notify(
@@ -471,6 +517,10 @@ export function App() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (dialog !== null || transformationReport !== null) {
+        return;
+      }
+
       const target = event.target as HTMLElement | null;
       if (
         target?.closest('input, textarea, select, [contenteditable="true"]') ||
@@ -481,6 +531,7 @@ export function App() {
 
       const modifier = event.ctrlKey || event.metaKey;
       const key = event.key.toLowerCase();
+      const activeSim = isTuring(projectRef.current.machineType) ? tm : fa;
 
       if (modifier && key === 'z') {
         event.preventDefault();
@@ -502,7 +553,29 @@ export function App() {
 
       if (modifier && key === 's') {
         event.preventDefault();
-        saveLexo();
+        if (event.shiftKey) {
+          void saveLexoAs();
+        } else {
+          void saveLexo();
+        }
+        return;
+      }
+
+      if (modifier && key === 'o') {
+        event.preventDefault();
+        void openLexo();
+        return;
+      }
+
+      if (modifier && key === 'e') {
+        event.preventDefault();
+        setDialog('export');
+        return;
+      }
+
+      if (modifier && key === 'b') {
+        event.preventDefault();
+        setInspectorOpen((current) => !current);
         return;
       }
 
@@ -518,11 +591,91 @@ export function App() {
         return;
       }
 
+      if (modifier && event.key === 'Enter') {
+        event.preventDefault();
+        void activeSim.fastRun();
+        return;
+      }
+
+      if (modifier && key === 'd') {
+        if (selection.kind === 'state') {
+          event.preventDefault();
+          let duplicatedId: string | null = null;
+          commitProject((current) => {
+            const source = current.states.find((state) => state.id === selection.id);
+            if (!source) {
+              return current;
+            }
+            const added = addState(current, source.x + 40, source.y + 40);
+            duplicatedId = added.stateId;
+            return updateState(added.project, added.stateId, {
+              isAccepting: source.isAccepting,
+              comment: source.comment,
+            });
+          });
+          if (duplicatedId) {
+            setSelection({ kind: 'state', id: duplicatedId });
+          }
+        }
+        return;
+      }
+
       if (modifier) {
         return;
       }
 
-      if (key === 'v') {
+      if (event.altKey) {
+        if (event.key === '1') {
+          event.preventDefault();
+          setInspectorOpen(true);
+          setInspectorTab('properties');
+        } else if (event.key === '2') {
+          event.preventDefault();
+          setInspectorOpen(true);
+          setInspectorTab('delta');
+        } else if (event.key === '3') {
+          event.preventDefault();
+          setInspectorOpen(true);
+          setInspectorTab('formal');
+        } else if (event.key === '4') {
+          event.preventDefault();
+          setInspectorOpen(true);
+          setInspectorTab('batch');
+        }
+        return;
+      }
+
+      if (event.shiftKey && event.code === 'Space') {
+        event.preventDefault();
+        activeSim.togglePlay();
+        return;
+      }
+
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        void activeSim.stepForward();
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        void activeSim.stepBack();
+      } else if (key === 'r') {
+        event.preventDefault();
+        void activeSim.reset();
+      } else if (event.key === '+' || event.key === '=') {
+        event.preventDefault();
+        canvasRef.current?.zoomIn();
+      } else if (event.key === '-') {
+        event.preventDefault();
+        canvasRef.current?.zoomOut();
+      } else if (event.key === '1') {
+        event.preventDefault();
+        canvasRef.current?.fit();
+      } else if (key === 'a' && selection.kind === 'state') {
+        event.preventDefault();
+        commitProject((current) => toggleAccepting(current, selection.id));
+      } else if (key === 'i' && selection.kind === 'state') {
+        event.preventDefault();
+        commitProject((current) => markInitial(current, selection.id));
+      } else if (key === 'v') {
         setTool('select');
       } else if (key === 's') {
         setTool('state');
@@ -544,7 +697,19 @@ export function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [store, saveLexo, deleteSelection]);
+  }, [
+    dialog,
+    transformationReport,
+    store,
+    commitProject,
+    saveLexo,
+    saveLexoAs,
+    openLexo,
+    deleteSelection,
+    selection,
+    fa,
+    tm,
+  ]);
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-[var(--bg-canvas)] text-[var(--text-primary)]">
@@ -575,10 +740,12 @@ export function App() {
         onOpenPrefs={() => setDialog('prefs')}
         onOpenHistory={() => setDialog('history')}
         onOpenShortcuts={() => setDialog('shortcuts')}
+        onOpenDiagnostics={handleOpenDiagnostics}
         onNew={() => setDialog('new')}
         onOpenLexo={() => void openLexo()}
         onOpenJff={() => void openJff()}
         onSaveLexo={saveLexo}
+        onSaveLexoAs={() => void saveLexoAs()}
         onExportJff={() => void saveJflap()}
         onOpenExport={() => setDialog('export')}
         onLoadExample={(entry) => {
@@ -626,27 +793,37 @@ export function App() {
               onCreateTransition={handleCreateTransition}
               onMoveState={handleMoveState}
               onDeleteState={handleDeleteState}
+              onMarkInitialState={(id) => {
+                commitProject((current) => markInitial(current, id));
+              }}
+              onToggleAcceptingState={(id) => {
+                commitProject((current) => toggleAccepting(current, id));
+              }}
               onEditEdge={(from, to) => {
                 setSelection({ kind: 'edge', from, to });
                 setInspectorTab('properties');
                 setInspectorOpen(true);
               }}
               onInvertEdge={(from, to) => {
-                store.commit((current) => invertEdgeGroup(current, from, to));
+                commitProject((current) => invertEdgeGroup(current, from, to));
                 setSelection({ kind: 'edge', from: to, to: from });
               }}
               onReassignEdge={(from, to, nextFrom, nextTo) => {
-                store.commit((current) => reassignEdgeGroup(current, from, to, nextFrom, nextTo));
+                commitProject((current) => reassignEdgeGroup(current, from, to, nextFrom, nextTo));
                 setSelection({ kind: 'edge', from: nextFrom, to: nextTo });
               }}
               onUpdateEdgeComment={(from, to, comment) => {
-                store.commit((current) => updateEdgeGroupComment(current, from, to, comment));
+                commitProject((current) => updateEdgeGroupComment(current, from, to, comment));
               }}
               onDeleteEdge={(from, to) => {
-                const ids = project.transitions
-                  .filter((transition) => transition.from === from && transition.to === to)
-                  .map((transition) => transition.id);
-                store.commit((current) => removeTransitions(current, ids));
+                commitProject((current) =>
+                  removeTransitions(
+                    current,
+                    current.transitions
+                      .filter((transition) => transition.from === from && transition.to === to)
+                      .map((transition) => transition.id),
+                  ),
+                );
                 setSelection({ kind: 'none' });
               }}
             />
@@ -690,7 +867,7 @@ export function App() {
                 width={prefs.inspectorWidth}
                 onResizeWidth={(inspectorWidth) => updatePrefs({ inspectorWidth })}
                 onTabChange={setInspectorTab}
-                onCommit={store.commit}
+                onCommit={commitProject}
                 onSelect={setSelection}
                 onFocusState={(stateId) => canvasRef.current?.centerOnState(stateId)}
                 onClose={() => setInspectorOpen(false)}
@@ -826,12 +1003,12 @@ export function App() {
 
       {toast ? (
         <div
-          className={`fixed bottom-4 right-4 z-50 flex max-w-sm items-start gap-2 rounded-[var(--radius-md)] border px-3 py-2 text-[12px] shadow-[var(--shadow-float)] ${
+          className={`fixed top-14 right-4 z-50 flex max-w-sm items-start gap-2 rounded-[var(--radius-md)] border px-3 py-2 text-[12px] shadow-[var(--shadow-float)] ${
             toast.tone === 'error'
               ? 'border-[var(--accent-reject)]/40 bg-[var(--bg-surface)] text-[var(--accent-reject)]'
               : 'border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)]'
           }`}
-          role="status"
+          role={toast.tone === 'error' ? 'alert' : 'status'}
         >
           {toast.tone === 'error' ? (
             <AlertTriangle aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0" />

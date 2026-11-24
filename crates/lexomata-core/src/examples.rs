@@ -31,6 +31,7 @@ fn fa_transition(id: &str, from: &str, to: &str, symbol: Option<&str>) -> Transi
         rule: TransitionRule::Fa {
             symbol: symbol.map(str::to_owned),
         },
+        comment: None,
     }
 }
 
@@ -54,6 +55,7 @@ fn tm_transition(
                 r#move: movement,
             }],
         },
+        comment: None,
     }
 }
 

@@ -12,11 +12,16 @@ const PKCE_VERIFIER_KEY = 'lexomata_gdrive_verifier';
 const PKCE_STATE_KEY = 'lexomata_gdrive_state';
 const TOKEN_STORAGE_KEY = 'lexomata_gdrive_token';
 const CLIENT_ID_STORAGE_KEY = 'lexomata_gdrive_client_id';
+const SYNC_STATE_STORAGE_KEY = 'lexomata_gdrive_sync_state';
 
 export interface DriveFileSummary {
   id: string;
   name: string;
   modifiedTime: string;
+  appProperties?: {
+    schemaVersion?: string;
+    lexomataId?: string;
+  };
 }
 
 export interface DriveConflictInfo {
@@ -292,11 +297,66 @@ export async function ensureLexomataFolder(token: string): Promise<string> {
 
 export async function listDriveProjects(token: string): Promise<DriveFileSummary[]> {
   const query = encodeURIComponent("name contains '.lexo' and trashed = false");
-  const url = `${DRIVE_FILES_URL}?q=${query}&fields=files(id,name,modifiedTime)&orderBy=modifiedTime desc&pageSize=30`;
+  const url = `${DRIVE_FILES_URL}?q=${query}&fields=files(id,name,modifiedTime,appProperties)&orderBy=modifiedTime desc&pageSize=30`;
   const data = (await (await driveFetch(url, token)).json()) as {
     files?: DriveFileSummary[];
   };
   return data.files ?? [];
+}
+
+export function findMatchingDriveFile(
+  files: DriveFileSummary[],
+  project: Pick<LexoProject, 'id' | 'name'>,
+): DriveFileSummary | undefined {
+  const byId = files.find((item) => item.appProperties?.lexomataId === project.id);
+  if (byId) {
+    return byId;
+  }
+  const expectedName = `${project.name.trim() || 'proyecto'}.lexo`;
+  return files.find((item) => item.name === expectedName);
+}
+
+function readSyncStateMap(): Record<string, string> {
+  try {
+    if (typeof localStorage === 'undefined') {
+      return {};
+    }
+    const raw = localStorage.getItem(SYNC_STATE_STORAGE_KEY);
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw) as unknown;
+    return typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function getLastSyncedRemoteModifiedTime(projectId: string): string | null {
+  return readSyncStateMap()[projectId] ?? null;
+}
+
+export function setLastSyncedRemoteModifiedTime(projectId: string, modifiedTime: string): void {
+  try {
+    if (typeof localStorage === 'undefined') {
+      return;
+    }
+    const map = readSyncStateMap();
+    map[projectId] = modifiedTime;
+    localStorage.setItem(SYNC_STATE_STORAGE_KEY, JSON.stringify(map));
+  } catch {
+    // localStorage opcional.
+  }
+}
+
+export function clearSyncState(): void {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(SYNC_STATE_STORAGE_KEY);
+    }
+  } catch {
+    // localStorage opcional.
+  }
 }
 
 export async function downloadDriveProject(token: string, fileId: string): Promise<LexoProject> {
@@ -335,8 +395,8 @@ export async function uploadDriveProject(
   ].join('\r\n');
 
   const url = existingFileId
-    ? `${DRIVE_UPLOAD_URL}/${encodeURIComponent(existingFileId)}?uploadType=multipart&fields=id,name,modifiedTime`
-    : `${DRIVE_UPLOAD_URL}?uploadType=multipart&fields=id,name,modifiedTime`;
+    ? `${DRIVE_UPLOAD_URL}/${encodeURIComponent(existingFileId)}?uploadType=multipart&fields=id,name,modifiedTime,appProperties`
+    : `${DRIVE_UPLOAD_URL}?uploadType=multipart&fields=id,name,modifiedTime,appProperties`;
 
   const response = await driveFetch(url, token, {
     method: existingFileId ? 'PATCH' : 'POST',
@@ -344,14 +404,28 @@ export async function uploadDriveProject(
     body: multipartBody,
   });
 
-  return (await response.json()) as DriveFileSummary;
+  const uploaded = (await response.json()) as DriveFileSummary;
+  if (uploaded.modifiedTime) {
+    setLastSyncedRemoteModifiedTime(project.id, uploaded.modifiedTime);
+  }
+  return uploaded;
 }
 
-export function hasSyncConflict(localUpdatedAt: string, remoteModifiedTime: string): boolean {
+export function hasSyncConflict(
+  localUpdatedAt: string,
+  remoteModifiedTime: string,
+  lastSyncedRemoteModifiedTime?: string | null,
+): boolean {
   const localMs = Date.parse(localUpdatedAt);
   const remoteMs = Date.parse(remoteModifiedTime);
   if (!Number.isFinite(localMs) || !Number.isFinite(remoteMs)) {
     return false;
+  }
+  if (lastSyncedRemoteModifiedTime) {
+    const syncedMs = Date.parse(lastSyncedRemoteModifiedTime);
+    if (Number.isFinite(syncedMs)) {
+      return Math.abs(remoteMs - syncedMs) > 2000;
+    }
   }
   return Math.abs(localMs - remoteMs) > 2000;
 }

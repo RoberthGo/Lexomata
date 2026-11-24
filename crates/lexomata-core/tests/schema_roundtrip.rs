@@ -80,6 +80,7 @@ fn tm_single_roundtrips_with_operations() {
                     r#move: lexomata_core::model::TapeMove::R,
                 }],
             },
+            comment: Some("Avanza al leer 0".to_owned()),
         }],
         test_cases: Vec::new(),
         viewport: Default::default(),
@@ -92,6 +93,21 @@ fn tm_single_roundtrips_with_operations() {
     assert!(json.contains("\"machineType\":\"TM_SINGLE\""));
     assert!(json.contains("\"operations\":[{"));
     assert!(json.contains("\"move\":\"R\""));
+    assert!(json.contains("\"comment\":\"Avanza al leer 0\""));
+    assert_eq!(
+        parsed.transitions[0].comment.as_deref(),
+        Some("Avanza al leer 0")
+    );
+}
+
+#[test]
+fn transition_comment_is_omitted_when_none_and_defaults_on_deserialize() {
+    let project = examples::binary_ending_in_01();
+    let json = serde_json::to_string(&project).expect("serializar AFD");
+    assert!(!json.contains("\"comment\""));
+
+    let parsed: LexoProject = serde_json::from_str(&json).expect("deserializar AFD");
+    assert!(parsed.transitions.iter().all(|t| t.comment.is_none()));
 }
 
 #[test]

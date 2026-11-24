@@ -1,7 +1,7 @@
 use serde::Serialize;
-use std::io::{Read, Write};
+use std::io::{ErrorKind, Read, Write};
 use std::net::TcpListener;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -69,11 +69,28 @@ pub async fn await_oauth_loopback(redirect_uri: String) -> Result<OAuthLoopbackR
 
         let listener = TcpListener::bind(&addr)
             .map_err(|error| format!("No se pudo escuchar en {addr}: {error}"))?;
-        let _ = listener.set_nonblocking(false);
+        listener
+            .set_nonblocking(true)
+            .map_err(|error| format!("No se pudo configurar loopback OAuth: {error}"))?;
 
-        let (mut stream, _) = listener
-            .accept()
-            .map_err(|error| format!("Fallo al aceptar callback OAuth: {error}"))?;
+        let deadline = Instant::now() + Duration::from_secs(120);
+        let mut stream = loop {
+            match listener.accept() {
+                Ok((stream, _)) => break stream,
+                Err(error) if error.kind() == ErrorKind::WouldBlock => {
+                    if Instant::now() >= deadline {
+                        return Err(
+                            "Tiempo de espera agotado (120s) esperando callback OAuth".to_string()
+                        );
+                    }
+                    std::thread::sleep(Duration::from_millis(50));
+                }
+                Err(error) => {
+                    return Err(format!("Fallo al aceptar callback OAuth: {error}"));
+                }
+            }
+        };
+        let _ = stream.set_nonblocking(false);
         let _ = stream.set_read_timeout(Some(Duration::from_secs(10)));
 
         let mut buffer = [0_u8; 4096];
